@@ -160,9 +160,49 @@
         }
 
         .history-list { flex: 1; overflow-y: auto; padding: 10px 15px; display: flex; flex-direction: column; gap: 5px; }
-        .history-item { padding: 10px; border-radius: 8px; cursor: pointer; font-size: 0.9rem; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: background 0.2s; }
+        .history-item { 
+            padding: 10px; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            font-size: 0.9rem; 
+            color: var(--text-main); 
+            transition: background 0.2s; 
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+        }
         .history-item:hover { background: var(--input-bg); }
         .history-item.active { background: var(--input-bg); font-weight: 600; border: 1px solid var(--primary-color); }
+        .history-item-title {
+            flex: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .history-delete-btn {
+            width: 20px;
+            height: 20px;
+            border: none;
+            background: transparent;
+            color: var(--text-sub);
+            font-size: 0.85rem;
+            cursor: pointer;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.2s, background 0.2s, color 0.2s;
+            flex-shrink: 0;
+        }
+        .history-item:hover .history-delete-btn {
+            opacity: 1;
+        }
+        .history-delete-btn:hover {
+            background: rgba(255, 0, 0, 0.1);
+            color: #e74c3c;
+        }
         
         .chat-container { flex: 1; display: flex; flex-direction: column; position: relative; min-width: 0; }
         .chat-header { padding: 10px 15px; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; background: var(--header-bg); flex-wrap: nowrap; min-height: 30px; }
@@ -199,6 +239,10 @@
         .font-btn-group { display: flex; align-items: center; background: var(--input-bg); border-radius: 15px; padding: 2px 8px; }
         .font-btn { background: none; border: none; cursor: pointer; font-size: 0.75rem; font-weight: bold; color: var(--primary-color); padding: 4px 8px; }
         .font-btn:hover { color: var(--text-main); }
+        [data-theme='dark'] .font-btn { color: #ffffff; }
+        [data-theme='dark'] .font-btn:hover { color: var(--text-sub); }
+        .theme-toggle-btn { background: none; border: none; cursor: pointer; font-size: 0.75rem; font-weight: 600; color: var(--primary-color); }
+        [data-theme='dark'] .theme-toggle-btn { color: #ffffff; }
 
         #chat-messages { flex: 1; padding: 15px; overflow-y: auto; background-color: var(--bg-color); display: flex; flex-direction: column; gap: 15px; }
         .msg-wrapper { display: flex; flex-direction: column; gap: 4px; max-width: 85%; }
@@ -336,7 +380,7 @@
                         <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
                     </svg>
                 </button>
-                <img src="sweetklogo.png" alt="SweetK Logo" class="logo-img">
+                <img src="sweetklogo.png" alt="SweetK Logo" class="logo-img" id="logo-img">
                 <h2>SweetK 멀티LLM 서비스</h2>
             </div>
             <div class="header-controls">
@@ -345,7 +389,7 @@
                     <button class="font-btn" id="font-inc" title="글자 크게">A+</button>
                 </div>
                 <div class="theme-control" style="display:flex; align-items:center; gap:6px; padding:4px 10px; border-radius:20px; background:var(--input-bg);">
-                    <button id="theme-toggle-btn" style="background:none; border:none; cursor:pointer; font-size:0.75rem; font-weight:600; color:var(--primary-color);">다크모드</button>
+                    <button id="theme-toggle-btn" class="theme-toggle-btn">다크모드</button>
                 </div>
             </div>
         </div>
@@ -397,6 +441,7 @@
         const sidebarToggleBtn = document.getElementById('sidebar-toggle-btn');
         const mobileMenuBtn = document.getElementById('mobile-menu-btn');
         const sidebarOverlay = document.getElementById('sidebar-overlay');
+        const logoImg = document.getElementById('logo-img');
 
         let conversations = JSON.parse(localStorage.getItem('sweetk_chats') || '[]');
         let currentChatId = null;
@@ -523,10 +568,43 @@
             conversations.forEach(chat => {
                 const item = document.createElement('div');
                 item.className = `history-item ${chat.id === currentChatId ? 'active' : ''}`;
-                item.textContent = chat.title;
-                item.onclick = () => loadChat(chat.id);
+                
+                const title = document.createElement('span');
+                title.className = 'history-item-title';
+                title.textContent = chat.title;
+                title.onclick = () => loadChat(chat.id);
+                
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'history-delete-btn';
+                deleteBtn.innerHTML = '✕';
+                deleteBtn.title = '삭제';
+                deleteBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    deleteChat(chat.id);
+                };
+                
+                item.appendChild(title);
+                item.appendChild(deleteBtn);
                 historyList.appendChild(item);
             });
+        }
+        
+        function deleteChat(id) {
+            if (!confirm('이 대화를 삭제하시겠습니까?')) return;
+            
+            conversations = conversations.filter(c => c.id !== id);
+            localStorage.setItem('sweetk_chats', JSON.stringify(conversations));
+            
+            // 현재 보고 있는 채팅이 삭제된 경우
+            if (currentChatId === id) {
+                if (conversations.length > 0) {
+                    loadChat(conversations[0].id);
+                } else {
+                    startNewChat();
+                }
+            } else {
+                renderHistory();
+            }
         }
 
         // 시간 포맷 함수 (오후 01:30 형식)
@@ -605,6 +683,7 @@
             const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
             document.documentElement.setAttribute('data-theme', isDark ? 'light' : 'dark');
             themeToggleBtn.textContent = isDark ? '다크모드' : '일반모드';
+            logoImg.src = isDark ? 'sweetklogo.png' : 'sweetklogo-white.png';
         };
         plusBtn.onclick = (e) => { e.stopPropagation(); plusMenu.style.display = plusMenu.style.display === 'flex' ? 'none' : 'flex'; };
         document.onclick = () => { plusMenu.style.display = 'none'; };
