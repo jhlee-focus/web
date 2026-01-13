@@ -269,11 +269,13 @@
         }
         
         .input-wrapper { position: relative; background: var(--container-bg); border-top: 1px solid var(--border-color); }
-        .chat-input-area { padding: 15px 20px; display: flex; gap: 10px; align-items: center; }
-        .plus-btn { width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--border-color); background: var(--input-bg); cursor: pointer; font-size: 1.4rem; color: var(--text-main); display: flex; align-items: center; justify-content: center; }
-        #model-select { padding: 8px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--input-bg); color: var(--text-main); }
-        #user-input { flex: 1; padding: 10px 15px; border-radius: 20px; border: 1px solid var(--border-color); outline: none; background: var(--input-bg); color: var(--text-main); }
-        #send-btn { background: var(--primary-color); color: white; border: none; width: 38px; height: 38px; border-radius: 50%; cursor: pointer; }
+        .chat-input-area { padding: 15px 20px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+        .input-row-top { display: contents; }
+        .input-row-bottom { display: contents; }
+        .plus-btn { width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--border-color); background: var(--input-bg); cursor: pointer; font-size: 1.4rem; color: var(--text-main); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        #model-select { padding: 8px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--input-bg); color: var(--text-main); flex-shrink: 0; }
+        #user-input { flex: 1; padding: 10px 15px; border-radius: 20px; border: 1px solid var(--border-color); outline: none; background: var(--input-bg); color: var(--text-main); min-width: 0; }
+        #send-btn { background: var(--primary-color); color: white; border: none; width: 38px; height: 38px; border-radius: 50%; cursor: pointer; flex-shrink: 0; }
         .loading { padding: 0 20px 8px; font-size: 0.8rem; color: var(--text-sub); display: none; }
         .active-feature-tag { background: var(--primary-color); color: white; font-size: 0.7rem; padding: 2px 8px; border-radius: 10px; display: none; margin-left: 10px; }
         .status-bar { display: flex; align-items: center; padding: 0 20px 8px; }
@@ -415,6 +417,88 @@
             .sidebar .sidebar-toggle-btn {
                 display: none;
             }
+
+            /* 모바일 헤더 컨트롤 - 세로 배치 */
+            .header-controls {
+                flex-direction: column;
+                gap: 4px;
+                align-items: flex-end;
+            }
+            
+            .font-btn-group {
+                padding: 1px 6px;
+            }
+            
+            .font-btn {
+                font-size: 0.7rem;
+                padding: 2px 6px;
+            }
+            
+            .theme-toggle-btn {
+                font-size: 0.7rem;
+            }
+            
+            .theme-control {
+                padding: 2px 8px !important;
+            }
+
+            /* 모바일 입력 영역 - 2줄 배치 */
+            .chat-input-area {
+                flex-direction: column;
+                padding: 10px 15px;
+                gap: 8px;
+            }
+            
+            .input-row-top {
+                display: flex;
+                width: 100%;
+                gap: 8px;
+                align-items: center;
+            }
+            
+            .input-row-bottom {
+                display: flex;
+                width: 100%;
+                gap: 8px;
+                align-items: center;
+            }
+            
+            #model-select {
+                padding: 6px;
+                font-size: 0.85rem;
+                flex: 1;
+            }
+            
+            #user-input {
+                flex: 1;
+                min-width: 0;
+            }
+            
+            .plus-btn {
+                width: 36px;
+                height: 36px;
+            }
+            
+            #send-btn {
+                width: 36px;
+                height: 36px;
+            }
+
+            /* 모바일에서 제목 숨김 */
+            .chat-header h2 {
+                font-size: 0.9rem;
+            }
+        }
+
+        /* 더 작은 화면 (480px 이하) */
+        @media (max-width: 480px) {
+            .chat-header h2 {
+                display: none;
+            }
+            
+            .logo-img {
+                height: 25px;
+            }
         }
     </style>
 </head>
@@ -490,16 +574,20 @@
                 <div class="plus-menu-item" id="opt-coding">💻 코딩 지원</div>
             </div>
             <div class="chat-input-area">
-                <button class="plus-btn" id="plus-btn">+</button>
-                <select id="model-select">
-                    <option value="/gpt">ChatGPT</option>
-                    <option value="/claude">Claude</option>
-                    <option value="/gemini">Gemini</option>
-                    <option value="/perplexity">Perplexity</option>
-                    <option value="/deepseek">Deepseek</option>
-                </select>
-                <input type="text" id="user-input" placeholder="메시지 입력..." autocomplete="off">
-                <button id="send-btn">➤</button>
+                <div class="input-row-top">
+                    <button class="plus-btn" id="plus-btn">+</button>
+                    <select id="model-select">
+                        <option value="/gpt">ChatGPT</option>
+                        <option value="/claude">Claude</option>
+                        <option value="/gemini">Gemini</option>
+                        <option value="/perplexity">Perplexity</option>
+                        <option value="/deepseek">Deepseek</option>
+                    </select>
+                </div>
+                <div class="input-row-bottom">
+                    <input type="text" id="user-input" placeholder="메시지 입력..." autocomplete="off">
+                    <button id="send-btn">➤</button>
+                </div>
             </div>
             <div class="disclaimer">
                 본 서비스는 생성형 AI를 기반으로 제공되기 때문에, 제공되는 답변이 완전히 정확하거나 최신 정보를 반영하지 않을 수도 있습니다. 중요한 사항은 반드시 직접 확인해주세요.
