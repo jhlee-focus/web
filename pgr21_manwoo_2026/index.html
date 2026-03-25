@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>[중요] PGR21 보완 계획 안내</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Malgun Gothic', '맑은 고딕', 'Apple SD Gothic Neo', 'Nanum Gothic', Dotum, '돋움', sans-serif;
+    background: rgba(0, 0, 0, 0.55);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 20px;
+  }
+
+  /* ── Popup Window ── */
+  .popup {
+    background: #fff;
+    width: 100%;
+    max-width: 720px;
+    border-radius: 6px;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.35), 0 2px 8px rgba(0,0,0,0.15);
+    overflow: hidden;
+    max-height: 92vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── Popup Title Bar ── */
+  .popup-titlebar {
+    background: #2b3a4e;
+    color: #fff;
+    padding: 12px 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+  }
+  .popup-titlebar .title {
+    font-size: 14px;
+    font-weight: bold;
+    letter-spacing: -0.3px;
+  }
+  .popup-titlebar .title .highlight {
+    color: #7eb8e0;
+  }
+  .popup-close {
+    width: 26px;
+    height: 26px;
+    background: rgba(255,255,255,0.15);
+    border: none;
+    border-radius: 4px;
+    color: #fff;
+    font-size: 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s;
+  }
+  .popup-close:hover {
+    background: rgba(255,255,255,0.3);
+  }
+
+  /* ── Popup Meta ── */
+  .popup-meta {
+    background: #f5f7fa;
+    border-bottom: 1px solid #e0e0e0;
+    padding: 10px 18px;
+    font-size: 11px;
+    color: #888;
+    display: flex;
+    gap: 16px;
+    flex-shrink: 0;
+  }
+  .popup-meta .author {
+    color: #2b3a4e;
+    font-weight: bold;
+  }
+
+  /* ── Scrollable Content ── */
+  .popup-content {
+    padding: 22px 22px 28px;
+    overflow-y: auto;
+    flex: 1;
+    font-size: 13.5px;
+    line-height: 1.85;
+    color: #333;
+  }
+
+  .popup-content p {
+    margin-bottom: 14px;
+  }
+  .popup-content h3 {
+    font-size: 15px;
+    font-weight: bold;
+    color: #2b3a4e;
+    margin: 26px 0 12px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid #e0e0e0;
+  }
+  .popup-content strong {
+    color: #222;
+  }
+
+  /* ── Plan Table ── */
+  .plan-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0 20px;
+    font-size: 12.5px;
+  }
+  .plan-table thead th {
+    background: #3c5068;
+    color: #fff;
+    padding: 10px 12px;
+    text-align: center;
+    font-weight: bold;
+    font-size: 12.5px;
+    border: 1px solid #2b3a4e;
+  }
+  .plan-table tbody td {
+    padding: 10px 12px;
+    border: 1px solid #ddd;
+    vertical-align: top;
+  }
+  .plan-table tbody tr:nth-child(even) {
+    background: #f9fafb;
+  }
+  .plan-table .plan-name {
+    font-weight: bold;
+    color: #2b3a4e;
+    text-align: center;
+    white-space: nowrap;
+  }
+  .plan-table .price {
+    text-align: center;
+    font-weight: bold;
+    white-space: nowrap;
+  }
+  .plan-table .price .amount {
+    color: #c0392b;
+    font-size: 14px;
+  }
+  .plan-table .price .sub {
+    font-size: 10px;
+    color: #888;
+    font-weight: normal;
+    display: block;
+    margin-top: 2px;
+  }
+  .plan-table .feature-list {
+    list-style: none;
+    padding: 0;
+  }
+  .plan-table .feature-list li {
+    padding: 2px 0;
+    position: relative;
+    padding-left: 14px;
+  }
+  .plan-table .feature-list li::before {
+    content: '✓';
+    position: absolute;
+    left: 0;
+    color: #27ae60;
+    font-weight: bold;
+  }
+  .plan-table .feature-list li.new::after {
+    content: 'NEW';
+    display: inline-block;
+    background: #e74c3c;
+    color: #fff;
+    font-size: 9px;
+    font-weight: bold;
+    padding: 1px 4px;
+    border-radius: 2px;
+    margin-left: 6px;
+    vertical-align: middle;
+  }
+
+  /* ── Token Table ── */
+  .token-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 14px 0 20px;
+    font-size: 12px;
+  }
+  .token-table th {
+    background: #f0f2f5;
+    padding: 8px 10px;
+    border: 1px solid #ddd;
+    font-weight: bold;
+    text-align: center;
+    color: #444;
+  }
+  .token-table td {
+    padding: 8px 10px;
+    border: 1px solid #ddd;
+    text-align: center;
+  }
+  .token-table .highlight {
+    background: #fff8e1;
+  }
+
+  /* ── Info Box ── */
+  .info-box {
+    background: #f0f4f8;
+    border: 1px solid #c8d8e8;
+    border-radius: 3px;
+    padding: 12px 14px;
+    margin: 14px 0;
+    font-size: 12px;
+    color: #444;
+  }
+  .info-box .label {
+    display: inline-block;
+    background: #2b3a4e;
+    color: #fff;
+    font-size: 10px;
+    font-weight: bold;
+    padding: 2px 6px;
+    border-radius: 2px;
+    margin-right: 6px;
+  }
+
+  /* ── Bot Feature Box ── */
+  .bot-section {
+    background: #fafbfc;
+    border: 1px solid #e0e0e0;
+    border-radius: 3px;
+    padding: 14px 16px;
+    margin: 16px 0;
+  }
+  .bot-section h4 {
+    font-size: 13.5px;
+    font-weight: bold;
+    color: #2b3a4e;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .bot-section h4 .badge {
+    background: #e74c3c;
+    color: #fff;
+    font-size: 9px;
+    padding: 2px 5px;
+    border-radius: 2px;
+    font-weight: bold;
+  }
+  .bot-desc {
+    font-size: 12.5px;
+    color: #555;
+    margin-bottom: 8px;
+  }
+  .bot-example {
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 10px 12px;
+    margin: 8px 0;
+    font-size: 12px;
+  }
+  .bot-example .chat-bubble {
+    display: flex;
+    gap: 8px;
+    margin: 5px 0;
+    align-items: flex-start;
+  }
+  .bot-example .chat-bubble .icon {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: bold;
+    flex-shrink: 0;
+    color: #fff;
+  }
+  .bot-example .chat-bubble .icon.user { background: #7f8c8d; }
+  .bot-example .chat-bubble .icon.bot { background: #2b3a4e; }
+  .bot-example .chat-bubble .msg {
+    background: #f5f5f5;
+    border-radius: 8px;
+    padding: 7px 11px;
+    font-size: 11.5px;
+    line-height: 1.5;
+    color: #333;
+    max-width: 85%;
+  }
+  .bot-example .chat-bubble .msg.bot-msg { background: #e8f0fe; }
+  .bot-example-label {
+    font-size: 11px;
+    color: #888;
+    font-weight: bold;
+    margin-bottom: 4px;
+  }
+
+  /* ── Divider ── */
+  .divider {
+    border: none;
+    border-top: 1px dashed #d0d0d0;
+    margin: 22px 0;
+  }
+
+  /* ── Disclaimer ── */
+  .disclaimer {
+    font-size: 11px;
+    color: #aaa;
+    line-height: 1.6;
+    margin-top: 28px;
+    padding-top: 12px;
+    border-top: 1px solid #eee;
+  }
+
+  /* ── Bottom Bar ── */
+  .popup-bottom {
+    background: #f5f7fa;
+    border-top: 1px solid #e0e0e0;
+    padding: 12px 18px;
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+  .popup-bottom .btn {
+    display: inline-block;
+    padding: 8px 28px;
+    border-radius: 3px;
+    font-size: 12px;
+    font-weight: bold;
+    text-decoration: none;
+    cursor: pointer;
+    border: none;
+    transition: background 0.15s;
+  }
+  .popup-bottom .btn-primary {
+    background: #2b3a4e;
+    color: #fff;
+  }
+  .popup-bottom .btn-primary:hover {
+    background: #3c5068;
+  }
+  .popup-bottom .btn-secondary {
+    background: #ddd;
+    color: #555;
+  }
+  .popup-bottom .btn-secondary:hover {
+    background: #ccc;
+  }
+  .popup-bottom .btn-close-text {
+    font-size: 11px;
+    color: #999;
+    display: flex;
+    align-items: center;
+  }
+
+  /* ── Scrollbar ── */
+  .popup-content::-webkit-scrollbar { width: 6px; }
+  .popup-content::-webkit-scrollbar-track { background: #f0f0f0; }
+  .popup-content::-webkit-scrollbar-thumb { background: #c0c0c0; border-radius: 3px; }
+  .popup-content::-webkit-scrollbar-thumb:hover { background: #a0a0a0; }
+
+  /* ── Responsive ── */
+  @media (max-width: 600px) {
+    body { padding: 10px; }
+    .popup { max-height: 95vh; }
+    .popup-content { padding: 16px 14px 22px; }
+    .plan-table { font-size: 11px; }
+    .plan-table thead th { padding: 8px 6px; font-size: 11px; }
+    .plan-table tbody td { padding: 8px 6px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="popup">
+  <!-- Title Bar -->
+  <div class="popup-titlebar">
+    <div class="title"><span class="highlight">PGR21</span>&nbsp; 공지사항</div>
+    <button class="popup-close" title="닫기">✕</button>
+  </div>
+
+  <!-- Meta -->
+  <div class="popup-meta">
+    <span class="author">운영진</span>
+    <span>2026.04.01 00:00</span>
+  </div>
+
+  <!-- Content -->
+  <div class="popup-content">
+
+    <p style="font-size:16px; font-weight:bold; color:#222; margin-bottom:18px;">[중요] PGR21 보완 계획 안내</p>
+
+    <p>안녕하세요, PGR21 운영진입니다.</p>
+
+    <p>
+      PGR21은 오랜 시간에 걸쳐 불완전한 형태로 운영되어 왔습니다.
+      이제 그 결함을 직시하고, 사이트를 보다 완전한 형태로 보완하기 위한 계획을 실행에 옮기고자 합니다.
+      아래의 보완 계획을 안내드립니다.
+    </p>
+
+    <h3>1. 사이트 명칭 변경</h3>
+    <p>
+      <strong>2026년 4월 8일(수)</strong>부터 사이트 명칭이 <strong>PGR21</strong>에서 <strong>GPT21</strong>로 변경됩니다.
+    </p>
+    <p>
+      생성형 AI 시대의 흐름에 발맞추어 사이트의 방향성을 명확히 하고자 명칭을 변경하게 되었습니다.
+      GPT21은 <strong>Generative PGR Transformer 21</strong>의 약자이며, 기존 도메인(pgr21.com)은 당분간 병행 운영됩니다.
+    </p>
+
+    <h3>2. 서비스 플랜 도입</h3>
+    <p>
+      사이트 운영비 충당 및 서비스 품질 향상을 위해 아래와 같은 서비스 플랜을 도입합니다.
+      기존 이용 방식은 Basic 플랜으로 현행 그대로 유지되며, 추가 기능을 원하시는 분들을 위해 
+      Pro/Max 플랜을 신설합니다.
+    </p>
+
+    <table class="plan-table">
+      <thead>
+        <tr>
+          <th style="width:14%">플랜</th>
+          <th style="width:16%">요금</th>
+          <th>포함 기능</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="plan-name">Basic</td>
+          <td class="price">
+            <span class="amount">무료</span>
+            <span class="sub">(현행 유지)</span>
+          </td>
+          <td>
+            <ul class="feature-list">
+              <li>게시판 열람 및 글/댓글 작성</li>
+              <li>기존 광고 포함</li>
+            </ul>
+          </td>
+        </tr>
+        <tr>
+          <td class="plan-name">Pro</td>
+          <td class="price">
+            <span class="amount">월 $20</span>
+            <span class="sub">연간 결제 시 월 $17</span>
+          </td>
+          <td>
+            <ul class="feature-list">
+              <li>Basic 플랜 전체 기능</li>
+              <li class="new">광고 완전 제거</li>
+              <li class="new">글작성 도우미 AI 챗봇 <strong>'대변(代辯)봇'</strong> 제공</li>
+              <li class="new">사용량 제한: 일 50회</li>
+            </ul>
+          </td>
+        </tr>
+        <tr>
+          <td class="plan-name">Max</td>
+          <td class="price">
+            <span class="amount">월 $100</span>
+            <span class="sub">Pro 대비 5배 사용량</span>
+            <br>
+            <span class="amount" style="font-size:12px;">또는 월 $200</span>
+            <span class="sub">Pro 대비 20배 사용량</span>
+          </td>
+          <td>
+            <ul class="feature-list">
+              <li>Pro 플랜 전체 기능</li>
+              <li class="new">대변봇 <strong>에이전트</strong> 기능 (자율 키배 모드)</li>
+              <li class="new">대변봇 응답 우선 처리</li>
+              <li class="new">피크 시간대 우선 접속</li>
+            </ul>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="info-box">
+      <span class="label">참고</span>
+      Pro/Max 플랜 모두 사용량 제한이 있으며, 제한을 초과할 경우 아래 토큰 단가표에 따른 추가 과금이 발생합니다. 사용량 한도는 첫 사용 시점부터 5시간 단위로 재설정됩니다.
+    </div>
+
+    <table class="token-table">
+      <thead>
+        <tr>
+          <th>구분</th>
+          <th>단가 (1,000토큰 당)</th>
+          <th>비고</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>대변봇 기본 응답</td>
+          <td>50원</td>
+          <td>글/댓글 초안 작성</td>
+        </tr>
+        <tr>
+          <td>대변봇 논증 강화</td>
+          <td>80원</td>
+          <td>근거 보강, 반박 생성</td>
+        </tr>
+        <tr class="highlight">
+          <td><strong>에이전트 (자율 키배)</strong></td>
+          <td><strong>150원</strong></td>
+          <td>자동 댓글 작성·대응 (Max 전용)</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>3. '대변(代辯)봇' 소개</h3>
+
+    <p>
+      대변봇은 GPT21(구 PGR21)의 문화와 규정에 맞추어서 회원님의 의견을 가장 잘 대변할 수 있도록 개발된 생성형 AI입니다.
+    </p>
+
+    <div class="bot-section">
+      <h4>🤖 대변봇 — 글작성 도우미 AI <span class="badge">Pro</span></h4>
+      <p class="bot-desc">
+        대변봇은 회원님의 의견을 대신 정리하고 글로 작성해 주는 AI 챗봇입니다. 
+        논점 정리, 문장 다듬기, 근거 자료 제시 등의 기능을 제공합니다.
+      </p>
+      <div class="bot-example">
+        <div class="bot-example-label">▶ 사용 예시 — 글 작성 도우미</div>
+        <div class="chat-bubble">
+          <div class="icon user">나</div>
+          <div class="msg">팀 PGRer가 요즘 LCK에서 연패를 거듭하는 이유에 대해 글 좀 써줘. 좀 분석적으로.</div>
+        </div>
+        <div class="chat-bubble">
+          <div class="icon bot">대변</div>
+          <div class="msg bot-msg">팀 PGRer의 최근 LCK 연패 원인을 메타 적응, 로스터 운용, 스케줄 밀도 세 가지 측면에서 분석한 초안을 작성했습니다. 게시판 규정에 맞춰 15줄 이상으로 구성했으며, 선수 비하 표현은 제외했습니다. 확인 후 수정하시겠습니까?</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="bot-section">
+      <h4>⚡ 대변봇 에이전트 — 자율 키배 모드 <span class="badge">Max</span></h4>
+      <p class="bot-desc">
+        Max 플랜의 에이전트 기능을 활성화하면, 대변봇이 회원님을 대신하여 
+        댓글 토론에 자율적으로 참여합니다. 회원님이 설정한 논조와 입장에 기반하여 
+        반박, 재반박, 추가 논증을 자동으로 수행합니다.
+      </p>
+      <div class="bot-example">
+        <div class="bot-example-label">▶ 사용 예시 — 자율 키배 모드</div>
+        <div class="chat-bubble">
+          <div class="icon user">나</div>
+          <div class="msg">이 글 댓글에 가서 "부먹이 찍먹보다 낫다" 입장으로 키배 좀 해줘. 강도는 중간.</div>
+        </div>
+        <div class="chat-bubble">
+          <div class="icon bot">대변</div>
+          <div class="msg bot-msg">해당 게시글의 댓글 토론에 참여를 시작합니다. 설정: [입장: 부먹 우위] [강도: 보통] [규정 준수: ON] [초성체 차단: ON]. 현재 3개의 반론을 감지했으며, 순차적으로 대응합니다. 진행 상황은 알림으로 보내드리겠습니다.</div>
+        </div>
+      </div>
+    </div>
+
+    <hr class="divider">
+
+    <h3>4. 향후 일정</h3>
+    <p>
+      &bull; <strong>2026년 4월 1일</strong> — 본 공지 게시 및 서비스 플랜 사전 안내<br>
+      &bull; <strong>2026년 4월 8일</strong> — 사이트 명칭 변경 (GPT21) 및 UI 개편 적용<br>
+      &bull; <strong>2026년 4월 15일</strong> — Pro/Max 플랜 결제 페이지 오픈<br>
+      &bull; <strong>2026년 4월 15일</strong> — 대변봇 베타 서비스 개시
+    </p>
+
+    <p>
+      회원 여러분의 많은 관심과 이해를 부탁드립니다.<br>
+      관련 문의사항은 본 공지 댓글란 또는 건의 게시판을 이용해 주시기 바랍니다.
+    </p>
+
+    <p>
+      감사합니다.<br>
+      <strong>GPT21 (구 PGR21) 운영진 드림</strong>
+    </p>
+
+    <div class="disclaimer">
+      대변봇은 생성형 AI 기반으로 개발되어 할루시네이션 현상을 일으키거나 규정을 위반할 수 있습니다. 대변봇이 추천한 내용 또는 회원을 대신하여 자율 작성한 내용이 사이트 규정에 위배될 경우, 회원이 스스로 작성했을 경우와 동일하게 벌점이 부여될 수 있으니 주의 바랍니다.
+    </div>
+  </div>
+
+  <!-- Bottom Bar -->
+  <div class="popup-bottom">
+    <button class="btn btn-primary">확인</button>
+    <span class="btn-close-text">24시간 동안 보지 않기</span>
+  </div>
+</div>
+
+</body>
+</html>
