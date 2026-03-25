@@ -359,6 +359,14 @@
     color: #999;
     display: flex;
     align-items: center;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 8px 12px;
+    text-decoration: underline;
+  }
+  .popup-bottom .btn-close-text:hover {
+    color: #555;
   }
 
   /* ── Scrollbar ── */
@@ -384,7 +392,7 @@
   <!-- Title Bar -->
   <div class="popup-titlebar">
     <div class="title"><span class="highlight">PGR21</span>&nbsp; 공지사항</div>
-    <button class="popup-close" title="닫기">✕</button>
+    <button class="popup-close" title="닫기" onclick="document.querySelector('.popup').style.display='none'; document.body.style.background='#e8e8e8';">✕</button>
   </div>
 
   <!-- Meta -->
@@ -584,10 +592,44 @@
 
   <!-- Bottom Bar -->
   <div class="popup-bottom">
-    <button class="btn btn-primary">확인</button>
-    <span class="btn-close-text">24시간 동안 보지 않기</span>
+    <button class="btn btn-primary" id="btn-confirm">확인</button>
+    <button class="btn-close-text" id="btn-hide-24h">24시간 동안 보지 않기</button>
   </div>
 </div>
+
+<script>
+  (function() {
+    var STORAGE_KEY = 'pgr21_notice_hide';
+    var DURATION = 24 * 60 * 60 * 1000;
+    var popup = document.querySelector('.popup');
+
+    function hidePopup() {
+      popup.style.display = 'none';
+      document.body.style.background = '#e8e8e8';
+    }
+
+    // 페이지 로드 시: 24시간 이내에 닫은 적 있으면 숨김
+    try {
+      var hideUntil = localStorage.getItem(STORAGE_KEY);
+      if (hideUntil && (Date.now() - parseInt(hideUntil)) < DURATION) {
+        hidePopup();
+      }
+    } catch(e) {}
+
+    // 확인 버튼
+    document.getElementById('btn-confirm').addEventListener('click', function() {
+      hidePopup();
+    });
+
+    // 24시간 동안 보지 않기 버튼
+    document.getElementById('btn-hide-24h').addEventListener('click', function() {
+      try {
+        localStorage.setItem(STORAGE_KEY, Date.now().toString());
+      } catch(e) {}
+      hidePopup();
+    });
+  })();
+</script>
 
 </body>
 </html>
