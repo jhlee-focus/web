@@ -377,12 +377,140 @@
 
   /* ── Responsive ── */
   @media (max-width: 600px) {
-    body { padding: 10px; }
-    .popup { max-height: 95vh; }
-    .popup-content { padding: 16px 14px 22px; }
-    .plan-table { font-size: 11px; }
-    .plan-table thead th { padding: 8px 6px; font-size: 11px; }
-    .plan-table tbody td { padding: 8px 6px; }
+    body {
+      padding: 0;
+      align-items: flex-start;
+    }
+    .popup {
+      max-height: 100vh;
+      min-height: 100vh;
+      border-radius: 0;
+      box-shadow: none;
+    }
+    .popup-titlebar {
+      padding: 10px 14px;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    .popup-titlebar .title { font-size: 13px; }
+    .popup-meta {
+      padding: 8px 14px;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .popup-content {
+      padding: 16px 14px 24px;
+      font-size: 13px;
+      line-height: 1.8;
+    }
+    .popup-content h3 {
+      font-size: 14px;
+      margin: 22px 0 10px;
+    }
+    .popup-content p {
+      margin-bottom: 12px;
+    }
+
+    /* 플랜 테이블 - 카드형으로 변환 */
+    .plan-table,
+    .plan-table thead,
+    .plan-table tbody,
+    .plan-table th,
+    .plan-table td,
+    .plan-table tr {
+      display: block;
+    }
+    .plan-table thead { display: none; }
+    .plan-table {
+      margin: 14px 0 18px;
+    }
+    .plan-table tbody tr {
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      margin-bottom: 10px;
+      padding: 12px;
+      background: #fff;
+    }
+    .plan-table tbody tr:nth-child(even) {
+      background: #f9fafb;
+    }
+    .plan-table .plan-name {
+      text-align: left;
+      font-size: 14px;
+      margin-bottom: 4px;
+      display: block;
+    }
+    .plan-table .price {
+      text-align: left;
+      margin-bottom: 8px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #eee;
+      display: block;
+    }
+    .plan-table tbody td {
+      border: none;
+      padding: 0;
+    }
+    .plan-table .feature-list li {
+      font-size: 12px;
+    }
+
+    /* 토큰 테이블 */
+    .token-table { font-size: 11px; }
+    .token-table th,
+    .token-table td {
+      padding: 6px 6px;
+    }
+
+    /* 정보 박스 */
+    .info-box {
+      font-size: 11.5px;
+      padding: 10px 12px;
+    }
+
+    /* 봇 섹션 */
+    .bot-section {
+      padding: 12px 12px;
+    }
+    .bot-section h4 { font-size: 13px; }
+    .bot-desc { font-size: 12px; }
+    .bot-example {
+      padding: 8px 10px;
+    }
+    .bot-example .chat-bubble .msg {
+      font-size: 11px;
+      max-width: 90%;
+      padding: 6px 9px;
+    }
+    .bot-example .chat-bubble .icon {
+      width: 24px;
+      height: 24px;
+      font-size: 9px;
+    }
+
+    /* 면책 */
+    .disclaimer { font-size: 10.5px; }
+
+    /* 하단 버튼 */
+    .popup-bottom {
+      padding: 10px 14px;
+      position: sticky;
+      bottom: 0;
+      z-index: 10;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .popup-bottom .btn { padding: 8px 24px; }
+    .popup-bottom .btn-close-text { font-size: 11px; }
+  }
+
+  /* 아주 작은 화면 (SE 등) */
+  @media (max-width: 370px) {
+    .popup-content { padding: 12px 10px 20px; font-size: 12.5px; }
+    .plan-table tbody tr { padding: 10px; }
+    .bot-example .chat-bubble .msg { font-size: 10.5px; }
+    .token-table { font-size: 10.5px; }
   }
 </style>
 </head>
@@ -433,8 +561,8 @@
     <table class="plan-table">
       <thead>
         <tr>
-          <th style="width:14%">플랜</th>
-          <th style="width:16%">요금</th>
+          <th>플랜</th>
+          <th>요금</th>
           <th>포함 기능</th>
         </tr>
       </thead>
