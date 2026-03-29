@@ -152,13 +152,24 @@
     90% { opacity: 0.15; }
     100% { transform: translateY(-10vh) rotate(360deg); opacity: 0; }
   }
-  .hour-marker.active { animation: pulse 2s infinite ease-in-out; }
   .hour-marker.active img {
     filter: drop-shadow(0 0 8px rgba(233,30,99,0.6)) drop-shadow(0 2px 6px rgba(0,0,0,0.25));
   }
-  @keyframes pulse {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(233,30,99,0.4); }
-    50% { box-shadow: 0 0 0 14px rgba(233,30,99,0); }
+  /* 하트 펄스 효과 */
+  .heart-pulse {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    z-index: -1;
+  }
+  .heart-pulse svg {
+    animation: heartBeat 1.8s infinite ease-in-out;
+  }
+  @keyframes heartBeat {
+    0%   { transform: scale(0.5); opacity: 0.7; }
+    50%  { transform: scale(1.5); opacity: 0; }
+    100% { transform: scale(0.5); opacity: 0; }
   }
   .tick {
     position: absolute;
@@ -363,10 +374,22 @@ function updateClock() {
   document.getElementById('digitalTime').textContent = hh + ':' + mm + ':' + ss;
   var currentHour = h === 0 ? 12 : h;
   document.querySelectorAll('.hour-marker').forEach(function(marker) {
-    if (parseInt(marker.dataset.hour) === currentHour) {
+    var isActive = parseInt(marker.dataset.hour) === currentHour;
+    var heartEl = marker.querySelector('.heart-pulse');
+    if (isActive) {
       marker.classList.add('active');
+      if (!heartEl) {
+        heartEl = document.createElement('div');
+        heartEl.className = 'heart-pulse';
+        var size = marker.offsetWidth * 2.2;
+        heartEl.innerHTML = '<svg width="' + size + '" height="' + size + '" viewBox="0 0 100 100">'
+          + '<path d="M50 88 C25 65, 0 45, 0 28 C0 12, 12 0, 25 0 C35 0, 45 8, 50 18 C55 8, 65 0, 75 0 C88 0, 100 12, 100 28 C100 45, 75 65, 50 88Z" '
+          + 'fill="rgba(233,30,99,0.5)"/></svg>';
+        marker.appendChild(heartEl);
+      }
     } else {
       marker.classList.remove('active');
+      if (heartEl) heartEl.remove();
     }
   });
   requestAnimationFrame(updateClock);
