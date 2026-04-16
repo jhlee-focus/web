@@ -316,9 +316,9 @@
 
   <!-- 난이도 선택 -->
   <div class="difficulty-bar">
-    <button class="diff-btn active" onclick="setDiff('easy')">🌱 쉬움 (8쌍)</button>
+    <button class="diff-btn active" onclick="setDiff('easy')">🌱 쉬움 (6쌍)</button>
     <button class="diff-btn"        onclick="setDiff('normal')">⭐ 보통 (12쌍)</button>
-    <button class="diff-btn"        onclick="setDiff('hard')">🔥 어려움 (15쌍)</button>
+    <button class="diff-btn"        onclick="setDiff('hard')">🔥 어려움 (16쌍)</button>
   </div>
 
   <!-- 스탯 -->
@@ -392,9 +392,9 @@ const ALL_CHARS = [
 const IMAGE_BASE = '이미지/';
 
 const DIFF_CONFIG = {
-  easy:   { pairs: 8,  cols: 4, label: '쉬움' },   // 4열 × 4행  (열 = 행)
-  normal: { pairs: 12, cols: 6, label: '보통' },   // 6열 × 4행  (열 > 행)
-  hard:   { pairs: 15, cols: 6, label: '어려움' }, // 6열 × 5행  (열 > 행)
+  easy:   { pairs:  6, cols: 4, label: '쉬움' },   // 4열 × 3행  r≈0.90
+  normal: { pairs: 12, cols: 6, label: '보통' },   // 6열 × 4행  r≈0.80
+  hard:   { pairs: 16, cols: 8, label: '어려움' }, // 8열 × 4행  r≈0.60
 };
 const DIFF_ORDER = ['easy', 'normal', 'hard'];
 
@@ -625,13 +625,19 @@ function shuffle(arr) {
 }
 
 /* ═══════════════════════════════════════════
-   카드 크기 동적 계산 (세로 > 가로 보장)
-   - 세로 우선: 가용 높이를 row수로 나눠 셀 높이 결정
-   - 가로 검증: 셀 너비가 wrapper 너비 초과하면 가로 기준으로 재계산
-   - 비율: 2 : 3 (가로 : 세로)
+   카드 크기 동적 계산
+   목표: ① 카드는 세로 > 가로 (portrait)
+         ② 그리드 전체는 가로 > 세로 (landscape)
+
+   TARGET_GRID_RATIO = 그리드 가로/세로 목표값
+   r (카드 가로/세로) = TARGET × rows/cols
+     → cols > rows이면 r < 1 (portrait) 이면서 그리드는 landscape
+     → 너무 납작하지 않도록 [MIN_R, MAX_R] 범위로 클램프
 ═══════════════════════════════════════════ */
-const CARD_RATIO = 2 / 3;   // 가로/세로 = 2/3  →  세로가 더 길다
-const GAP_PX     = 6;
+const TARGET_GRID_RATIO = 1.2;   // 그리드 가로가 세로의 1.2배
+const MIN_R = 0.55;               // 카드 비율 최소 (너무 홀쭉하지 않게)
+const MAX_R = 0.92;               // 카드 비율 최대 (portrait 유지)
+const GAP_PX = 6;
 
 function resizeCards() {
   const grid    = document.getElementById('grid');
@@ -639,21 +645,26 @@ function resizeCards() {
   if (!grid.children.length) return;
 
   const cfg  = DIFF_CONFIG[currentDiff];
-  const cols  = cfg.cols;
-  const cards = cfg.pairs * 2;
-  const rows  = Math.ceil(cards / cols);
+  const cols = cfg.cols;
+  const rows = Math.ceil((cfg.pairs * 2) / cols);
+
+  /* 카드 가로/세로 비율: 그리드가 TARGET_GRID_RATIO가 되도록 역산 */
+  const r = Math.min(MAX_R, Math.max(MIN_R, TARGET_GRID_RATIO * rows / cols));
 
   const wH = wrapper.clientHeight;
   const wW = wrapper.clientWidth;
 
-  /* ① 세로 기준으로 셀 높이 계산 */
-  const cellHfromH = (wH - GAP_PX * (rows - 1)) / rows;
-  const cellWfromH = cellHfromH * CARD_RATIO;
+  /* ① 가용 높이 기준 셀 크기 */
+  const cellH_H = (wH - GAP_PX * (rows - 1)) / rows;
+  const cellW_H = cellH_H * r;
 
-  /* ② 그 너비가 wrapper를 초과하면 가로 기준으로 재계산 */
-  const maxCellW   = (wW - GAP_PX * (cols - 1)) / cols;
-  const cellW      = Math.min(cellWfromH, maxCellW);
-  const cellH      = cellW / CARD_RATIO;   /* 항상 세로 > 가로 */
+  /* ② 가용 너비 기준 셀 크기 */
+  const cellW_W = (wW - GAP_PX * (cols - 1)) / cols;
+  const cellH_W = cellW_W / r;
+
+  /* 두 기준 중 작은 쪽으로 (wrapper 초과 방지) */
+  const cellW = Math.min(cellW_H, cellW_W);
+  const cellH = cellW / r;   // 항상 cellH > cellW (portrait)
 
   grid.style.gridTemplateColumns = `repeat(${cols}, ${cellW}px)`;
   grid.style.gridTemplateRows    = `repeat(${rows}, ${cellH}px)`;
