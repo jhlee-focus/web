@@ -26,7 +26,8 @@
       flex-direction: column;
       align-items: center;
       overflow: hidden;
-      padding: 8px 10px 6px;
+      /* 하단 여백: safe-area 없는 환경은 16px, 노치/홈바 있는 환경은 그 이상 */
+      padding: 8px 10px max(16px, env(safe-area-inset-bottom, 16px));
       gap: 6px;
     }
 
@@ -178,7 +179,7 @@
     }
     .card-back img {
       width: 100%;
-      height: 80%;
+      height: 74%;
       object-fit: cover;
       object-position: top center;
       border-radius: 12px 12px 0 0;
@@ -187,16 +188,17 @@
     }
     .char-name {
       width: 100%;
-      height: 20%;
+      height: 26%;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: clamp(0.45rem, 1vw, 0.7rem);
+      /* font-size는 resizeCards()에서 카드 너비 기준으로 동적 설정 */
+      font-size: 0.8rem;
       font-weight: 900;
       color: #111;
       background: #f5f5f5;
       border-radius: 0 0 12px 12px;
-      padding: 1px 3px;
+      padding: 2px 4px;
       text-align: center;
       line-height: 1.2;
       word-break: keep-all;
@@ -669,6 +671,12 @@ function resizeCards() {
   grid.style.gridTemplateColumns = `repeat(${cols}, ${cellW}px)`;
   grid.style.gridTemplateRows    = `repeat(${rows}, ${cellH}px)`;
   grid.style.gap                 = `${GAP_PX}px`;
+
+  /* 카드 너비 기준으로 이름 폰트 크기 동적 설정 (최소 9px) */
+  const nameFontPx = Math.max(9, Math.round(cellW * 0.15));
+  grid.querySelectorAll('.char-name').forEach(el => {
+    el.style.fontSize = nameFontPx + 'px';
+  });
 }
 
 /* 리사이즈 대응 */
