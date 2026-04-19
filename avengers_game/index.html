@@ -2,707 +2,153 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-  <title>⚡ 어벤져스 메모리 게임</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>⚡ MCU 게임 센터</title>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@700;900&display=swap" rel="stylesheet" />
-  <!-- 이미지 목록 (update-images.bat 실행 시 자동 갱신) -->
-  <script src="이미지/images.js" onerror="console.warn('images.js 없음, 폴더 자동 인식 시도')"></script>
   <style>
-    *, *::before, *::after {
-      margin: 0; padding: 0; box-sizing: border-box;
-      -webkit-tap-highlight-color: transparent;
-      user-select: none;
-    }
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
-    /* ── html/body: 화면 꽉 채우되 스크롤 없음 ── */
-    html {
-      height: 100%;
-    }
     body {
       font-family: 'Noto Sans KR', sans-serif;
       background: linear-gradient(135deg, #0d0d0d 0%, #1a0000 50%, #2a0a0a 100%);
-      /* 화면 높이를 동적으로 (주소창 제외, 모바일 대응) */
-      height: 100dvh;
-      height: 100vh; /* fallback */
+      min-height: 100vh;
       display: flex;
       flex-direction: column;
       align-items: center;
-      overflow: hidden;
-      /* 하단 여백: safe-area 없는 환경은 16px, 노치/홈바 있는 환경은 그 이상 */
-      padding: 8px 10px max(16px, env(safe-area-inset-bottom, 16px));
-      gap: 6px;
+      justify-content: center;
+      padding: 40px 20px 60px;
+      user-select: none;
     }
 
-    /* ── 고정 영역들 (flex-shrink: 0으로 찌그러지지 않음) ── */
+    /* ── 헤더 ── */
     .header {
-      flex-shrink: 0;
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 3px;
+      gap: 8px;
+      margin-bottom: 52px;
     }
     .marvel-badge {
       background: #ED1D24;
       color: #fff;
-      font-size: 0.7rem;
+      font-size: 0.8rem;
       font-weight: 900;
-      letter-spacing: 4px;
-      padding: 3px 14px;
+      letter-spacing: 5px;
+      padding: 4px 18px;
       border-radius: 4px;
       text-transform: uppercase;
     }
     h1 {
       color: #fff;
-      font-size: clamp(1.1rem, 3vw, 1.8rem);
+      font-size: clamp(2rem, 5vw, 3.2rem);
       font-weight: 900;
+      text-shadow: 0 0 30px rgba(237,29,36,0.7), 0 4px 12px rgba(0,0,0,.6);
       letter-spacing: -0.5px;
-      text-shadow: 0 0 20px rgba(237,29,36,0.6), 0 3px 10px rgba(0,0,0,.5);
     }
-
-    /* ── 난이도 탭 ── */
-    .difficulty-bar {
-      flex-shrink: 0;
-      display: flex;
-      gap: 6px;
-    }
-    .diff-btn {
-      padding: 6px 16px;
-      border: 2px solid rgba(255,255,255,.25);
-      border-radius: 50px;
-      font-size: clamp(0.72rem, 1.5vw, 0.88rem);
+    .subtitle {
+      color: rgba(255,255,255,.4);
+      font-size: 0.95rem;
       font-weight: 700;
-      cursor: pointer;
-      background: rgba(255,255,255,.08);
-      color: rgba(255,255,255,.75);
-      transition: all .2s;
-      white-space: nowrap;
-    }
-    .diff-btn.active {
-      background: #ED1D24;
-      color: #fff;
-      border-color: #ED1D24;
-      box-shadow: 0 0 12px rgba(237,29,36,0.5);
-    }
-    .diff-btn:active { transform: scale(.95); }
-
-    /* ── 스탯 바 ── */
-    .stats {
-      flex-shrink: 0;
-      display: flex;
-      gap: 8px;
-    }
-    .stat {
-      background: rgba(255,255,255,.1);
-      backdrop-filter: blur(4px);
-      color: #fff;
-      padding: 5px 14px;
-      border-radius: 50px;
-      font-size: clamp(0.75rem, 1.5vw, 0.9rem);
-      font-weight: 700;
-      min-width: 90px;
-      text-align: center;
-      border: 1px solid rgba(255,255,255,.15);
+      letter-spacing: 1px;
     }
 
-    /* ── 카드 그리드: 남은 공간을 모두 차지 ── */
-    .grid-wrapper {
-      flex: 1;
-      min-height: 0;
-      width: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    /* grid 크기·열·행은 JS가 동적으로 결정 */
-    .grid {
+    /* ── 게임 카드 그리드 ── */
+    .game-grid {
       display: grid;
-      gap: 6px; /* JS에서도 참조하므로 맞춰둠 */
-    }
-
-    /* ── 카드: 크기는 JS가 결정, 세로 > 가로 보장 ── */
-    .card {
-      cursor: pointer;
-      perspective: 800px;
-    }
-    .card-inner {
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 24px;
       width: 100%;
-      height: 100%;
-      position: relative;
-      transform-style: preserve-3d;
-      transition: transform .45s cubic-bezier(.4,0,.2,1);
-      border-radius: 12px;
-    }
-    .card.flipped .card-inner { transform: rotateY(180deg); }
-    .card.matched .card-inner { transform: rotateY(180deg); }
-
-    .card-face {
-      position: absolute;
-      inset: 0;
-      backface-visibility: hidden;
-      -webkit-backface-visibility: hidden;
-      border-radius: 12px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 0 4px 14px rgba(0,0,0,.4);
-      overflow: hidden;
+      max-width: 700px;
     }
 
-    /* 앞면 */
-    .card-front {
-      background: linear-gradient(145deg, #1a1a2e, #16213e);
+    /* ── 게임 카드 ── */
+    .game-card {
+      background: rgba(255,255,255,.05);
       border: 1.5px solid rgba(255,255,255,.1);
-    }
-    .card-front-inner {
+      border-radius: 24px;
+      padding: 36px 24px 28px;
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 4px;
+      gap: 12px;
+      text-decoration: none;
+      transition: transform .2s, box-shadow .2s, border-color .2s, background .2s;
     }
-    .shield-icon {
-      font-size: clamp(1.4rem, 3.5vw, 2.8rem);
-      filter: drop-shadow(0 0 6px rgba(237,29,36,0.7));
+    .game-card:hover {
+      transform: translateY(-7px);
+      border-color: #ED1D24;
+      background: rgba(237,29,36,.08);
+      box-shadow: 0 16px 48px rgba(237,29,36,.28);
     }
-    .card-front-text {
-      color: rgba(255,255,255,.35);
-      font-size: clamp(0.45rem, 0.9vw, 0.65rem);
-      font-weight: 700;
-      letter-spacing: 2px;
+    .game-card:active { transform: translateY(-2px); }
+
+    .game-card.disabled {
+      cursor: default;
+      opacity: 0.5;
+      pointer-events: none;
     }
 
-    /* 뒷면: 이미지 + 이름 */
-    .card-back {
-      background: #fff;
-      transform: rotateY(180deg);
-      padding: 0;
-      justify-content: flex-start;
+    .card-icon {
+      font-size: 3.8rem;
+      filter: drop-shadow(0 0 14px rgba(237,29,36,.5));
     }
-    .card-back img {
-      width: 100%;
-      height: 74%;
-      object-fit: cover;
-      object-position: center 20%;
-      border-radius: 12px 12px 0 0;
-      display: block;
-      flex-shrink: 0;
-    }
-    .char-name {
-      width: 100%;
-      height: 26%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      /* font-size는 resizeCards()에서 카드 너비 기준으로 동적 설정 */
-      font-size: 0.8rem;
+    .card-title {
+      color: #fff;
+      font-size: 1.35rem;
       font-weight: 900;
-      color: #111;
-      background: #f5f5f5;
-      border-radius: 0 0 12px 12px;
-      padding: 2px 4px;
       text-align: center;
-      line-height: 1.2;
-      word-break: keep-all;
     }
-
-    /* 맞춘 카드 */
-    .card.matched .card-back {
-      box-shadow: 0 0 0 3px #FFD700, 0 4px 16px rgba(255,215,0,0.4);
-    }
-    .card.matched .char-name {
-      background: #FFF8DC;
-      color: #8B6914;
-    }
-    .card.matched .card-inner {
-      animation: pop .4s ease;
-    }
-    @keyframes pop {
-      0%   { transform: rotateY(180deg) scale(1); }
-      45%  { transform: rotateY(180deg) scale(1.1); }
-      100% { transform: rotateY(180deg) scale(1); }
-    }
-
-    /* 틀린 카드 흔들기 */
-    .card.shake .card-inner {
-      animation: shake .4s ease;
-    }
-    @keyframes shake {
-      0%,100% { transform: rotateY(180deg) translateX(0); }
-      25%      { transform: rotateY(180deg) translateX(-7px); }
-      75%      { transform: rotateY(180deg) translateX(7px); }
-    }
-
-    /* ── 다시하기 버튼 ── */
-    .restart-btn {
-      flex-shrink: 0;
-      padding: 8px 36px;
-      font-size: clamp(0.8rem, 1.5vw, 1rem);
+    .card-desc {
+      color: rgba(255,255,255,.45);
+      font-size: 0.85rem;
       font-weight: 700;
+      text-align: center;
+      line-height: 1.6;
+    }
+    .card-badge {
+      margin-top: 6px;
+      padding: 6px 20px;
+      border-radius: 50px;
+      font-size: 0.82rem;
+      font-weight: 700;
+    }
+    .badge-play {
       background: #ED1D24;
       color: #fff;
-      border: none;
-      border-radius: 50px;
-      cursor: pointer;
-      box-shadow: 0 4px 14px rgba(237,29,36,.4);
-      transition: transform .1s;
+      box-shadow: 0 4px 14px rgba(237,29,36,.45);
     }
-    .restart-btn:active { transform: scale(.95); }
-
-    /* ── 승리 오버레이 ── */
-    .win-overlay {
-      display: none;
-      position: fixed; inset: 0;
-      background: rgba(0,0,0,.75);
-      z-index: 200;
-      align-items: center;
-      justify-content: center;
-    }
-    .win-overlay.show { display: flex; }
-
-    .win-box {
-      background: linear-gradient(135deg, #1a0000 0%, #3d0000 100%);
-      border: 2px solid #ED1D24;
-      border-radius: 24px;
-      padding: 36px 52px;
-      text-align: center;
-      color: #fff;
-      box-shadow: 0 0 40px rgba(237,29,36,.5), 0 20px 60px rgba(0,0,0,.6);
-      animation: zoomIn .45s cubic-bezier(.34,1.56,.64,1);
-      max-width: 90vw;
-    }
-    @keyframes zoomIn {
-      from { transform: scale(.6); opacity: 0; }
-      to   { transform: scale(1);  opacity: 1; }
-    }
-    .win-emoji   { font-size: 4rem; display: block; margin-bottom: 8px; }
-    .win-title   { font-size: clamp(1.6rem, 4vw, 2.5rem); font-weight: 900; margin-bottom: 6px;
-                   text-shadow: 0 0 20px rgba(237,29,36,.8); }
-    .win-subtitle{ font-size: 1.05rem; opacity: .85; margin-bottom: 24px; }
-    .win-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
-    .win-btn {
-      padding: 12px 32px;
-      font-size: 1rem;
-      font-weight: 700;
-      border: none;
-      border-radius: 50px;
-      cursor: pointer;
-      transition: transform .1s;
-    }
-    .win-btn.same     { background: rgba(255,255,255,.15); color: #fff; border: 2px solid rgba(255,255,255,.3); }
-    .win-btn.hard-btn { background: #ED1D24; color: #fff; box-shadow: 0 4px 14px rgba(237,29,36,.5); }
-    .win-btn:active { transform: scale(.95); }
-
-    /* ── 컨페티 ── */
-    .confetti-layer {
-      position: fixed; inset: 0;
-      pointer-events: none;
-      z-index: 199;
-    }
-    .dot {
-      position: absolute;
-      top: -12px;
-      border-radius: 2px;
-      animation: fall linear forwards;
-    }
-    @keyframes fall {
-      to { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+    .badge-soon {
+      background: rgba(255,255,255,.08);
+      color: rgba(255,255,255,.4);
+      border: 1px solid rgba(255,255,255,.12);
     }
   </style>
 </head>
 <body>
 
-  <!-- 헤더 -->
   <div class="header">
     <div class="marvel-badge">MARVEL</div>
-    <h1>⚡ 어벤져스 메모리 게임</h1>
+    <h1>⚡ MCU 게임 센터</h1>
+    <div class="subtitle">히어로와 함께 즐기는 게임 모음</div>
   </div>
 
-  <!-- 난이도 선택 -->
-  <div class="difficulty-bar">
-    <button class="diff-btn active" onclick="setDiff('easy')">🌱 쉬움 (6쌍)</button>
-    <button class="diff-btn"        onclick="setDiff('normal')">⭐ 보통 (12쌍)</button>
-    <button class="diff-btn"        onclick="setDiff('hard')">🔥 어려움 (16쌍)</button>
-  </div>
+  <div class="game-grid">
 
-  <!-- 스탯 -->
-  <div class="stats">
-    <div class="stat">⏱️ <span id="timer">0</span>초</div>
-    <div class="stat">🎯 <span id="moves">0</span>번</div>
-    <div class="stat">✅ <span id="matched">0</span> / <span id="total">8</span></div>
-  </div>
+    <a class="game-card" href="memory-game.html">
+      <div class="card-icon">🃏</div>
+      <div class="card-title">메모리 게임</div>
+      <div class="card-desc">어벤져스 히어로 카드를<br>짝 맞춰 기억력을 키워요!</div>
+      <div class="card-badge badge-play">▶ 게임 시작</div>
+    </a>
 
-  <!-- 카드 그리드 래퍼 (남은 공간 전부 사용) -->
-  <div class="grid-wrapper">
-    <div class="grid easy" id="grid"></div>
-  </div>
-
-  <!-- 다시하기 -->
-  <button class="restart-btn" onclick="startGame()">🔄 다시하기</button>
-
-  <!-- 승리 화면 -->
-  <div class="win-overlay" id="winOverlay">
-    <div class="win-box">
-      <span class="win-emoji">🏆</span>
-      <div class="win-title">어벤져스 완성!</div>
-      <div class="win-subtitle" id="winMsg"></div>
-      <div class="win-actions">
-        <button class="win-btn same"     onclick="startGame()">다시 해볼래요!</button>
-        <button class="win-btn hard-btn" onclick="nextDiff()">더 어렵게!</button>
-      </div>
+    <div class="game-card disabled">
+      <div class="card-icon">🧩</div>
+      <div class="card-title">퍼즐 게임</div>
+      <div class="card-desc">히어로 이미지 조각을<br>맞추는 퍼즐이 곧 추가돼요!</div>
+      <div class="card-badge badge-soon">🔧 준비 중</div>
     </div>
+
   </div>
 
-  <!-- 컨페티 레이어 -->
-  <div class="confetti-layer" id="confettiLayer"></div>
-
-<script>
-/* ═══════════════════════════════════════════
-   파일명 → 캐릭터 데이터 변환
-   "아이언맨(토니 스타크).webp" → { id, name:"아이언맨", file }
-═══════════════════════════════════════════ */
-let ALL_CHARS = [];
-
-function filenameToChar(filename) {
-  const nameNoExt  = filename.replace(/\.[^.]+$/, '');          // 확장자 제거
-  const heroName   = nameNoExt.replace(/\s*\(.*?\)\s*/g, '').trim(); // 괄호 제거
-  const id         = nameNoExt.replace(/[\s()\[\]]/g, '_');    // ID용 특수문자 치환
-  return { id, name: heroName, file: filename };
-}
-
-/* ── 이미지 목록 로딩 (두 단계 시도) ────────────────
-   1순위: fetch('이미지/') 로 폴더 직접 스캔 (Chrome file:// 환경)
-   2순위: <script src="이미지/images.js"> 로 미리 주입된 window.MCU_IMAGES
-─────────────────────────────────────────────────── */
-async function loadCharList() {
-  // 1순위: 폴더 디렉토리 리스팅 시도
-  try {
-    const res  = await fetch('이미지/');
-    if (res.ok) {
-      const html = await res.text();
-      const doc  = new DOMParser().parseFromString(html, 'text/html');
-      const files = [...doc.querySelectorAll('a[href]')]
-        .map(a => decodeURIComponent(a.getAttribute('href').split('/').pop()))
-        .filter(f => /\.(webp|png|jpg|jpeg)$/i.test(f));
-      if (files.length > 0) {
-        console.log(`📁 폴더 자동 인식 성공: ${files.length}개`);
-        return files;
-      }
-    }
-  } catch (_) { /* 폴더 인식 불가 → 2순위로 */ }
-
-  // 2순위: images.js (window.MCU_IMAGES)
-  if (Array.isArray(window.MCU_IMAGES) && window.MCU_IMAGES.length > 0) {
-    console.log(`📄 images.js 사용: ${window.MCU_IMAGES.length}개`);
-    return window.MCU_IMAGES;
-  }
-
-  console.warn('⚠️ 이미지 목록을 불러오지 못했습니다. update-images.bat 을 실행해 주세요.');
-  return [];
-}
-
-const IMAGE_BASE = '이미지/';
-
-const DIFF_CONFIG = {
-  easy:   { pairs:  6, cols: 4, label: '쉬움' },   // 4열 × 3행  r≈0.90
-  normal: { pairs: 12, cols: 6, label: '보통' },   // 6열 × 4행  r≈0.80
-  hard:   { pairs: 16, cols: 8, label: '어려움' }, // 8열 × 4행  r≈0.60
-};
-const DIFF_ORDER = ['easy', 'normal', 'hard'];
-
-let currentDiff = 'easy';
-let flipped     = [];
-let matchedCount= 0;
-let totalPairs  = 0;
-let moves       = 0;
-let timerSec    = 0;
-let timerID     = null;
-let locked      = false;
-let started     = false;
-let audioCtx    = null;
-
-/* ═══════════════════════════════════════════
-   난이도 변경
-═══════════════════════════════════════════ */
-function setDiff(diff) {
-  currentDiff = diff;
-  document.querySelectorAll('.diff-btn').forEach((btn, i) => {
-    btn.classList.toggle('active', DIFF_ORDER[i] === diff);
-  });
-  startGame();
-}
-
-function nextDiff() {
-  const idx  = DIFF_ORDER.indexOf(currentDiff);
-  const next = DIFF_ORDER[Math.min(idx + 1, DIFF_ORDER.length - 1)];
-  setDiff(next);
-}
-
-/* ═══════════════════════════════════════════
-   게임 시작
-═══════════════════════════════════════════ */
-function startGame() {
-  clearInterval(timerID);
-  timerSec = moves = matchedCount = 0;
-  flipped = []; locked = false; started = false;
-  document.getElementById('winOverlay').classList.remove('show');
-  document.getElementById('confettiLayer').innerHTML = '';
-  document.getElementById('timer').textContent   = '0';
-  document.getElementById('moves').textContent   = '0';
-  document.getElementById('matched').textContent = '0';
-
-  const cfg = DIFF_CONFIG[currentDiff];
-  totalPairs = cfg.pairs;
-  document.getElementById('total').textContent = totalPairs;
-
-  const grid = document.getElementById('grid');
-  grid.className = `grid ${currentDiff}`;
-
-  const selected = shuffle(ALL_CHARS).slice(0, totalPairs);
-  const deck     = shuffle([...selected, ...selected]);
-
-  grid.innerHTML = '';
-  deck.forEach(char => {
-    const card = document.createElement('div');
-    card.className = 'card';
-    card.dataset.charid = char.id;
-
-    card.innerHTML = `
-      <div class="card-inner">
-        <div class="card-face card-front">
-          <div class="card-front-inner">
-            <span class="shield-icon">🛡️</span>
-            <span class="card-front-text">MARVEL</span>
-          </div>
-        </div>
-        <div class="card-face card-back">
-          <img src="${IMAGE_BASE}${char.file}" alt="${char.name}" loading="eager" />
-          <span class="char-name">${char.name}</span>
-        </div>
-      </div>`;
-
-    card.addEventListener('click', () => onCardClick(card));
-    grid.appendChild(card);
-  });
-
-  /* 카드 렌더 후 크기 계산 (DOM 반영 대기) */
-  requestAnimationFrame(resizeCards);
-}
-
-/* ═══════════════════════════════════════════
-   카드 클릭
-═══════════════════════════════════════════ */
-function onCardClick(card) {
-  unlockAudio();
-  if (!started) { started = true; startTimer(); }
-  if (locked)                              return;
-  if (card.classList.contains('flipped'))  return;
-  if (card.classList.contains('matched'))  return;
-  if (flipped.length >= 2)                 return;
-
-  playSound('flip');
-  card.classList.add('flipped');
-  flipped.push(card);
-
-  if (flipped.length === 2) {
-    moves++;
-    document.getElementById('moves').textContent = moves;
-    checkMatch();
-  }
-}
-
-function checkMatch() {
-  const [a, b] = flipped;
-  if (a.dataset.charid === b.dataset.charid) {
-    playSound('match');
-    a.classList.add('matched');
-    b.classList.add('matched');
-    matchedCount++;
-    document.getElementById('matched').textContent = matchedCount;
-    flipped = [];
-    if (matchedCount === totalPairs) {
-      clearInterval(timerID);
-      setTimeout(showWin, 700);
-    }
-  } else {
-    locked = true;
-    playSound('nomatch');
-    setTimeout(() => { a.classList.add('shake'); b.classList.add('shake'); }, 0);
-    setTimeout(() => {
-      a.classList.remove('flipped', 'shake');
-      b.classList.remove('flipped', 'shake');
-      flipped = [];
-      locked  = false;
-    }, 900);
-  }
-}
-
-/* ═══════════════════════════════════════════
-   타이머
-═══════════════════════════════════════════ */
-function startTimer() {
-  timerID = setInterval(() => {
-    timerSec++;
-    document.getElementById('timer').textContent = timerSec;
-  }, 1000);
-}
-
-/* ═══════════════════════════════════════════
-   승리 화면
-═══════════════════════════════════════════ */
-function showWin() {
-  playSound('win');
-  const stars = timerSec < 30 ? '⭐⭐⭐' : timerSec < 60 ? '⭐⭐' : '⭐';
-  document.getElementById('winMsg').textContent =
-    `${stars}  ${timerSec}초 · ${moves}번 도전  ${stars}`;
-  document.getElementById('winOverlay').classList.add('show');
-
-  const hardBtn = document.querySelector('.win-btn.hard-btn');
-  hardBtn.style.display = currentDiff === 'hard' ? 'none' : '';
-  spawnConfetti();
-}
-
-/* ═══════════════════════════════════════════
-   컨페티
-═══════════════════════════════════════════ */
-function spawnConfetti() {
-  const layer  = document.getElementById('confettiLayer');
-  layer.innerHTML = '';
-  const colors = ['#ED1D24','#FFD700','#C0C0C0','#1e3a5f','#ff6b35','#ffffff','#8B0000'];
-  for (let i = 0; i < 100; i++) {
-    const d   = document.createElement('div');
-    const sz  = 8 + Math.random() * 10;
-    const dur = 2.2 + Math.random() * 2;
-    d.className = 'dot';
-    Object.assign(d.style, {
-      left:             `${Math.random() * 100}%`,
-      width:            `${sz}px`,
-      height:           `${sz * (Math.random() > .5 ? 1 : 2)}px`,
-      background:       colors[Math.floor(Math.random() * colors.length)],
-      borderRadius:     Math.random() > .4 ? '50%' : '2px',
-      animationDelay:   `${Math.random() * 1.2}s`,
-      animationDuration:`${dur}s`,
-    });
-    layer.appendChild(d);
-  }
-}
-
-/* ═══════════════════════════════════════════
-   사운드
-═══════════════════════════════════════════ */
-function unlockAudio() {
-  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-}
-
-function playSound(type) {
-  if (!audioCtx) return;
-  const ctx = audioCtx;
-  const t   = ctx.currentTime;
-  const beep = (freq, start, dur, vol = .25, shape = 'sine') => {
-    const o = ctx.createOscillator();
-    const g = ctx.createGain();
-    o.type = shape;
-    o.frequency.value = freq;
-    g.gain.setValueAtTime(vol, t + start);
-    g.gain.exponentialRampToValueAtTime(.001, t + start + dur);
-    o.connect(g); g.connect(ctx.destination);
-    o.start(t + start); o.stop(t + start + dur + .05);
-  };
-
-  if (type === 'flip') {
-    beep(500, 0, .1, .12);
-  } else if (type === 'match') {
-    [[523,.0],[659,.12],[784,.24],[1047,.36]].forEach(([f,s]) => beep(f, s, .2, .25));
-  } else if (type === 'nomatch') {
-    beep(260, 0, .12, .2, 'sawtooth');
-    beep(220, .14, .15, .2, 'sawtooth');
-  } else if (type === 'win') {
-    [[523,.0],[659,.14],[784,.28],[1047,.42],[1319,.56]].forEach(([f,s]) => beep(f, s, .3, .3));
-    setTimeout(() => {
-      [[1047,0],[784,.1],[659,.2],[523,.3]].forEach(([f,s]) => beep(f, s, .2, .2));
-    }, 800);
-  }
-}
-
-/* ═══════════════════════════════════════════
-   유틸
-═══════════════════════════════════════════ */
-function shuffle(arr) {
-  const a = [...arr];
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
-
-/* ═══════════════════════════════════════════
-   카드 크기 동적 계산
-   목표: ① 카드는 세로 > 가로 (portrait)
-         ② 그리드 전체는 가로 > 세로 (landscape)
-
-   TARGET_GRID_RATIO = 그리드 가로/세로 목표값
-   r (카드 가로/세로) = TARGET × rows/cols
-     → cols > rows이면 r < 1 (portrait) 이면서 그리드는 landscape
-     → 너무 납작하지 않도록 [MIN_R, MAX_R] 범위로 클램프
-═══════════════════════════════════════════ */
-const TARGET_GRID_RATIO = 1.2;   // 그리드 가로가 세로의 1.2배
-const MIN_R = 0.55;               // 카드 비율 최소 (너무 홀쭉하지 않게)
-const MAX_R = 0.92;               // 카드 비율 최대 (portrait 유지)
-const GAP_PX = 6;
-
-function resizeCards() {
-  const grid    = document.getElementById('grid');
-  const wrapper = grid.parentElement;
-  if (!grid.children.length) return;
-
-  const cfg  = DIFF_CONFIG[currentDiff];
-  const cols = cfg.cols;
-  const rows = Math.ceil((cfg.pairs * 2) / cols);
-
-  /* 카드 가로/세로 비율: 그리드가 TARGET_GRID_RATIO가 되도록 역산 */
-  const r = Math.min(MAX_R, Math.max(MIN_R, TARGET_GRID_RATIO * rows / cols));
-
-  const wH = wrapper.clientHeight;
-  const wW = wrapper.clientWidth;
-
-  /* ① 가용 높이 기준 셀 크기 */
-  const cellH_H = (wH - GAP_PX * (rows - 1)) / rows;
-  const cellW_H = cellH_H * r;
-
-  /* ② 가용 너비 기준 셀 크기 */
-  const cellW_W = (wW - GAP_PX * (cols - 1)) / cols;
-  const cellH_W = cellW_W / r;
-
-  /* 두 기준 중 작은 쪽으로 (wrapper 초과 방지) */
-  const cellW = Math.min(cellW_H, cellW_W);
-  const cellH = cellW / r;   // 항상 cellH > cellW (portrait)
-
-  grid.style.gridTemplateColumns = `repeat(${cols}, ${cellW}px)`;
-  grid.style.gridTemplateRows    = `repeat(${rows}, ${cellH}px)`;
-  grid.style.gap                 = `${GAP_PX}px`;
-
-  /* 카드 너비 기준으로 이름 폰트 크기 동적 설정 (최소 9px) */
-  const fontMultiplier = currentDiff === 'hard' ? 0.15 : 0.11;
-  const nameFontPx = Math.max(8, Math.round(cellW * fontMultiplier));
-  grid.querySelectorAll('.char-name').forEach(el => {
-    el.style.fontSize = nameFontPx + 'px';
-  });
-}
-
-/* 리사이즈 대응 */
-let _resizeTimer;
-window.addEventListener('resize', () => {
-  clearTimeout(_resizeTimer);
-  _resizeTimer = setTimeout(resizeCards, 80);
-});
-
-/* ── 초기화 ── */
-(async () => {
-  const files = await loadCharList();
-  ALL_CHARS   = files.map(filenameToChar);
-  startGame();
-})();
-</script>
 </body>
 </html>

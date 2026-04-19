@@ -3,8 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-  <title>⚡ 어벤저스 메모리 게임</title>
+  <title>⚡ 어벤져스 메모리 게임</title>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@700;900&display=swap" rel="stylesheet" />
+  <!-- 이미지 목록 (update-images.bat 실행 시 자동 갱신) -->
+  <script src="이미지/images.js" onerror="console.warn('images.js 없음, 폴더 자동 인식 시도')"></script>
   <style>
     *, *::before, *::after {
       margin: 0; padding: 0; box-sizing: border-box;
@@ -26,7 +28,8 @@
       flex-direction: column;
       align-items: center;
       overflow: hidden;
-      padding: 8px 10px 6px;
+      /* 하단 여백: safe-area 없는 환경은 16px, 노치/홈바 있는 환경은 그 이상 */
+      padding: 8px 10px max(16px, env(safe-area-inset-bottom, 16px));
       gap: 6px;
     }
 
@@ -178,25 +181,26 @@
     }
     .card-back img {
       width: 100%;
-      height: 80%;
+      height: 74%;
       object-fit: cover;
-      object-position: top center;
+      object-position: center 20%;
       border-radius: 12px 12px 0 0;
       display: block;
       flex-shrink: 0;
     }
     .char-name {
       width: 100%;
-      height: 20%;
+      height: 26%;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: clamp(0.45rem, 1vw, 0.7rem);
+      /* font-size는 resizeCards()에서 카드 너비 기준으로 동적 설정 */
+      font-size: 0.8rem;
       font-weight: 900;
       color: #111;
       background: #f5f5f5;
       border-radius: 0 0 12px 12px;
-      padding: 1px 3px;
+      padding: 2px 4px;
       text-align: center;
       line-height: 1.2;
       word-break: keep-all;
@@ -228,6 +232,28 @@
       25%      { transform: rotateY(180deg) translateX(-7px); }
       75%      { transform: rotateY(180deg) translateX(7px); }
     }
+
+    /* ── 홈 버튼 ── */
+    .home-btn {
+      position: fixed;
+      top: 12px;
+      left: 12px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255,255,255,.1);
+      border: 1px solid rgba(255,255,255,.2);
+      color: rgba(255,255,255,.75);
+      font-family: 'Noto Sans KR', sans-serif;
+      font-size: 0.8rem;
+      font-weight: 700;
+      padding: 6px 14px;
+      border-radius: 50px;
+      text-decoration: none;
+      transition: background .2s, color .2s;
+      z-index: 100;
+    }
+    .home-btn:hover { background: rgba(255,255,255,.18); color: #fff; }
 
     /* ── 다시하기 버튼 ── */
     .restart-btn {
@@ -308,17 +334,20 @@
 </head>
 <body>
 
+  <!-- 홈 버튼 -->
+  <a class="home-btn" href="index.html">← 홈으로</a>
+
   <!-- 헤더 -->
   <div class="header">
     <div class="marvel-badge">MARVEL</div>
-    <h1>⚡ 어벤저스 메모리 게임</h1>
+    <h1>⚡ 어벤져스 메모리 게임</h1>
   </div>
 
   <!-- 난이도 선택 -->
   <div class="difficulty-bar">
-    <button class="diff-btn active" onclick="setDiff('easy')">🌱 쉬움 (8쌍)</button>
+    <button class="diff-btn active" onclick="setDiff('easy')">🌱 쉬움 (6쌍)</button>
     <button class="diff-btn"        onclick="setDiff('normal')">⭐ 보통 (12쌍)</button>
-    <button class="diff-btn"        onclick="setDiff('hard')">🔥 어려움 (15쌍)</button>
+    <button class="diff-btn"        onclick="setDiff('hard')">🔥 어려움 (16쌍)</button>
   </div>
 
   <!-- 스탯 -->
@@ -340,7 +369,7 @@
   <div class="win-overlay" id="winOverlay">
     <div class="win-box">
       <span class="win-emoji">🏆</span>
-      <div class="win-title">어벤저스 완성!</div>
+      <div class="win-title">어벤져스 완성!</div>
       <div class="win-subtitle" id="winMsg"></div>
       <div class="win-actions">
         <button class="win-btn same"     onclick="startGame()">다시 해볼래요!</button>
@@ -354,47 +383,55 @@
 
 <script>
 /* ═══════════════════════════════════════════
-   MCU 캐릭터 데이터
+   파일명 → 캐릭터 데이터 변환
+   "아이언맨(토니 스타크).webp" → { id, name:"아이언맨", file }
 ═══════════════════════════════════════════ */
-const ALL_CHARS = [
-  { id: 'ironman',       name: '아이언맨',        file: '아이언맨(토니 스타크).webp' },
-  { id: 'captain',       name: '캡틴 아메리카',   file: '캡틴 아메리카(스티브 로저스).webp' },
-  { id: 'thor',          name: '토르',            file: '토르.webp' },
-  { id: 'hulk',          name: '헐크',            file: '헐크(브루스 배너).webp' },
-  { id: 'blackwidow',    name: '블랙 위도우',     file: '블랙 위도우(나타샤 로마노프).webp' },
-  { id: 'hawkeye',       name: '호크아이',        file: '호크아이(클린트 바튼).webp' },
-  { id: 'spiderman',     name: '스파이더맨',      file: '스파이더맨(피터 파커).webp' },
-  { id: 'blackpanther',  name: '블랙 팬서',       file: '블랙 팬서(트찰라).webp' },
-  { id: 'drstrange',     name: '닥터 스트레인지', file: '닥터 스트레인지.webp' },
-  { id: 'captainmarvel', name: '캡틴 마블',       file: '캡틴 마블(캐럴 댄버스).webp' },
-  { id: 'scarletwitch',  name: '스칼렛 위치',     file: '스칼렛 위치(완다 막시모프).webp' },
-  { id: 'antman',        name: '앤트맨',          file: '앤트맨(스콧 랭).webp' },
-  { id: 'starlord',      name: '스타로드',        file: '스타로드(피터 퀼).webp' },
-  { id: 'groot',         name: '그루트',          file: '그루트.webp' },
-  { id: 'rocket',        name: '로켓',            file: '로켓.webp' },
-  { id: 'nebula',        name: '네뷸라',          file: '네뷸라.webp' },
-  { id: 'drax',          name: '드랙스',          file: '드랙스.webp' },
-  { id: 'mantis',        name: '맨티스',          file: '맨티스.webp' },
-  { id: 'valkyrie',      name: '발키리',          file: '발키리(브룬힐데).webp' },
-  { id: 'falcon',        name: '팔콘',            file: '팔콘(샘 윌슨).webp' },
-  { id: 'warmachine',    name: '워 머신',         file: '워 머신(제임스 로즈).webp' },
-  { id: 'wintersoldier', name: '윈터 솔져',       file: '윈터 솔져(버키 반즈).webp' },
-  { id: 'wasp',          name: '와스프',          file: '와스프(호프 밴 다인).webp' },
-  { id: 'okoye',         name: '오코예',          file: '오코예.webp' },
-  { id: 'shuri',         name: '슈리',            file: '슈리.webp' },
-  { id: 'wong',          name: '웡',              file: '웡.webp' },
-  { id: 'rescue',        name: '레스큐',          file: '레스큐(페퍼 포츠).webp' },
-  { id: 'thanos',        name: '타노스',          file: '타노스.webp' },
-  { id: 'korg',          name: '코르그',          file: '코르그.webp' },
-  { id: 'happy',         name: '해피 호건',       file: '해피 호건.webp' },
-];
+let ALL_CHARS = [];
+
+function filenameToChar(filename) {
+  const nameNoExt  = filename.replace(/\.[^.]+$/, '');          // 확장자 제거
+  const heroName   = nameNoExt.replace(/\s*\(.*?\)\s*/g, '').trim(); // 괄호 제거
+  const id         = nameNoExt.replace(/[\s()\[\]]/g, '_');    // ID용 특수문자 치환
+  return { id, name: heroName, file: filename };
+}
+
+/* ── 이미지 목록 로딩 (두 단계 시도) ────────────────
+   1순위: fetch('이미지/') 로 폴더 직접 스캔 (Chrome file:// 환경)
+   2순위: <script src="이미지/images.js"> 로 미리 주입된 window.MCU_IMAGES
+─────────────────────────────────────────────────── */
+async function loadCharList() {
+  // 1순위: 폴더 디렉토리 리스팅 시도
+  try {
+    const res  = await fetch('이미지/');
+    if (res.ok) {
+      const html = await res.text();
+      const doc  = new DOMParser().parseFromString(html, 'text/html');
+      const files = [...doc.querySelectorAll('a[href]')]
+        .map(a => decodeURIComponent(a.getAttribute('href').split('/').pop()))
+        .filter(f => /\.(webp|png|jpg|jpeg)$/i.test(f));
+      if (files.length > 0) {
+        console.log(`📁 폴더 자동 인식 성공: ${files.length}개`);
+        return files;
+      }
+    }
+  } catch (_) { /* 폴더 인식 불가 → 2순위로 */ }
+
+  // 2순위: images.js (window.MCU_IMAGES)
+  if (Array.isArray(window.MCU_IMAGES) && window.MCU_IMAGES.length > 0) {
+    console.log(`📄 images.js 사용: ${window.MCU_IMAGES.length}개`);
+    return window.MCU_IMAGES;
+  }
+
+  console.warn('⚠️ 이미지 목록을 불러오지 못했습니다. update-images.bat 을 실행해 주세요.');
+  return [];
+}
 
 const IMAGE_BASE = '이미지/';
 
 const DIFF_CONFIG = {
-  easy:   { pairs: 8,  cols: 4, label: '쉬움' },   // 4열 × 4행  (열 = 행)
-  normal: { pairs: 12, cols: 6, label: '보통' },   // 6열 × 4행  (열 > 행)
-  hard:   { pairs: 15, cols: 6, label: '어려움' }, // 6열 × 5행  (열 > 행)
+  easy:   { pairs:  6, cols: 4, label: '쉬움' },   // 4열 × 3행  r≈0.90
+  normal: { pairs: 12, cols: 6, label: '보통' },   // 6열 × 4행  r≈0.80
+  hard:   { pairs: 16, cols: 8, label: '어려움' }, // 8열 × 4행  r≈0.60
 };
 const DIFF_ORDER = ['easy', 'normal', 'hard'];
 
@@ -625,13 +662,19 @@ function shuffle(arr) {
 }
 
 /* ═══════════════════════════════════════════
-   카드 크기 동적 계산 (세로 > 가로 보장)
-   - 세로 우선: 가용 높이를 row수로 나눠 셀 높이 결정
-   - 가로 검증: 셀 너비가 wrapper 너비 초과하면 가로 기준으로 재계산
-   - 비율: 2 : 3 (가로 : 세로)
+   카드 크기 동적 계산
+   목표: ① 카드는 세로 > 가로 (portrait)
+         ② 그리드 전체는 가로 > 세로 (landscape)
+
+   TARGET_GRID_RATIO = 그리드 가로/세로 목표값
+   r (카드 가로/세로) = TARGET × rows/cols
+     → cols > rows이면 r < 1 (portrait) 이면서 그리드는 landscape
+     → 너무 납작하지 않도록 [MIN_R, MAX_R] 범위로 클램프
 ═══════════════════════════════════════════ */
-const CARD_RATIO = 2 / 3;   // 가로/세로 = 2/3  →  세로가 더 길다
-const GAP_PX     = 6;
+const TARGET_GRID_RATIO = 1.2;   // 그리드 가로가 세로의 1.2배
+const MIN_R = 0.55;               // 카드 비율 최소 (너무 홀쭉하지 않게)
+const MAX_R = 0.92;               // 카드 비율 최대 (portrait 유지)
+const GAP_PX = 6;
 
 function resizeCards() {
   const grid    = document.getElementById('grid');
@@ -639,25 +682,37 @@ function resizeCards() {
   if (!grid.children.length) return;
 
   const cfg  = DIFF_CONFIG[currentDiff];
-  const cols  = cfg.cols;
-  const cards = cfg.pairs * 2;
-  const rows  = Math.ceil(cards / cols);
+  const cols = cfg.cols;
+  const rows = Math.ceil((cfg.pairs * 2) / cols);
+
+  /* 카드 가로/세로 비율: 그리드가 TARGET_GRID_RATIO가 되도록 역산 */
+  const r = Math.min(MAX_R, Math.max(MIN_R, TARGET_GRID_RATIO * rows / cols));
 
   const wH = wrapper.clientHeight;
   const wW = wrapper.clientWidth;
 
-  /* ① 세로 기준으로 셀 높이 계산 */
-  const cellHfromH = (wH - GAP_PX * (rows - 1)) / rows;
-  const cellWfromH = cellHfromH * CARD_RATIO;
+  /* ① 가용 높이 기준 셀 크기 */
+  const cellH_H = (wH - GAP_PX * (rows - 1)) / rows;
+  const cellW_H = cellH_H * r;
 
-  /* ② 그 너비가 wrapper를 초과하면 가로 기준으로 재계산 */
-  const maxCellW   = (wW - GAP_PX * (cols - 1)) / cols;
-  const cellW      = Math.min(cellWfromH, maxCellW);
-  const cellH      = cellW / CARD_RATIO;   /* 항상 세로 > 가로 */
+  /* ② 가용 너비 기준 셀 크기 */
+  const cellW_W = (wW - GAP_PX * (cols - 1)) / cols;
+  const cellH_W = cellW_W / r;
+
+  /* 두 기준 중 작은 쪽으로 (wrapper 초과 방지) */
+  const cellW = Math.min(cellW_H, cellW_W);
+  const cellH = cellW / r;   // 항상 cellH > cellW (portrait)
 
   grid.style.gridTemplateColumns = `repeat(${cols}, ${cellW}px)`;
   grid.style.gridTemplateRows    = `repeat(${rows}, ${cellH}px)`;
   grid.style.gap                 = `${GAP_PX}px`;
+
+  /* 카드 너비 기준으로 이름 폰트 크기 동적 설정 (최소 9px) */
+  const fontMultiplier = currentDiff === 'hard' ? 0.15 : 0.11;
+  const nameFontPx = Math.max(8, Math.round(cellW * fontMultiplier));
+  grid.querySelectorAll('.char-name').forEach(el => {
+    el.style.fontSize = nameFontPx + 'px';
+  });
 }
 
 /* 리사이즈 대응 */
@@ -667,7 +722,12 @@ window.addEventListener('resize', () => {
   _resizeTimer = setTimeout(resizeCards, 80);
 });
 
-startGame();
+/* ── 초기화 ── */
+(async () => {
+  const files = await loadCharList();
+  ALL_CHARS   = files.map(filenameToChar);
+  startGame();
+})();
 </script>
 </body>
 </html>
