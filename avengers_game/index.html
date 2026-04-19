@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-  <title>⚡ 어벤져스 메모리 게임</title>
+  <title>⚡ 어벤저스 메모리 게임</title>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@700;900&display=swap" rel="stylesheet" />
   <!-- 이미지 목록 (update-images.bat 실행 시 자동 갱신) -->
   <script src="이미지/images.js" onerror="console.warn('images.js 없음, 폴더 자동 인식 시도')"></script>
@@ -183,7 +183,7 @@
       width: 100%;
       height: 74%;
       object-fit: cover;
-      object-position: top center;
+      object-position: center center;
       border-radius: 12px 12px 0 0;
       display: block;
       flex-shrink: 0;
@@ -315,7 +315,7 @@
   <!-- 헤더 -->
   <div class="header">
     <div class="marvel-badge">MARVEL</div>
-    <h1>⚡ 어벤져스 메모리 게임</h1>
+    <h1>⚡ 어벤저스 메모리 게임</h1>
   </div>
 
   <!-- 난이도 선택 -->
@@ -344,7 +344,7 @@
   <div class="win-overlay" id="winOverlay">
     <div class="win-box">
       <span class="win-emoji">🏆</span>
-      <div class="win-title">어벤져스 완성!</div>
+      <div class="win-title">어벤저스 완성!</div>
       <div class="win-subtitle" id="winMsg"></div>
       <div class="win-actions">
         <button class="win-btn same"     onclick="startGame()">다시 해볼래요!</button>
@@ -683,7 +683,7 @@ function resizeCards() {
   grid.style.gap                 = `${GAP_PX}px`;
 
   /* 카드 너비 기준으로 이름 폰트 크기 동적 설정 (최소 9px) */
-  const nameFontPx = Math.max(9, Math.round(cellW * 0.15));
+  const nameFontPx = Math.max(8, Math.round(cellW * 0.11));
   grid.querySelectorAll('.char-name').forEach(el => {
     el.style.fontSize = nameFontPx + 'px';
   });
