@@ -183,7 +183,7 @@
       width: 100%;
       height: 74%;
       object-fit: cover;
-      object-position: center 30%;
+      object-position: center 20%;
       border-radius: 12px 12px 0 0;
       display: block;
       flex-shrink: 0;
@@ -683,7 +683,8 @@ function resizeCards() {
   grid.style.gap                 = `${GAP_PX}px`;
 
   /* 카드 너비 기준으로 이름 폰트 크기 동적 설정 (최소 9px) */
-  const nameFontPx = Math.max(8, Math.round(cellW * 0.11));
+  const fontMultiplier = currentDiff === 'hard' ? 0.15 : 0.11;
+  const nameFontPx = Math.max(8, Math.round(cellW * fontMultiplier));
   grid.querySelectorAll('.char-name').forEach(el => {
     el.style.fontSize = nameFontPx + 'px';
   });
