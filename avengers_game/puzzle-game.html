@@ -3,78 +3,623 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-  <title>🧩 퍼즐 게임</title>
+  <title>🧩 슬라이딩 퍼즐</title>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@700;900&display=swap" rel="stylesheet" />
+  <script src="퍼즐 이미지/images.js" onerror="console.warn('images.js 없음, 폴더 자동 인식 시도')"></script>
   <style>
-    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box;
+      -webkit-tap-highlight-color:transparent; user-select:none; }
 
+    html { height:100%; }
     body {
-      font-family: 'Noto Sans KR', sans-serif;
-      background: linear-gradient(135deg, #0d0d0d 0%, #1a0000 50%, #2a0a0a 100%);
-      height: 100dvh;
-      height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 24px;
+      font-family:'Noto Sans KR', sans-serif;
+      background:linear-gradient(135deg,#0d0d0d 0%,#1a0000 50%,#2a0a0a 100%);
+      height:100dvh; height:100vh;
+      display:flex; flex-direction:column; align-items:center;
+      overflow:hidden;
+      padding:8px 10px max(14px, env(safe-area-inset-bottom, 14px));
+      gap:6px;
     }
 
     /* ── 홈 버튼 ── */
     .home-btn {
-      position: fixed;
-      top: 16px;
-      left: 16px;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      background: rgba(255,255,255,.1);
-      border: 1px solid rgba(255,255,255,.2);
-      color: rgba(255,255,255,.75);
-      font-family: 'Noto Sans KR', sans-serif;
-      font-size: 0.85rem;
-      font-weight: 700;
-      padding: 8px 16px;
-      border-radius: 50px;
-      text-decoration: none;
-      transition: background .2s, color .2s;
+      position:fixed; top:12px; left:12px; z-index:100;
+      display:flex; align-items:center; gap:6px;
+      background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.2);
+      color:rgba(255,255,255,.75); font-family:'Noto Sans KR',sans-serif;
+      font-size:.8rem; font-weight:700; padding:6px 14px;
+      border-radius:50px; text-decoration:none; transition:background .2s,color .2s;
     }
-    .home-btn:hover {
-      background: rgba(255,255,255,.18);
-      color: #fff;
+    .home-btn:hover { background:rgba(255,255,255,.18); color:#fff; }
+
+    /* ── 헤더 ── */
+    .header {
+      flex-shrink:0; display:flex; flex-direction:column;
+      align-items:center; gap:3px;
+    }
+    .marvel-badge {
+      background:#ED1D24; color:#fff; font-size:.7rem; font-weight:900;
+      letter-spacing:4px; padding:3px 14px; border-radius:4px; text-transform:uppercase;
+    }
+    h1 {
+      color:#fff; font-size:clamp(1.1rem,3vw,1.8rem); font-weight:900;
+      text-shadow:0 0 20px rgba(237,29,36,.6),0 3px 10px rgba(0,0,0,.5);
     }
 
-    .coming-soon {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 16px;
-      text-align: center;
+    /* ── 이미지 선택기 ── */
+    .image-selector {
+      flex-shrink:0; display:flex; align-items:center; gap:10px;
     }
-    .coming-icon { font-size: 5rem; }
-    .coming-title {
-      color: #fff;
-      font-size: 2rem;
-      font-weight: 900;
-      text-shadow: 0 0 20px rgba(237,29,36,.5);
+    .img-nav-btn {
+      background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.2);
+      color:#fff; font-size:1rem; font-weight:700;
+      padding:4px 10px; border-radius:50px; cursor:pointer;
+      transition:background .15s;
     }
-    .coming-desc {
-      color: rgba(255,255,255,.4);
-      font-size: 1rem;
-      font-weight: 700;
-      line-height: 1.6;
+    .img-nav-btn:hover { background:rgba(255,255,255,.22); }
+    .img-nav-btn:disabled { opacity:.3; cursor:default; }
+    .img-name {
+      color:rgba(255,255,255,.85); font-size:.88rem; font-weight:700;
+      min-width:100px; text-align:center;
     }
+
+    /* ── 난이도 탭 ── */
+    .difficulty-bar { flex-shrink:0; display:flex; gap:6px; }
+    .diff-btn {
+      padding:5px 14px; border:2px solid rgba(255,255,255,.25);
+      border-radius:50px; font-size:clamp(.7rem,1.4vw,.85rem); font-weight:700;
+      cursor:pointer; background:rgba(255,255,255,.08);
+      color:rgba(255,255,255,.75); transition:all .2s; white-space:nowrap;
+    }
+    .diff-btn.active {
+      background:#ED1D24; color:#fff; border-color:#ED1D24;
+      box-shadow:0 0 12px rgba(237,29,36,.5);
+    }
+    .diff-btn:active { transform:scale(.95); }
+
+    /* ── 스탯 바 ── */
+    .stats { flex-shrink:0; display:flex; gap:8px; }
+    .stat {
+      background:rgba(255,255,255,.1); backdrop-filter:blur(4px);
+      color:#fff; padding:5px 14px; border-radius:50px;
+      font-size:clamp(.72rem,1.4vw,.88rem); font-weight:700;
+      min-width:88px; text-align:center; border:1px solid rgba(255,255,255,.15);
+    }
+
+    /* ── 퍼즐 래퍼 ── */
+    .puzzle-wrapper {
+      flex:1; min-height:0; width:100%;
+      display:flex; align-items:center; justify-content:center;
+      position:relative;
+    }
+
+    /* ── 퍼즐 그리드 ── */
+    .puzzle-grid {
+      position:relative;
+      /* width/height는 JS가 설정 */
+    }
+
+    /* ── 타일 ── */
+    .tile {
+      position:absolute;
+      background-repeat:no-repeat;
+      border-radius:6px;
+      cursor:pointer;
+      transition:top .18s cubic-bezier(.4,0,.2,1), left .18s cubic-bezier(.4,0,.2,1),
+                 box-shadow .15s;
+      box-shadow:0 2px 6px rgba(0,0,0,.4);
+      /* border는 gap 역할: box-shadow inset으로 처리 */
+      outline:2px solid rgba(0,0,0,.5);
+    }
+    .tile:hover { box-shadow:0 0 0 2px #ED1D24, 0 4px 12px rgba(237,29,36,.4); z-index:2; }
+    .tile:active { filter:brightness(1.15); }
+    .tile.matched-tile {
+      outline-color:#FFD700;
+      box-shadow:0 0 0 2px #FFD700;
+      cursor:default;
+    }
+
+    /* ── 힌트 오버레이 ── */
+    .hint-overlay {
+      position:absolute; inset:0; border-radius:8px;
+      background-size:100% 100%;
+      background-repeat:no-repeat;
+      opacity:0; pointer-events:none;
+      transition:opacity .3s;
+      z-index:50;
+    }
+    .hint-overlay.show { opacity:.82; }
+
+    /* ── 버튼 열 ── */
+    .btn-row {
+      flex-shrink:0; display:flex; gap:8px;
+    }
+    .action-btn {
+      padding:7px 22px; font-size:clamp(.78rem,1.4vw,.95rem); font-weight:700;
+      border:none; border-radius:50px; cursor:pointer; transition:transform .1s;
+    }
+    .btn-restart {
+      background:#ED1D24; color:#fff;
+      box-shadow:0 4px 14px rgba(237,29,36,.4);
+    }
+    .btn-hint {
+      background:rgba(255,255,255,.12); color:#fff;
+      border:1px solid rgba(255,255,255,.25);
+    }
+    .action-btn:active { transform:scale(.95); }
+
+    /* ── 승리 오버레이 ── */
+    .win-overlay {
+      display:none; position:fixed; inset:0;
+      background:rgba(0,0,0,.75); z-index:200;
+      align-items:center; justify-content:center;
+    }
+    .win-overlay.show { display:flex; }
+    .win-box {
+      background:linear-gradient(135deg,#1a0000 0%,#3d0000 100%);
+      border:2px solid #ED1D24; border-radius:24px;
+      padding:36px 52px; text-align:center; color:#fff;
+      box-shadow:0 0 40px rgba(237,29,36,.5),0 20px 60px rgba(0,0,0,.6);
+      animation:zoomIn .45s cubic-bezier(.34,1.56,.64,1); max-width:90vw;
+    }
+    @keyframes zoomIn { from{transform:scale(.6);opacity:0} to{transform:scale(1);opacity:1} }
+    .win-emoji  { font-size:4rem; display:block; margin-bottom:8px; }
+    .win-title  { font-size:clamp(1.6rem,4vw,2.5rem); font-weight:900; margin-bottom:6px;
+                  text-shadow:0 0 20px rgba(237,29,36,.8); }
+    .win-sub    { font-size:1.05rem; opacity:.85; margin-bottom:24px; }
+    .win-acts   { display:flex; gap:12px; justify-content:center; flex-wrap:wrap; }
+    .win-btn    { padding:12px 32px; font-size:1rem; font-weight:700; border:none;
+                  border-radius:50px; cursor:pointer; transition:transform .1s; }
+    .win-btn.again  { background:rgba(255,255,255,.15); color:#fff; border:2px solid rgba(255,255,255,.3); }
+    .win-btn.harder { background:#ED1D24; color:#fff; box-shadow:0 4px 14px rgba(237,29,36,.5); }
+    .win-btn:active { transform:scale(.95); }
+
+    /* ── 에러 메시지 ── */
+    .error-msg {
+      color:rgba(255,255,255,.5); font-size:1rem; font-weight:700;
+      text-align:center; line-height:1.8;
+    }
+
+    /* ── 컨페티 ── */
+    .confetti-layer { position:fixed; inset:0; pointer-events:none; z-index:199; }
+    .dot { position:absolute; top:-12px; border-radius:2px; animation:fall linear forwards; }
+    @keyframes fall { to { transform:translateY(110vh) rotate(720deg); opacity:0; } }
   </style>
 </head>
 <body>
 
   <a class="home-btn" href="index.html">← 홈으로</a>
 
-  <div class="coming-soon">
-    <div class="coming-icon">🧩</div>
-    <div class="coming-title">준비 중이에요!</div>
-    <div class="coming-desc">히어로 퍼즐 게임을 열심히 만들고 있어요.<br>조금만 기다려 주세요!</div>
+  <div class="header">
+    <div class="marvel-badge">MARVEL</div>
+    <h1>🧩 슬라이딩 퍼즐</h1>
   </div>
 
+  <!-- 이미지 선택기 -->
+  <div class="image-selector" id="imageSelector">
+    <button class="img-nav-btn" id="btnPrev" onclick="changeImage(-1)">‹</button>
+    <div class="img-name" id="imgName">로딩 중...</div>
+    <button class="img-nav-btn" id="btnNext" onclick="changeImage(1)">›</button>
+  </div>
+
+  <!-- 난이도 -->
+  <div class="difficulty-bar">
+    <button class="diff-btn active" onclick="setDiff('easy')">🌱 쉬움 (3×2)</button>
+    <button class="diff-btn"        onclick="setDiff('normal')">⭐ 보통 (4×3)</button>
+    <button class="diff-btn"        onclick="setDiff('hard')">🔥 어려움 (5×4)</button>
+  </div>
+
+  <!-- 스탯 -->
+  <div class="stats">
+    <div class="stat">⏱️ <span id="timer">0</span>초</div>
+    <div class="stat">🎯 <span id="moves">0</span>번</div>
+  </div>
+
+  <!-- 퍼즐 -->
+  <div class="puzzle-wrapper" id="puzzleWrapper">
+    <div class="puzzle-grid" id="puzzleGrid">
+      <div class="hint-overlay" id="hintOverlay"></div>
+    </div>
+  </div>
+
+  <!-- 버튼 -->
+  <div class="btn-row">
+    <button class="action-btn btn-hint"    onclick="showHint()">👁 힌트</button>
+    <button class="action-btn btn-restart" onclick="restartGame()">🔀 다시 섞기</button>
+  </div>
+
+  <!-- 승리 화면 -->
+  <div class="win-overlay" id="winOverlay">
+    <div class="win-box">
+      <span class="win-emoji">🏆</span>
+      <div class="win-title">퍼즐 완성!</div>
+      <div class="win-sub" id="winMsg"></div>
+      <div class="win-acts">
+        <button class="win-btn again"  onclick="restartGame()">다시 해볼래요!</button>
+        <button class="win-btn harder" id="harderBtn" onclick="goHarder()">더 어렵게!</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="confetti-layer" id="confettiLayer"></div>
+
+<script>
+/* ═══════════════════════════════════════
+   상태 변수
+═══════════════════════════════════════ */
+const IMAGE_BASE = '퍼즐 이미지/';
+const DIFF_CONFIG = {
+  easy:   { rows:2, cols:3, shuffles:50,  label:'쉬움' },
+  normal: { rows:3, cols:4, shuffles:150, label:'보통' },
+  hard:   { rows:4, cols:5, shuffles:300, label:'어려움' },
+};
+const DIFF_ORDER = ['easy','normal','hard'];
+
+let allImages    = [];   // 파일명 목록
+let imgIdx       = 0;    // 현재 선택된 이미지 인덱스
+let currentDiff  = 'easy';
+let tiles        = [];   // tiles[gridPos] = pieceNum (0=빈 칸)
+let rows, cols, totalTiles;
+let tileW, tileH;        // 픽셀 단위 타일 크기
+let moves = 0, timerSec = 0, timerID = null;
+let started = false;
+let hintTimer = null;
+let audioCtx = null;
+
+const tileEls = new Map(); // pieceNum → DOM element
+
+/* ═══════════════════════════════════════
+   이미지 로딩 (fetch 시도 → images.js fallback)
+═══════════════════════════════════════ */
+async function loadImageList() {
+  try {
+    const res = await fetch(IMAGE_BASE);
+    if (res.ok) {
+      const html = await res.text();
+      const doc  = new DOMParser().parseFromString(html, 'text/html');
+      const files = [...doc.querySelectorAll('a[href]')]
+        .map(a => decodeURIComponent(a.getAttribute('href').split('/').pop()))
+        .filter(f => /\.(png|jpg|jpeg|webp)$/i.test(f));
+      if (files.length > 0) { console.log(`📁 폴더 인식: ${files.length}개`); return files; }
+    }
+  } catch(_) {}
+
+  if (Array.isArray(window.PUZZLE_IMAGES) && window.PUZZLE_IMAGES.length > 0) {
+    console.log(`📄 images.js: ${window.PUZZLE_IMAGES.length}개`);
+    return window.PUZZLE_IMAGES;
+  }
+  return [];
+}
+
+function fileToName(filename) {
+  return filename.replace(/\.[^.]+$/, ''); // 확장자 제거
+}
+
+/* ═══════════════════════════════════════
+   이미지 선택기 UI
+═══════════════════════════════════════ */
+function updateSelector() {
+  document.getElementById('imgName').textContent = fileToName(allImages[imgIdx]);
+  document.getElementById('btnPrev').disabled = imgIdx === 0;
+  document.getElementById('btnNext').disabled = imgIdx === allImages.length - 1;
+  // 이미지 1개면 네비게이션 숨김
+  document.getElementById('imageSelector').style.display =
+    allImages.length <= 1 ? 'none' : 'flex';
+}
+
+function changeImage(dir) {
+  imgIdx = Math.max(0, Math.min(allImages.length - 1, imgIdx + dir));
+  updateSelector();
+  restartGame();
+}
+
+/* ═══════════════════════════════════════
+   난이도 변경
+═══════════════════════════════════════ */
+function setDiff(diff) {
+  currentDiff = diff;
+  document.querySelectorAll('.diff-btn').forEach((btn, i) => {
+    btn.classList.toggle('active', DIFF_ORDER[i] === diff);
+  });
+  restartGame();
+}
+
+function goHarder() {
+  const idx  = DIFF_ORDER.indexOf(currentDiff);
+  const next = DIFF_ORDER[Math.min(idx + 1, DIFF_ORDER.length - 1)];
+  setDiff(next);
+}
+
+/* ═══════════════════════════════════════
+   게임 시작 / 재시작
+═══════════════════════════════════════ */
+function restartGame() {
+  clearInterval(timerID);
+  document.getElementById('winOverlay').classList.remove('show');
+  document.getElementById('confettiLayer').innerHTML = '';
+  timerSec = moves = 0; started = false;
+  document.getElementById('timer').textContent = '0';
+  document.getElementById('moves').textContent = '0';
+
+  const cfg = DIFF_CONFIG[currentDiff];
+  rows = cfg.rows; cols = cfg.cols; totalTiles = rows * cols;
+
+  // 초기 타일 배열 (solved state: 1,2,...,N-1, 0)
+  tiles = Array.from({length: totalTiles}, (_, i) => i < totalTiles - 1 ? i + 1 : 0);
+
+  // 셔플
+  shuffleTiles(cfg.shuffles);
+
+  // DOM 구성 + 크기 계산
+  buildTileElements();
+  resizeAndRender();
+}
+
+/* ═══════════════════════════════════════
+   셔플 (역방향 이동 방지로 효율 극대화)
+═══════════════════════════════════════ */
+function shuffleTiles(count) {
+  let emptyPos = tiles.indexOf(0);
+  let lastEmptyPos = -1;
+
+  for (let i = 0; i < count; i++) {
+    const neighbors = getAdjacent(emptyPos).filter(p => p !== lastEmptyPos);
+    const next = neighbors[Math.floor(Math.random() * neighbors.length)];
+    tiles[emptyPos] = tiles[next];
+    tiles[next] = 0;
+    lastEmptyPos = emptyPos;
+    emptyPos = next;
+  }
+}
+
+function getAdjacent(pos) {
+  const r = Math.floor(pos / cols), c = pos % cols;
+  const result = [];
+  if (r > 0)      result.push(pos - cols);
+  if (r < rows-1) result.push(pos + cols);
+  if (c > 0)      result.push(pos - 1);
+  if (c < cols-1) result.push(pos + 1);
+  return result;
+}
+
+/* ═══════════════════════════════════════
+   DOM 타일 생성
+═══════════════════════════════════════ */
+function buildTileElements() {
+  const grid = document.getElementById('puzzleGrid');
+  // 힌트 오버레이는 유지, 타일만 제거
+  [...grid.children].forEach(el => { if (!el.classList.contains('hint-overlay')) el.remove(); });
+  tileEls.clear();
+
+  const imgSrc = IMAGE_BASE + allImages[imgIdx];
+
+  for (let p = 1; p < totalTiles; p++) {
+    const el = document.createElement('div');
+    el.className = 'tile';
+    el.style.backgroundImage = `url('${imgSrc}')`;
+    el.addEventListener('click', () => onTileClick(p));
+    tileEls.set(p, el);
+    grid.appendChild(el);
+  }
+}
+
+/* ═══════════════════════════════════════
+   크기 계산 & 위치 업데이트
+═══════════════════════════════════════ */
+function resizeAndRender() {
+  const wrapper = document.getElementById('puzzleWrapper');
+  const grid    = document.getElementById('puzzleGrid');
+  const wW = wrapper.clientWidth, wH = wrapper.clientHeight;
+
+  // 이미지를 hidden img로 로드해 aspect ratio 확인
+  const img = new Image();
+  img.onload = () => {
+    const imgRatio = img.naturalWidth / img.naturalHeight;
+    const gap = 3; // 타일 간 간격(px)
+
+    // 그리드 크기: 가용 공간 안에서 이미지 비율 유지
+    let gridW, gridH;
+    if (wW / wH > imgRatio) {
+      gridH = wH - gap * (rows - 1);
+      gridW = gridH * imgRatio + gap * (cols - 1);
+    } else {
+      gridW = wW - gap * (cols - 1);
+      gridH = gridW / imgRatio + gap * (rows - 1);
+    }
+
+    tileW = (gridW - gap * (cols - 1)) / cols;
+    tileH = (gridH - gap * (rows - 1)) / rows;
+
+    grid.style.width  = gridW + 'px';
+    grid.style.height = gridH + 'px';
+
+    // 타일 배경 크기 설정
+    tileEls.forEach((el, p) => {
+      const origRow = Math.floor((p - 1) / cols);
+      const origCol = (p - 1) % cols;
+      el.style.width  = tileW + 'px';
+      el.style.height = tileH + 'px';
+      el.style.backgroundSize = `${cols * tileW + gap * (cols-1)}px ${rows * tileH + gap * (rows-1)}px`;
+      el.style.backgroundPosition =
+        `-${origCol * (tileW + gap)}px -${origRow * (tileH + gap)}px`;
+    });
+
+    // 힌트 오버레이 배경 설정
+    const hint = document.getElementById('hintOverlay');
+    hint.style.backgroundImage = `url('${IMAGE_BASE + allImages[imgIdx]}')`;
+
+    updatePositions(true /* instant */);
+  };
+  img.onerror = () => {
+    // 비율 모를 때 16:9 fallback
+    img.naturalWidth = 1920; img.naturalHeight = 1080;
+    img.onload(); // 재호출 (crude but works)
+  };
+  img.src = IMAGE_BASE + allImages[imgIdx];
+}
+
+/* ═══════════════════════════════════════
+   타일 위치 업데이트 (animated or instant)
+═══════════════════════════════════════ */
+function updatePositions(instant) {
+  const gap = 3;
+  tiles.forEach((piece, idx) => {
+    if (piece === 0) return;
+    const r = Math.floor(idx / cols), c = idx % cols;
+    const el = tileEls.get(piece);
+    if (instant) el.style.transition = 'none';
+    el.style.top  = (r * (tileH + gap)) + 'px';
+    el.style.left = (c * (tileW + gap)) + 'px';
+    if (instant) requestAnimationFrame(() => {
+      el.style.transition = 'top .18s cubic-bezier(.4,0,.2,1), left .18s cubic-bezier(.4,0,.2,1), box-shadow .15s';
+    });
+  });
+}
+
+/* ═══════════════════════════════════════
+   타일 클릭
+═══════════════════════════════════════ */
+function onTileClick(piece) {
+  unlockAudio();
+  const piecePos = tiles.indexOf(piece);
+  const emptyPos = tiles.indexOf(0);
+  if (!getAdjacent(emptyPos).includes(piecePos)) return;
+
+  if (!started) { started = true; startTimer(); }
+
+  tiles[emptyPos] = piece;
+  tiles[piecePos] = 0;
+  moves++;
+  document.getElementById('moves').textContent = moves;
+  playSound('slide');
+  updatePositions(false);
+  checkWin();
+}
+
+/* ═══════════════════════════════════════
+   승리 판정
+═══════════════════════════════════════ */
+function checkWin() {
+  const solved = tiles.every((p, i) =>
+    i < totalTiles - 1 ? p === i + 1 : p === 0
+  );
+  if (!solved) return;
+
+  clearInterval(timerID);
+  // 마지막 타일도 맞춘 상태 표시 (optional: 모든 타일 matched 클래스)
+  setTimeout(() => {
+    playSound('win');
+    const stars = timerSec < 60 ? '⭐⭐⭐' : timerSec < 120 ? '⭐⭐' : '⭐';
+    document.getElementById('winMsg').textContent =
+      `${stars}  ${timerSec}초 · ${moves}번 이동  ${stars}`;
+    document.getElementById('harderBtn').style.display =
+      currentDiff === 'hard' ? 'none' : '';
+    document.getElementById('winOverlay').classList.add('show');
+    spawnConfetti();
+  }, 300);
+}
+
+/* ═══════════════════════════════════════
+   타이머
+═══════════════════════════════════════ */
+function startTimer() {
+  timerID = setInterval(() => {
+    timerSec++;
+    document.getElementById('timer').textContent = timerSec;
+  }, 1000);
+}
+
+/* ═══════════════════════════════════════
+   힌트 (1.5초 원본 이미지 표시)
+═══════════════════════════════════════ */
+function showHint() {
+  if (hintTimer) return;
+  const overlay = document.getElementById('hintOverlay');
+  overlay.classList.add('show');
+  hintTimer = setTimeout(() => {
+    overlay.classList.remove('show');
+    hintTimer = null;
+  }, 1500);
+}
+
+/* ═══════════════════════════════════════
+   리사이즈 대응
+═══════════════════════════════════════ */
+let _resizeTimer;
+window.addEventListener('resize', () => {
+  clearTimeout(_resizeTimer);
+  _resizeTimer = setTimeout(resizeAndRender, 100);
+});
+
+/* ═══════════════════════════════════════
+   컨페티
+═══════════════════════════════════════ */
+function spawnConfetti() {
+  const layer  = document.getElementById('confettiLayer');
+  layer.innerHTML = '';
+  const colors = ['#ED1D24','#FFD700','#C0C0C0','#1e3a5f','#ff6b35','#ffffff','#8B0000'];
+  for (let i = 0; i < 100; i++) {
+    const d = document.createElement('div');
+    const sz = 8 + Math.random() * 10, dur = 2.2 + Math.random() * 2;
+    d.className = 'dot';
+    Object.assign(d.style, {
+      left:`${Math.random()*100}%`,
+      width:`${sz}px`,
+      height:`${sz*(Math.random()>.5?1:2)}px`,
+      background:colors[Math.floor(Math.random()*colors.length)],
+      borderRadius:Math.random()>.4?'50%':'2px',
+      animationDelay:`${Math.random()*1.2}s`,
+      animationDuration:`${dur}s`,
+    });
+    layer.appendChild(d);
+  }
+}
+
+/* ═══════════════════════════════════════
+   사운드
+═══════════════════════════════════════ */
+function unlockAudio() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+}
+function playSound(type) {
+  if (!audioCtx) return;
+  const ctx = audioCtx, t = ctx.currentTime;
+  const beep = (freq, start, dur, vol=.2, shape='sine') => {
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = shape; o.frequency.value = freq;
+    g.gain.setValueAtTime(vol, t+start);
+    g.gain.exponentialRampToValueAtTime(.001, t+start+dur);
+    o.connect(g); g.connect(ctx.destination);
+    o.start(t+start); o.stop(t+start+dur+.05);
+  };
+  if (type === 'slide') {
+    beep(440, 0, .06, .1, 'sine');
+  } else if (type === 'win') {
+    [[523,.0],[659,.14],[784,.28],[1047,.42],[1319,.56]]
+      .forEach(([f,s]) => beep(f, s, .3, .28));
+  }
+}
+
+/* ═══════════════════════════════════════
+   초기화
+═══════════════════════════════════════ */
+async function init() {
+  allImages = await loadImageList();
+  if (allImages.length === 0) {
+    document.getElementById('puzzleWrapper').innerHTML =
+      `<div class="error-msg">
+        이미지를 찾을 수 없습니다.<br>
+        <b>퍼즐 이미지</b> 폴더에 이미지를 넣고<br>
+        <b>update-images.bat</b>을 실행해 주세요.
+      </div>`;
+    return;
+  }
+  imgIdx = Math.floor(Math.random() * allImages.length);
+  updateSelector();
+  restartGame();
+}
+
+init();
+</script>
 </body>
 </html>
