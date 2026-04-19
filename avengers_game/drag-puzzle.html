@@ -1,0 +1,1028 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>🧩 직소 퍼즐</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@700;900&display=swap" rel="stylesheet" />
+  <script src="퍼즐 이미지/images.js" onerror="console.warn('images.js 없음')"></script>
+  <style>
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box;
+      -webkit-tap-highlight-color:transparent; }
+
+    html { height:100%; }
+    body {
+      font-family:'Noto Sans KR',sans-serif;
+      background:linear-gradient(135deg,#0d0d0d 0%,#1a0000 50%,#2a0a0a 100%);
+      height:100dvh; height:100vh;
+      display:flex; flex-direction:column; align-items:center;
+      overflow:hidden;
+      padding: clamp(4px,1.2vh,8px) 10px clamp(6px,1.5vh,max(12px,env(safe-area-inset-bottom,12px)));
+      gap: clamp(2px,0.9vh,5px);
+      user-select:none;
+    }
+
+    /* ── 홈 버튼 ── */
+    .home-btn {
+      position:fixed; top:12px; left:12px; z-index:200;
+      display:flex; align-items:center; gap:6px;
+      background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.2);
+      color:rgba(255,255,255,.75); font-family:'Noto Sans KR',sans-serif;
+      font-size:.8rem; font-weight:700; padding:6px 14px;
+      border-radius:50px; text-decoration:none; transition:background .2s,color .2s;
+    }
+    .home-btn:hover { background:rgba(255,255,255,.18); color:#fff; }
+
+    /* ── 헤더 ── */
+    .header { flex-shrink:0; display:flex; flex-direction:column; align-items:center; gap:2px; }
+    .marvel-badge {
+      background:#ED1D24; color:#fff; font-size:.65rem; font-weight:900;
+      letter-spacing:4px; padding:2px 12px; border-radius:4px; text-transform:uppercase;
+    }
+    h1 {
+      color:#fff; font-size:clamp(.95rem,2.5vw,1.6rem); font-weight:900;
+      text-shadow:0 0 20px rgba(237,29,36,.6),0 3px 10px rgba(0,0,0,.5);
+    }
+
+    /* ── 이미지 선택기 ── */
+    .image-selector { flex-shrink:0; display:flex; align-items:center; gap:8px; }
+    .img-nav-btn {
+      background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.2);
+      color:#fff; font-size:.95rem; font-weight:700;
+      padding:3px 9px; border-radius:50px; cursor:pointer; transition:background .15s;
+    }
+    .img-nav-btn:hover { background:rgba(255,255,255,.22); }
+    .img-nav-btn:disabled { opacity:.3; cursor:default; }
+    .img-name { color:rgba(255,255,255,.85); font-size:.82rem; font-weight:700;
+      min-width:90px; text-align:center; }
+
+    /* ── 난이도 ── */
+    .difficulty-bar { flex-shrink:0; display:flex; gap:5px; }
+    .diff-btn {
+      padding: clamp(3px,.8vh,5px) clamp(9px,1.3vw,14px);
+      border:2px solid rgba(255,255,255,.25);
+      border-radius:50px; font-size:clamp(.65rem,1.4vw,.83rem); font-weight:700;
+      cursor:pointer; background:rgba(255,255,255,.08);
+      color:rgba(255,255,255,.75); transition:all .2s; white-space:nowrap;
+    }
+    .diff-btn.active { background:#ED1D24; color:#fff; border-color:#ED1D24;
+      box-shadow:0 0 12px rgba(237,29,36,.5); }
+    .diff-btn:active { transform:scale(.95); }
+
+    /* ── 스탯 ── */
+    .stats { flex-shrink:0; display:flex; gap:6px; }
+    .stat {
+      background:rgba(255,255,255,.1); backdrop-filter:blur(4px);
+      color:#fff; padding: clamp(3px,.7vh,5px) clamp(8px,1.2vw,14px);
+      border-radius:50px;
+      font-size:clamp(.68rem,1.4vw,.85rem); font-weight:700;
+      min-width:70px; text-align:center; border:1px solid rgba(255,255,255,.15);
+    }
+
+    /* ── 게임 영역 ── */
+    .game-area {
+      flex:1; min-height:0; width:100%;
+      display:flex; flex-direction:row; gap:10px; align-items:center; justify-content:center;
+    }
+
+    /* ── 타겟 그리드 ── */
+    .target-section { flex-shrink:0; display:flex; flex-direction:column; align-items:center; gap:6px; }
+    .target-label { color:rgba(255,255,255,.4); font-size:.75rem; font-weight:700; }
+    .target-grid {
+      display:grid; position:relative;
+      background:rgba(0,0,0,.55); border-radius:10px;
+      overflow:hidden;
+      box-shadow:0 6px 24px rgba(0,0,0,.5);
+    }
+    .target-slot {
+      position:relative;
+      overflow:visible;
+      background:rgba(255,255,255,.03);
+      transition:background .15s;
+      cursor:pointer;
+    }
+    .target-slot.drag-over { background:rgba(237,29,36,.18); }
+
+    /* ── 트레이 ── */
+    .tray-section {
+      flex-shrink:0;
+      display:flex; flex-direction:column; gap:6px; align-items:center;
+    }
+    .tray-label { color:rgba(255,255,255,.4); font-size:.75rem; font-weight:700; }
+    .tray-inner {
+      display:flex; flex-wrap:wrap; gap:8px; overflow-y:auto;
+      align-content:flex-start;
+      background:rgba(0,0,0,.3); border-radius:10px; padding:8px;
+      border:1px solid rgba(255,255,255,.08);
+    }
+    /* 트레이 개별 조각 래퍼 */
+    .tray-wrap {
+      flex-shrink:0; position:relative; overflow:visible; cursor:grab;
+    }
+    .tray-wrap:active { cursor:grabbing; }
+
+    /* ── 드래그 클론 (canvas) ── */
+    .drag-clone-canvas {
+      position:fixed; z-index:1000;
+      pointer-events:none; touch-action:none;
+      opacity:.92;
+      transform:scale(1.06);
+      will-change:left,top;
+      filter:drop-shadow(0 12px 24px rgba(0,0,0,.6));
+    }
+
+    /* ── 버튼 열 ── */
+    .btn-row { flex-shrink:0; display:flex; gap:8px; }
+    .action-btn {
+      padding: clamp(5px,.9vh,7px) clamp(14px,2.5vw,22px);
+      font-size:clamp(.72rem,1.4vw,.92rem); font-weight:700;
+      border:none; border-radius:50px; cursor:pointer; transition:transform .1s;
+    }
+    .btn-restart { background:#ED1D24; color:#fff; box-shadow:0 4px 14px rgba(237,29,36,.4); }
+    .btn-hint    { background:rgba(255,255,255,.12); color:#fff; border:1px solid rgba(255,255,255,.25); }
+    .action-btn:active { transform:scale(.95); }
+
+    /* ── 힌트 오버레이 ── */
+    .hint-overlay {
+      position:absolute; inset:0; border-radius:10px;
+      background-size:100% 100%; background-repeat:no-repeat;
+      opacity:0; pointer-events:none; transition:opacity .3s; z-index:50;
+    }
+    .hint-overlay.show { opacity:.85; }
+
+    /* ── 진행 표시 ── */
+    .progress-bar {
+      width:100%; height:4px; background:rgba(255,255,255,.1);
+      border-radius:2px; overflow:hidden;
+    }
+    .progress-fill { height:100%; background:#FFD700; transition:width .3s; border-radius:2px; }
+
+    /* ── 승리 오버레이 ── */
+    .win-overlay {
+      display:none; position:fixed; inset:0;
+      background:rgba(0,0,0,.75); z-index:300;
+      align-items:center; justify-content:center;
+    }
+    .win-overlay.show { display:flex; }
+    .win-box {
+      background:linear-gradient(135deg,#1a0000,#3d0000);
+      border:2px solid #ED1D24; border-radius:24px;
+      padding:36px 52px; text-align:center; color:#fff;
+      box-shadow:0 0 40px rgba(237,29,36,.5),0 20px 60px rgba(0,0,0,.6);
+      animation:zoomIn .45s cubic-bezier(.34,1.56,.64,1); max-width:90vw;
+    }
+    @keyframes zoomIn { from{transform:scale(.6);opacity:0} to{transform:scale(1);opacity:1} }
+    .win-emoji { font-size:4rem; display:block; margin-bottom:8px; }
+    .win-title { font-size:clamp(1.6rem,4vw,2.5rem); font-weight:900; margin-bottom:6px;
+      text-shadow:0 0 20px rgba(237,29,36,.8); }
+    .win-sub   { font-size:1.05rem; opacity:.85; margin-bottom:24px; }
+    .win-acts  { display:flex; gap:12px; justify-content:center; flex-wrap:wrap; }
+    .win-btn   { padding:12px 32px; font-size:1rem; font-weight:700; border:none;
+      border-radius:50px; cursor:pointer; transition:transform .1s; }
+    .win-btn.again  { background:rgba(255,255,255,.15); color:#fff; border:2px solid rgba(255,255,255,.3); }
+    .win-btn.harder { background:#ED1D24; color:#fff; box-shadow:0 4px 14px rgba(237,29,36,.5); }
+    .win-btn:active { transform:scale(.95); }
+
+    /* ── 컨페티 ── */
+    .confetti-layer { position:fixed; inset:0; pointer-events:none; z-index:199; }
+    .dot { position:absolute; top:-12px; border-radius:2px; animation:fall linear forwards; }
+    @keyframes fall { to{transform:translateY(110vh) rotate(720deg);opacity:0} }
+
+    .error-msg { color:rgba(255,255,255,.5); font-size:1rem; font-weight:700;
+      text-align:center; line-height:1.8; }
+
+    /* ── 화면 높이가 매우 작을 때 (landscape 폰 등) ── */
+    @media (max-height: 450px) {
+      .marvel-badge { display:none; }
+      h1 { font-size:.9rem; }
+      .image-selector { display:none !important; }  /* 이미지 선택기 숨김 */
+      .target-label, .tray-label { display:none; }
+    }
+    @media (max-height: 380px) {
+      .header { display:none; }
+      .stats  { display:none; }
+    }
+  </style>
+</head>
+<body>
+
+  <a class="home-btn" href="index.html">← 홈으로</a>
+
+  <div class="header">
+    <div class="marvel-badge">MARVEL</div>
+    <h1>🧩 직소 퍼즐</h1>
+  </div>
+
+  <div class="image-selector" id="imageSelector">
+    <button class="img-nav-btn" id="btnPrev" onclick="changeImage(-1)">‹</button>
+    <div class="img-name" id="imgName">로딩 중...</div>
+    <button class="img-nav-btn" id="btnNext" onclick="changeImage(1)">›</button>
+  </div>
+
+  <div class="difficulty-bar">
+    <button class="diff-btn active" onclick="setDiff('easy')">🌱 쉬움 (3×2)</button>
+    <button class="diff-btn"        onclick="setDiff('normal')">⭐ 보통 (4×3)</button>
+    <button class="diff-btn"        onclick="setDiff('hard')">🔥 어려움 (5×4)</button>
+  </div>
+
+  <div class="stats">
+    <div class="stat">⏱️ <span id="timer">0</span>초</div>
+    <div class="stat">🎯 <span id="moves">0</span>번</div>
+    <div class="stat">✅ <span id="correct">0</span>/<span id="total">6</span></div>
+  </div>
+
+  <div class="game-area" id="gameArea">
+    <div class="target-section" id="targetSection">
+      <div class="target-label">📐 여기에 맞춰요</div>
+      <div class="target-grid" id="targetGrid">
+        <div class="hint-overlay" id="hintOverlay"></div>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+    </div>
+    <div class="tray-section" id="traySection">
+      <div class="tray-label">🃏 조각 모음</div>
+      <div class="tray-inner" id="trayInner"></div>
+    </div>
+  </div>
+
+  <div class="btn-row">
+    <button class="action-btn btn-hint"    onclick="showHint()">👁 힌트</button>
+    <button class="action-btn btn-restart" onclick="restartGame()">🔀 다시 섞기</button>
+  </div>
+
+  <div class="win-overlay" id="winOverlay">
+    <div class="win-box">
+      <span class="win-emoji">🎊</span>
+      <div class="win-title">퍼즐 완성!</div>
+      <div class="win-sub" id="winMsg"></div>
+      <div class="win-acts">
+        <button class="win-btn again"  onclick="restartGame()">다시 해볼래요!</button>
+        <button class="win-btn harder" id="harderBtn" onclick="goHarder()">더 어렵게!</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="confetti-layer" id="confettiLayer"></div>
+
+<script>
+/* ════════════════════════════════════════
+   상수 & 상태
+════════════════════════════════════════ */
+const IMAGE_BASE = '퍼즐 이미지/';
+const DIFF_CONFIG = {
+  easy:   { rows:2, cols:3, label:'쉬움' },
+  normal: { rows:3, cols:4, label:'보통' },
+  hard:   { rows:4, cols:5, label:'어려움' },
+};
+const DIFF_ORDER = ['easy','normal','hard'];
+
+// 지그소 파라미터
+const TAB_H   = 0.28;  // 탭 높이 (엣지 길이 대비 비율)
+const TAB_S   = 0.30;  // 탭 시작 위치 (0~1)
+const TAB_E   = 0.70;  // 탭 끝 위치
+
+let allImages = [], imgIdx = 0;
+let currentDiff = 'easy';
+let rows, cols, total;
+let currentImg = null;  // 로드된 Image 객체
+
+// 탭 연결 정보
+// hTabs[r][c]: 조각(r,c)의 오른쪽 엣지 방향 (1=탭 돌출, -1=홈)
+// vTabs[r][c]: 조각(r,c)의 아래쪽 엣지 방향
+let hTabs = [], vTabs = [];
+
+// 게임 상태
+let slots = [];   // slots[slotIdx] = pieceNum(1~) | 0
+let tray  = [];   // 트레이 조각 목록
+
+// 크기
+let tileW = 0, tileH = 0;
+let trayTileW = 0, trayTileH = 0;
+let imgRatio = 16/9;
+
+// 드래그 상태
+let drag = null;
+let selectedPiece = null;
+
+// 타이머
+let timerSec = 0, timerID = null, started = false;
+let moves = 0;
+let audioCtx = null;
+
+/* ════════════════════════════════════════
+   탭 연결 생성
+════════════════════════════════════════ */
+function generateTabs() {
+  hTabs = [];
+  vTabs = [];
+  for (let r = 0; r < rows; r++) {
+    hTabs[r] = [];
+    vTabs[r] = [];
+    for (let c = 0; c < cols; c++) {
+      hTabs[r][c] = (c < cols - 1) ? (Math.random() > 0.5 ? 1 : -1) : 0;
+      vTabs[r][c] = (r < rows - 1) ? (Math.random() > 0.5 ? 1 : -1) : 0;
+    }
+  }
+}
+
+// 조각(r,c)의 특정 방향 탭값 반환
+function getTab(r, c, side) {
+  switch (side) {
+    case 'T': return r === 0        ? 0 : -vTabs[r-1][c];
+    case 'B': return r === rows - 1 ? 0 :  vTabs[r][c];
+    case 'L': return c === 0        ? 0 : -hTabs[r][c-1];
+    case 'R': return c === cols - 1 ? 0 :  hTabs[r][c];
+  }
+  return 0;
+}
+
+/* ════════════════════════════════════════
+   지그소 Canvas 드로잉
+════════════════════════════════════════ */
+// 탭 패딩 계산 (캔버스 여분 공간)
+// 수평 엣지 탭은 수직 방향으로 tileW*TAB_H 만큼 돌출
+// 수직 엣지 탭은 수평 방향으로 tileH*TAB_H 만큼 돌출
+function getTabPad(w, h) {
+  return {
+    px: Math.ceil(h * TAB_H) + 2,  // 좌우 여백 (수직 엣지 탭용)
+    py: Math.ceil(w * TAB_H) + 2,  // 상하 여백 (수평 엣지 탭용)
+  };
+}
+
+// 지그소 엣지 경로 그리기 (시계 방향 기준)
+// tab: 1=바깥 돌출, -1=안쪽 홈, 0=직선
+function jigsawEdge(ctx, x1, y1, x2, y2, tab) {
+  if (!tab) { ctx.lineTo(x2, y2); return; }
+  const dx = x2 - x1, dy = y2 - y1;
+  const len = Math.sqrt(dx * dx + dy * dy);
+  const ux = dx / len, uy = dy / len;
+  // 시계방향 경로의 바깥쪽 법선: (uy, -ux) × tab
+  const nx = uy * tab, ny = -ux * tab;
+
+  // 좌표 헬퍼: s=엣지 비율, n=법선 비율
+  const p = (s, n) => [x1 + ux*len*s + nx*len*n, y1 + uy*len*s + ny*len*n];
+
+  const mid = (TAB_S + TAB_E) / 2;
+  const wing = (TAB_E - TAB_S) * 0.25;
+
+  ctx.lineTo(...p(TAB_S, 0));
+  ctx.bezierCurveTo(
+    ...p(TAB_S,        TAB_H * 0.55),
+    ...p(TAB_S + wing, TAB_H),
+    ...p(mid,          TAB_H)
+  );
+  ctx.bezierCurveTo(
+    ...p(TAB_E - wing, TAB_H),
+    ...p(TAB_E,        TAB_H * 0.55),
+    ...p(TAB_E,        0)
+  );
+  ctx.lineTo(x2, y2);
+}
+
+// 조각 경로 생성
+function buildPiecePath(ctx, px, py, w, h, tabT, tabR, tabB, tabL) {
+  ctx.beginPath();
+  ctx.moveTo(px, py);
+  jigsawEdge(ctx, px,   py,   px+w, py,   tabT);  // 위: 좌→우
+  jigsawEdge(ctx, px+w, py,   px+w, py+h, tabR);  // 우: 위→아래
+  jigsawEdge(ctx, px+w, py+h, px,   py+h, tabB);  // 아래: 우→좌
+  jigsawEdge(ctx, px,   py+h, px,   py,   tabL);  // 좌: 아래→위
+  ctx.closePath();
+}
+
+// 조각 캔버스 생성
+function makePieceCanvas(pieceNum, img, w, h, isCorrect, isSelected) {
+  const r = Math.floor((pieceNum - 1) / cols);
+  const c = (pieceNum - 1) % cols;
+  const tabT = getTab(r, c, 'T'), tabR = getTab(r, c, 'R');
+  const tabB = getTab(r, c, 'B'), tabL = getTab(r, c, 'L');
+
+  const { px, py } = (() => {
+    const { px, py } = getTabPad(w, h);
+    return { px, py };
+  })();
+  const pad = getTabPad(w, h);
+
+  const canW = w + 2 * pad.px;
+  const canH = h + 2 * pad.py;
+  const canvas = document.createElement('canvas');
+  canvas.width = canW; canvas.height = canH;
+  const ctx = canvas.getContext('2d');
+
+  // 이미지 클리핑 & 드로잉
+  buildPiecePath(ctx, pad.px, pad.py, w, h, tabT, tabR, tabB, tabL);
+  ctx.save();
+  ctx.clip();
+  // 전체 이미지를 그리드 크기로 축소하여 해당 조각 위치에 맞게 배치
+  ctx.drawImage(img, pad.px - c * w, pad.py - r * h, cols * w, rows * h);
+  ctx.restore();
+
+  // 외곽선 stroke
+  buildPiecePath(ctx, pad.px, pad.py, w, h, tabT, tabR, tabB, tabL);
+  if (isSelected) {
+    ctx.strokeStyle = '#ED1D24';
+    ctx.lineWidth = 3;
+  } else if (isCorrect) {
+    ctx.strokeStyle = '#FFD700';
+    ctx.lineWidth = 3;
+  } else {
+    ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+    ctx.lineWidth = 1.5;
+  }
+  ctx.stroke();
+
+  return { canvas, padX: pad.px, padY: pad.py };
+}
+
+// 슬롯 고스트(유령) 캔버스 생성
+function makeGhostCanvas(pieceNum, img, w, h) {
+  const r = Math.floor((pieceNum - 1) / cols);
+  const c = (pieceNum - 1) % cols;
+  const tabT = getTab(r, c, 'T'), tabR = getTab(r, c, 'R');
+  const tabB = getTab(r, c, 'B'), tabL = getTab(r, c, 'L');
+  const pad = getTabPad(w, h);
+
+  const canW = w + 2 * pad.px;
+  const canH = h + 2 * pad.py;
+  const canvas = document.createElement('canvas');
+  canvas.width = canW; canvas.height = canH;
+  const ctx = canvas.getContext('2d');
+
+  buildPiecePath(ctx, pad.px, pad.py, w, h, tabT, tabR, tabB, tabL);
+  ctx.save();
+  ctx.clip();
+  ctx.globalAlpha = 0.15;
+  ctx.drawImage(img, pad.px - c * w, pad.py - r * h, cols * w, rows * h);
+  ctx.restore();
+
+  buildPiecePath(ctx, pad.px, pad.py, w, h, tabT, tabR, tabB, tabL);
+  ctx.strokeStyle = 'rgba(255,255,255,0.22)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  canvas.style.cssText = `position:absolute;left:-${pad.px}px;top:-${pad.py}px;pointer-events:none;z-index:0;`;
+  return canvas;
+}
+
+/* ════════════════════════════════════════
+   이미지 로딩
+════════════════════════════════════════ */
+async function loadImageList() {
+  try {
+    const res = await fetch(IMAGE_BASE);
+    if (res.ok) {
+      const html = await res.text();
+      const doc  = new DOMParser().parseFromString(html, 'text/html');
+      const files = [...doc.querySelectorAll('a[href]')]
+        .map(a => decodeURIComponent(a.getAttribute('href').split('/').pop()))
+        .filter(f => /\.(png|jpg|jpeg|webp)$/i.test(f));
+      if (files.length > 0) return files;
+    }
+  } catch(_) {}
+  if (Array.isArray(window.PUZZLE_IMAGES) && window.PUZZLE_IMAGES.length > 0)
+    return window.PUZZLE_IMAGES;
+  return [];
+}
+
+function fileToName(f) { return f.replace(/\.[^.]+$/, ''); }
+
+/* ════════════════════════════════════════
+   이미지 선택기
+════════════════════════════════════════ */
+function updateSelector() {
+  document.getElementById('imgName').textContent = fileToName(allImages[imgIdx]);
+  document.getElementById('btnPrev').disabled = imgIdx === 0;
+  document.getElementById('btnNext').disabled = imgIdx === allImages.length - 1;
+  document.getElementById('imageSelector').style.display =
+    allImages.length <= 1 ? 'none' : 'flex';
+}
+function changeImage(dir) {
+  imgIdx = Math.max(0, Math.min(allImages.length - 1, imgIdx + dir));
+  updateSelector();
+  restartGame();
+}
+
+/* ════════════════════════════════════════
+   난이도
+════════════════════════════════════════ */
+function setDiff(diff) {
+  // 난이도가 바뀔 때마다 이미지도 교체
+  if (diff !== currentDiff && allImages.length > 1) {
+    const prev = imgIdx;
+    let next;
+    do { next = Math.floor(Math.random() * allImages.length); } while (next === prev);
+    imgIdx = next;
+    updateSelector();
+  }
+  currentDiff = diff;
+  document.querySelectorAll('.diff-btn').forEach((b, i) =>
+    b.classList.toggle('active', DIFF_ORDER[i] === diff));
+  restartGame();
+}
+function goHarder() {
+  const i = DIFF_ORDER.indexOf(currentDiff);
+  setDiff(DIFF_ORDER[Math.min(i + 1, DIFF_ORDER.length - 1)]);
+}
+
+/* ════════════════════════════════════════
+   게임 시작 / 재시작
+════════════════════════════════════════ */
+function restartGame() {
+  clearInterval(timerID);
+  document.getElementById('winOverlay').classList.remove('show');
+  document.getElementById('confettiLayer').innerHTML = '';
+  // 힌트 초기화
+  if (hintTimer) { clearTimeout(hintTimer); hintTimer = null; }
+  const hov = document.getElementById('hintOverlay');
+  if (hov) hov.classList.remove('show');
+  cancelDrag();
+  selectedPiece = null;
+  timerSec = moves = 0; started = false;
+  document.getElementById('timer').textContent = '0';
+  document.getElementById('moves').textContent = '0';
+
+  const cfg = DIFF_CONFIG[currentDiff];
+  rows = cfg.rows; cols = cfg.cols; total = rows * cols;
+  generateTabs();
+
+  slots = new Array(total).fill(0);
+  tray  = shuffle(Array.from({ length: total }, (_, i) => i + 1));
+
+  document.getElementById('total').textContent = total;
+  updateProgress();
+  loadImgAndBuild();
+}
+
+async function loadImgAndBuild() {
+  const img = new Image();
+  await new Promise(resolve => {
+    img.onload = img.onerror = resolve;
+    img.src = IMAGE_BASE + allImages[imgIdx];
+  });
+  imgRatio = (img.naturalWidth && img.naturalHeight)
+    ? img.naturalWidth / img.naturalHeight : 16 / 9;
+  currentImg = img;
+
+  buildDOM();
+  resizeAndRender();
+  // 처음 로드 시 1.5초간 힌트 자동 표시
+  showAutoHint(1500);
+}
+
+/* ════════════════════════════════════════
+   DOM 구성 (슬롯만 생성 — 고스트는 resizeAndRender에서)
+════════════════════════════════════════ */
+function buildDOM() {
+  const grid = document.getElementById('targetGrid');
+  [...grid.children].forEach(el => {
+    if (!el.classList.contains('hint-overlay')) el.remove();
+  });
+
+  for (let i = 0; i < total; i++) {
+    const slot = document.createElement('div');
+    slot.className = 'target-slot';
+    slot.dataset.slotIdx = i;
+    slot.addEventListener('pointerdown', e => onSlotPointerDown(e, i));
+    slot.addEventListener('click', () => onSlotClick(i));
+    grid.appendChild(slot);
+  }
+
+  document.getElementById('hintOverlay').style.backgroundImage =
+    `url('${IMAGE_BASE + allImages[imgIdx]}')`;
+}
+
+/* ════════════════════════════════════════
+   크기 계산 & 렌더링
+════════════════════════════════════════ */
+function resizeAndRender() {
+  if (!currentImg) return;
+  const area  = document.getElementById('gameArea');
+  const areaW = area.clientWidth, areaH = area.clientHeight;
+
+  const trayW = Math.max(90, Math.min(190, Math.round(areaW * 0.28)));
+  const targetAreaW = areaW - trayW - 10;
+
+  let gridW, gridH;
+  if (targetAreaW / areaH > imgRatio) {
+    gridH = areaH;
+    gridW = gridH * imgRatio;
+  } else {
+    gridW = targetAreaW;
+    gridH = gridW / imgRatio;
+  }
+
+  tileW = gridW / cols;
+  tileH = gridH / rows;
+
+  trayTileW = Math.floor((trayW - 8 * 2 - 8) / 2);
+  trayTileH = Math.round(trayTileW / (tileW / tileH));
+
+  // 타겟 그리드 CSS
+  const grid = document.getElementById('targetGrid');
+  grid.style.width  = gridW + 'px';
+  grid.style.height = gridH + 'px';
+  grid.style.gridTemplateColumns = `repeat(${cols}, ${tileW}px)`;
+  grid.style.gridTemplateRows    = `repeat(${rows}, ${tileH}px)`;
+  grid.style.gap = '0px';
+
+  document.getElementById('traySection').style.width = trayW + 'px';
+  const trayInner = document.getElementById('trayInner');
+  trayInner.style.width  = trayW + 'px';
+  trayInner.style.height = gridH + 'px';
+
+  // 슬롯 크기 설정 & 고스트 캔버스 갱신
+  document.querySelectorAll('.target-slot').forEach((slot, i) => {
+    slot.style.width  = tileW + 'px';
+    slot.style.height = tileH + 'px';
+
+    // 기존 고스트 제거 후 재생성
+    const oldGhost = slot.querySelector('.ghost-canvas');
+    if (oldGhost) oldGhost.remove();
+
+    const ghostCanvas = makeGhostCanvas(i + 1, currentImg, tileW, tileH);
+    ghostCanvas.classList.add('ghost-canvas');
+    slot.appendChild(ghostCanvas);
+  });
+
+  renderAllPieces();
+}
+
+/* ════════════════════════════════════════
+   조각 렌더링
+════════════════════════════════════════ */
+function renderAllPieces() {
+  renderSlots();
+  renderTray();
+}
+
+function renderSlots() {
+  document.querySelectorAll('.target-slot').forEach((slot, i) => {
+    const existing = slot.querySelector('.piece-wrap');
+    if (existing) existing.remove();
+
+    const pieceNum = slots[i];
+    if (!pieceNum || !currentImg) return;
+
+    const isCorrect  = pieceNum === i + 1;
+    const isSelected = selectedPiece?.pieceNum === pieceNum;
+    const { canvas, padX, padY } = makePieceCanvas(pieceNum, currentImg, tileW, tileH, isCorrect, isSelected);
+
+    canvas.style.cssText = `position:absolute;left:-${padX}px;top:-${padY}px;pointer-events:none;z-index:2;`;
+
+    const wrap = document.createElement('div');
+    wrap.className = 'piece-wrap';
+    wrap.style.cssText = 'position:absolute;inset:0;overflow:visible;z-index:2;';
+    wrap.appendChild(canvas);
+    slot.appendChild(wrap);
+  });
+}
+
+function renderTray() {
+  const inner = document.getElementById('trayInner');
+  inner.innerHTML = '';
+  if (!currentImg) return;
+
+  tray.forEach(pieceNum => {
+    const isSelected = selectedPiece?.pieceNum === pieceNum;
+    const { canvas, padX, padY } = makePieceCanvas(
+      pieceNum, currentImg, trayTileW, trayTileH, false, isSelected
+    );
+    canvas.style.cssText = `position:absolute;left:-${padX}px;top:-${padY}px;pointer-events:none;`;
+
+    const wrap = document.createElement('div');
+    wrap.className = 'tray-wrap';
+    wrap.style.width  = trayTileW + 'px';
+    wrap.style.height = trayTileH + 'px';
+    wrap.appendChild(canvas);
+
+    wrap.addEventListener('pointerdown', e => onTrayPointerDown(e, pieceNum));
+    wrap.addEventListener('click', () => onTrayClick(pieceNum));
+    inner.appendChild(wrap);
+  });
+}
+
+/* ════════════════════════════════════════
+   슬롯 이벤트 (클릭 & 드래그)
+════════════════════════════════════════ */
+function onSlotPointerDown(e, slotIdx) {
+  const pieceNum = slots[slotIdx];
+  if (pieceNum) {
+    // 조각 집기
+    if (e.button && e.button !== 0) return;
+    e.preventDefault(); e.stopPropagation();
+    unlockAudio();
+    clearSelection();
+
+    const startX = e.clientX, startY = e.clientY;
+    const onMove = (ev) => {
+      if (Math.abs(ev.clientX - startX) < 5 && Math.abs(ev.clientY - startY) < 5) return;
+      document.removeEventListener('pointermove', onMove);
+      document.removeEventListener('pointerup',   onCancel);
+      beginDrag(pieceNum, slotIdx, ev);
+    };
+    const onCancel = () => {
+      document.removeEventListener('pointermove', onMove);
+      document.removeEventListener('pointerup',   onCancel);
+    };
+    document.addEventListener('pointermove', onMove);
+    document.addEventListener('pointerup',   onCancel);
+  } else if (selectedPiece && !slots[slotIdx]) {
+    e.stopPropagation();
+  }
+}
+
+function onSlotClick(slotIdx) {
+  if (drag) return;
+  const pieceNum = slots[slotIdx];
+  if (pieceNum) {
+    // 클릭으로 선택
+    if (selectedPiece?.pieceNum === pieceNum) { clearSelection(); renderAllPieces(); return; }
+    clearSelection();
+    selectedPiece = { pieceNum, fromSlot: slotIdx };
+    renderAllPieces();
+  } else if (selectedPiece) {
+    // 선택된 조각 이 슬롯에 놓기
+    const { pieceNum: sp, fromSlot } = selectedPiece;
+    if (fromSlot >= 0) slots[fromSlot] = 0;
+    else tray = tray.filter(p => p !== sp);
+    clearSelection();
+    dropOnSlot(sp, slotIdx);
+    renderAllPieces();
+    updateProgress();
+    checkWin();
+  }
+}
+
+/* ════════════════════════════════════════
+   트레이 이벤트
+════════════════════════════════════════ */
+function onTrayPointerDown(e, pieceNum) {
+  if (e.button && e.button !== 0) return;
+  e.preventDefault(); e.stopPropagation();
+  unlockAudio();
+  clearSelection();
+
+  const startX = e.clientX, startY = e.clientY;
+  const onMove = (ev) => {
+    if (Math.abs(ev.clientX - startX) < 5 && Math.abs(ev.clientY - startY) < 5) return;
+    document.removeEventListener('pointermove', onMove);
+    document.removeEventListener('pointerup',   onCancel);
+    beginDrag(pieceNum, -1, ev);
+  };
+  const onCancel = () => {
+    document.removeEventListener('pointermove', onMove);
+    document.removeEventListener('pointerup',   onCancel);
+  };
+  document.addEventListener('pointermove', onMove);
+  document.addEventListener('pointerup',   onCancel);
+}
+
+function onTrayClick(pieceNum) {
+  if (drag) return;
+  if (selectedPiece?.pieceNum === pieceNum) { clearSelection(); renderTray(); return; }
+  clearSelection();
+  selectedPiece = { pieceNum, fromSlot: -1 };
+  renderTray();
+}
+
+function clearSelection() { selectedPiece = null; }
+
+/* ════════════════════════════════════════
+   드래그 시작
+════════════════════════════════════════ */
+function beginDrag(pieceNum, fromSlot, e) {
+  // 슬롯/트레이에서 조각 제거
+  if (fromSlot >= 0) slots[fromSlot] = 0;
+  else tray = tray.filter(p => p !== pieceNum);
+  renderAllPieces();
+
+  // 드래그 클론 캔버스 생성 (타겟 크기로)
+  const { canvas, padX, padY } = makePieceCanvas(pieceNum, currentImg, tileW, tileH, false, false);
+  canvas.className = 'drag-clone-canvas';
+  const offsetX = padX + tileW / 2;
+  const offsetY = padY + tileH / 2;
+  canvas.style.left = (e.clientX - offsetX) + 'px';
+  canvas.style.top  = (e.clientY - offsetY) + 'px';
+  // transform-origin을 조각 중심으로
+  canvas.style.transformOrigin = `${offsetX}px ${offsetY}px`;
+  document.body.appendChild(canvas);
+
+  drag = { pieceNum, clone: canvas, fromSlot, offsetX, offsetY };
+  document.addEventListener('pointermove', onDragMove);
+  document.addEventListener('pointerup',   onDragEnd);
+}
+
+function onDragMove(e) {
+  if (!drag) return;
+  drag.clone.style.left = (e.clientX - drag.offsetX) + 'px';
+  drag.clone.style.top  = (e.clientY - drag.offsetY) + 'px';
+
+  // drag-over 하이라이트
+  drag.clone.style.visibility = 'hidden';
+  const el = document.elementFromPoint(e.clientX, e.clientY);
+  drag.clone.style.visibility = '';
+  document.querySelectorAll('.target-slot').forEach(s => s.classList.remove('drag-over'));
+  el?.closest('.target-slot')?.classList.add('drag-over');
+}
+
+function onDragEnd(e) {
+  if (!drag) return;
+  document.removeEventListener('pointermove', onDragMove);
+  document.removeEventListener('pointerup',   onDragEnd);
+  document.querySelectorAll('.target-slot').forEach(s => s.classList.remove('drag-over'));
+
+  drag.clone.style.visibility = 'hidden';
+  const el = document.elementFromPoint(e.clientX, e.clientY);
+  drag.clone.style.visibility = '';
+  drag.clone.remove();
+
+  const slotEl = el?.closest('.target-slot');
+  if (slotEl) {
+    dropOnSlot(drag.pieceNum, parseInt(slotEl.dataset.slotIdx));
+  } else if (el?.closest('#trayInner')) {
+    returnToTray(drag.pieceNum);
+  } else {
+    restoreToOrigin(drag.pieceNum, drag.fromSlot);
+  }
+
+  drag = null;
+  renderAllPieces();
+  updateProgress();
+  checkWin();
+}
+
+function cancelDrag() {
+  if (!drag) return;
+  document.removeEventListener('pointermove', onDragMove);
+  document.removeEventListener('pointerup',   onDragEnd);
+  drag.clone?.remove();
+  restoreToOrigin(drag.pieceNum, drag.fromSlot);
+  drag = null;
+}
+
+/* ════════════════════════════════════════
+   조각 배치 / 복원
+════════════════════════════════════════ */
+function dropOnSlot(pieceNum, slotIdx) {
+  if (!started) { started = true; startTimer(); }
+  moves++;
+  document.getElementById('moves').textContent = moves;
+  playSound('place');
+  if (slots[slotIdx]) returnToTray(slots[slotIdx]);
+  slots[slotIdx] = pieceNum;
+}
+function returnToTray(pieceNum) {
+  if (!tray.includes(pieceNum)) tray.push(pieceNum);
+}
+function restoreToOrigin(pieceNum, fromSlot) {
+  if (fromSlot >= 0) slots[fromSlot] = pieceNum;
+  else returnToTray(pieceNum);
+}
+
+/* ════════════════════════════════════════
+   진행률 & 승리
+════════════════════════════════════════ */
+function updateProgress() {
+  const cnt = slots.filter((p, i) => p === i + 1).length;
+  document.getElementById('correct').textContent = cnt;
+  document.getElementById('progressFill').style.width = (cnt / total * 100) + '%';
+}
+
+function checkWin() {
+  if (slots.every((p, i) => p === i + 1)) {
+    clearInterval(timerID);
+    setTimeout(() => {
+      playSound('win');
+      const stars = timerSec < 60 ? '⭐⭐⭐' : timerSec < 120 ? '⭐⭐' : '⭐';
+      document.getElementById('winMsg').textContent =
+        `${stars}  ${timerSec}초 · ${moves}번 이동  ${stars}`;
+      document.getElementById('harderBtn').style.display =
+        currentDiff === 'hard' ? 'none' : '';
+      document.getElementById('winOverlay').classList.add('show');
+      spawnConfetti();
+    }, 400);
+  }
+}
+
+/* ════════════════════════════════════════
+   타이머
+════════════════════════════════════════ */
+function startTimer() {
+  timerID = setInterval(() => {
+    timerSec++;
+    document.getElementById('timer').textContent = timerSec;
+  }, 1000);
+}
+
+/* ════════════════════════════════════════
+   힌트
+════════════════════════════════════════ */
+let hintTimer = null;
+
+// 버튼 클릭 시 힌트 표시 (중복 방지)
+function showHint() {
+  if (hintTimer) return;
+  const ov = document.getElementById('hintOverlay');
+  if (!ov) return;
+  ov.classList.add('show');
+  hintTimer = setTimeout(() => { ov.classList.remove('show'); hintTimer = null; }, 1800);
+}
+
+// 자동 힌트 (게임 시작 시 잠깐 표시)
+function showAutoHint(ms) {
+  if (hintTimer) return;
+  const ov = document.getElementById('hintOverlay');
+  if (!ov) return;
+  ov.classList.add('show');
+  hintTimer = setTimeout(() => { ov.classList.remove('show'); hintTimer = null; }, ms);
+}
+
+/* ════════════════════════════════════════
+   리사이즈
+════════════════════════════════════════ */
+let _rsTimer;
+window.addEventListener('resize', () => {
+  clearTimeout(_rsTimer);
+  _rsTimer = setTimeout(resizeAndRender, 100);
+});
+
+/* ════════════════════════════════════════
+   컨페티
+════════════════════════════════════════ */
+function spawnConfetti() {
+  const layer = document.getElementById('confettiLayer');
+  layer.innerHTML = '';
+  const colors = ['#ED1D24','#FFD700','#C0C0C0','#1e3a5f','#ff6b35','#ffffff','#8B0000'];
+  for (let i = 0; i < 100; i++) {
+    const d = document.createElement('div');
+    const sz = 8 + Math.random() * 10, dur = 2.2 + Math.random() * 2;
+    d.className = 'dot';
+    Object.assign(d.style, {
+      left: `${Math.random() * 100}%`,
+      width: `${sz}px`,
+      height: `${sz * (Math.random() > .5 ? 1 : 2)}px`,
+      background: colors[Math.floor(Math.random() * colors.length)],
+      borderRadius: Math.random() > .4 ? '50%' : '2px',
+      animationDelay: `${Math.random() * 1.2}s`,
+      animationDuration: `${dur}s`,
+    });
+    layer.appendChild(d);
+  }
+}
+
+/* ════════════════════════════════════════
+   사운드
+════════════════════════════════════════ */
+function unlockAudio() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+}
+function playSound(type) {
+  if (!audioCtx) return;
+  const ctx = audioCtx, t = ctx.currentTime;
+  const beep = (freq, start, dur, vol = .2) => {
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = 'sine'; o.frequency.value = freq;
+    g.gain.setValueAtTime(vol, t + start);
+    g.gain.exponentialRampToValueAtTime(.001, t + start + dur);
+    o.connect(g); g.connect(ctx.destination);
+    o.start(t + start); o.stop(t + start + dur + .05);
+  };
+  if (type === 'place') { beep(600, 0, .08, .12); beep(900, .06, .06, .08); }
+  else if (type === 'win') {
+    [[523,.0],[659,.14],[784,.28],[1047,.42],[1319,.56]].forEach(([f,s]) => beep(f,s,.3,.28));
+  }
+}
+
+/* ════════════════════════════════════════
+   유틸
+════════════════════════════════════════ */
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+/* ════════════════════════════════════════
+   초기화
+════════════════════════════════════════ */
+async function init() {
+  allImages = await loadImageList();
+  if (allImages.length === 0) {
+    document.getElementById('gameArea').innerHTML =
+      `<div class="error-msg">이미지를 찾을 수 없습니다.<br>
+       <b>퍼즐 이미지</b> 폴더에 이미지를 넣고<br>
+       <b>update-images.bat</b>을 실행해 주세요.</div>`;
+    return;
+  }
+  imgIdx = Math.floor(Math.random() * allImages.length);
+  updateSelector();
+  restartGame();
+}
+
+init();
+</script>
+</body>
+</html>
