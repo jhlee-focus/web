@@ -3,8 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-  <title>⚡ 어벤저스 메모리 게임</title>
+  <title>⚡ 어벤져스 메모리 게임</title>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@700;900&display=swap" rel="stylesheet" />
+  <!-- 이미지 목록 (update-images.bat 실행 시 자동 갱신) -->
+  <script src="이미지/images.js" onerror="console.warn('images.js 없음, 폴더 자동 인식 시도')"></script>
   <style>
     *, *::before, *::after {
       margin: 0; padding: 0; box-sizing: border-box;
@@ -313,7 +315,7 @@
   <!-- 헤더 -->
   <div class="header">
     <div class="marvel-badge">MARVEL</div>
-    <h1>⚡ 어벤저스 메모리 게임</h1>
+    <h1>⚡ 어벤져스 메모리 게임</h1>
   </div>
 
   <!-- 난이도 선택 -->
@@ -342,7 +344,7 @@
   <div class="win-overlay" id="winOverlay">
     <div class="win-box">
       <span class="win-emoji">🏆</span>
-      <div class="win-title">어벤저스 완성!</div>
+      <div class="win-title">어벤져스 완성!</div>
       <div class="win-subtitle" id="winMsg"></div>
       <div class="win-actions">
         <button class="win-btn same"     onclick="startGame()">다시 해볼래요!</button>
@@ -356,40 +358,48 @@
 
 <script>
 /* ═══════════════════════════════════════════
-   MCU 캐릭터 데이터
+   파일명 → 캐릭터 데이터 변환
+   "아이언맨(토니 스타크).webp" → { id, name:"아이언맨", file }
 ═══════════════════════════════════════════ */
-const ALL_CHARS = [
-  { id: 'ironman',       name: '아이언맨',        file: '아이언맨(토니 스타크).webp' },
-  { id: 'captain',       name: '캡틴 아메리카',   file: '캡틴 아메리카(스티브 로저스).webp' },
-  { id: 'thor',          name: '토르',            file: '토르.webp' },
-  { id: 'hulk',          name: '헐크',            file: '헐크(브루스 배너).webp' },
-  { id: 'blackwidow',    name: '블랙 위도우',     file: '블랙 위도우(나타샤 로마노프).webp' },
-  { id: 'hawkeye',       name: '호크아이',        file: '호크아이(클린트 바튼).webp' },
-  { id: 'spiderman',     name: '스파이더맨',      file: '스파이더맨(피터 파커).webp' },
-  { id: 'blackpanther',  name: '블랙 팬서',       file: '블랙 팬서(트찰라).webp' },
-  { id: 'drstrange',     name: '닥터 스트레인지', file: '닥터 스트레인지.webp' },
-  { id: 'captainmarvel', name: '캡틴 마블',       file: '캡틴 마블(캐럴 댄버스).webp' },
-  { id: 'scarletwitch',  name: '스칼렛 위치',     file: '스칼렛 위치(완다 막시모프).webp' },
-  { id: 'antman',        name: '앤트맨',          file: '앤트맨(스콧 랭).webp' },
-  { id: 'starlord',      name: '스타로드',        file: '스타로드(피터 퀼).webp' },
-  { id: 'groot',         name: '그루트',          file: '그루트.webp' },
-  { id: 'rocket',        name: '로켓',            file: '로켓.webp' },
-  { id: 'nebula',        name: '네뷸라',          file: '네뷸라.webp' },
-  { id: 'drax',          name: '드랙스',          file: '드랙스.webp' },
-  { id: 'mantis',        name: '맨티스',          file: '맨티스.webp' },
-  { id: 'valkyrie',      name: '발키리',          file: '발키리(브룬힐데).webp' },
-  { id: 'falcon',        name: '팔콘',            file: '팔콘(샘 윌슨).webp' },
-  { id: 'warmachine',    name: '워 머신',         file: '워 머신(제임스 로즈).webp' },
-  { id: 'wintersoldier', name: '윈터 솔져',       file: '윈터 솔져(버키 반즈).webp' },
-  { id: 'wasp',          name: '와스프',          file: '와스프(호프 밴 다인).webp' },
-  { id: 'okoye',         name: '오코예',          file: '오코예.webp' },
-  { id: 'shuri',         name: '슈리',            file: '슈리.webp' },
-  { id: 'wong',          name: '웡',              file: '웡.webp' },
-  { id: 'rescue',        name: '레스큐',          file: '레스큐(페퍼 포츠).webp' },
-  { id: 'thanos',        name: '타노스',          file: '타노스.webp' },
-  { id: 'korg',          name: '코르그',          file: '코르그.webp' },
-  { id: 'happy',         name: '해피 호건',       file: '해피 호건.webp' },
-];
+let ALL_CHARS = [];
+
+function filenameToChar(filename) {
+  const nameNoExt  = filename.replace(/\.[^.]+$/, '');          // 확장자 제거
+  const heroName   = nameNoExt.replace(/\s*\(.*?\)\s*/g, '').trim(); // 괄호 제거
+  const id         = nameNoExt.replace(/[\s()\[\]]/g, '_');    // ID용 특수문자 치환
+  return { id, name: heroName, file: filename };
+}
+
+/* ── 이미지 목록 로딩 (두 단계 시도) ────────────────
+   1순위: fetch('이미지/') 로 폴더 직접 스캔 (Chrome file:// 환경)
+   2순위: <script src="이미지/images.js"> 로 미리 주입된 window.MCU_IMAGES
+─────────────────────────────────────────────────── */
+async function loadCharList() {
+  // 1순위: 폴더 디렉토리 리스팅 시도
+  try {
+    const res  = await fetch('이미지/');
+    if (res.ok) {
+      const html = await res.text();
+      const doc  = new DOMParser().parseFromString(html, 'text/html');
+      const files = [...doc.querySelectorAll('a[href]')]
+        .map(a => decodeURIComponent(a.getAttribute('href').split('/').pop()))
+        .filter(f => /\.(webp|png|jpg|jpeg)$/i.test(f));
+      if (files.length > 0) {
+        console.log(`📁 폴더 자동 인식 성공: ${files.length}개`);
+        return files;
+      }
+    }
+  } catch (_) { /* 폴더 인식 불가 → 2순위로 */ }
+
+  // 2순위: images.js (window.MCU_IMAGES)
+  if (Array.isArray(window.MCU_IMAGES) && window.MCU_IMAGES.length > 0) {
+    console.log(`📄 images.js 사용: ${window.MCU_IMAGES.length}개`);
+    return window.MCU_IMAGES;
+  }
+
+  console.warn('⚠️ 이미지 목록을 불러오지 못했습니다. update-images.bat 을 실행해 주세요.');
+  return [];
+}
 
 const IMAGE_BASE = '이미지/';
 
@@ -686,7 +696,12 @@ window.addEventListener('resize', () => {
   _resizeTimer = setTimeout(resizeCards, 80);
 });
 
-startGame();
+/* ── 초기화 ── */
+(async () => {
+  const files = await loadCharList();
+  ALL_CHARS   = files.map(filenameToChar);
+  startGame();
+})();
 </script>
 </body>
 </html>
