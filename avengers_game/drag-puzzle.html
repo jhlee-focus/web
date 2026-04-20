@@ -630,18 +630,14 @@ function resizeAndRender() {
   trayInner.style.width  = trayW + 'px';
   trayInner.style.height = gridH + 'px';
 
-  // 슬롯 크기 설정 & 고스트 캔버스 갱신
+  // 슬롯 크기 설정 (고스트 없음 — 힌트 버튼으로만 전체 이미지 표시)
   document.querySelectorAll('.target-slot').forEach((slot, i) => {
     slot.style.width  = tileW + 'px';
     slot.style.height = tileH + 'px';
 
-    // 기존 고스트 제거 후 재생성
+    // 혹시 남아있는 고스트 제거
     const oldGhost = slot.querySelector('.ghost-canvas');
     if (oldGhost) oldGhost.remove();
-
-    const ghostCanvas = makeGhostCanvas(i + 1, currentImg, tileW, tileH);
-    ghostCanvas.classList.add('ghost-canvas');
-    slot.appendChild(ghostCanvas);
   });
 
   renderAllPieces();
