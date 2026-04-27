@@ -488,6 +488,49 @@
     transition: width 0.2s;
   }
 
+  /* Cool screen (refrigerator) */
+  .fridge-wrap {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .fridge-wrap img.tool {
+    width: 200px;
+    object-fit: contain;
+    image-rendering: pixelated;
+    cursor: pointer;
+    transition: transform 0.2s;
+  }
+  .fridge-wrap.cooling img.tool {
+    animation: chill 1.5s ease-in-out;
+  }
+  @keyframes chill {
+    0%, 100% { transform: translateY(0); filter: brightness(1); }
+    50% { transform: translateY(-4px); filter: brightness(1.2) hue-rotate(-15deg); }
+  }
+  .fridge-wrap .frost {
+    position: absolute;
+    top: -30px;
+    width: 16px; height: 16px;
+    color: #B3E5FC;
+    font-size: 18px;
+    pointer-events: none;
+    opacity: 0;
+  }
+  .fridge-wrap .frost::before {
+    content: '❄️';
+    font-size: 22px;
+  }
+  .fridge-wrap.cooling .frost {
+    animation: snowfall 1.6s ease-out;
+  }
+  @keyframes snowfall {
+    0% { opacity: 0; transform: translateY(-20px) scale(0.6); }
+    50% { opacity: 1; }
+    100% { opacity: 0; transform: translateY(80px) scale(1.2) rotate(180deg); }
+  }
+
   /* Bake screen */
   .oven-wrap {
     position: relative;
@@ -511,6 +554,54 @@
     0% { opacity: 0; transform: translateY(0) scale(0.5); }
     50% { opacity: 1; }
     100% { opacity: 0; transform: translateY(-80px) scale(2); }
+  }
+
+  /* Addon screen (e.g., strawberry placement) */
+  .addon-canvas {
+    position: relative;
+    width: 280px;
+    height: 280px;
+    background: white;
+    border-radius: 24px;
+    box-shadow: var(--shadow);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: crosshair;
+    overflow: hidden;
+  }
+  .addon-canvas .addon-base-img {
+    width: 85%;
+    object-fit: contain;
+    image-rendering: pixelated;
+    pointer-events: none;
+  }
+  .placed-addon {
+    position: absolute;
+    width: 56px;
+    height: 56px;
+    object-fit: contain;
+    image-rendering: pixelated;
+    pointer-events: none;
+    transform: translate(-50%, -50%);
+    animation: pop 0.3s ease-out;
+  }
+  .addon-icon-wrap {
+    width: 80px;
+    height: 80px;
+    background: var(--bg-cream);
+    border-radius: 20px;
+    box-shadow: var(--shadow);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 3px solid var(--accent);
+  }
+  .addon-icon-wrap img {
+    width: 64px;
+    height: 64px;
+    object-fit: contain;
+    image-rendering: pixelated;
   }
 
   /* Decorate screen */
@@ -731,6 +822,23 @@
     50% { transform: translateY(-10px); }
   }
 
+  /* Watermark (always visible at the bottom) */
+  .watermark {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 4px;
+    text-align: center;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--primary-dark);
+    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+    pointer-events: none;
+    z-index: 50;
+    opacity: 0.75;
+    letter-spacing: 0.5px;
+  }
+
   /* Rotate notice */
   #screen-rotate {
     display: none;
@@ -859,6 +967,18 @@
       </div>
     </div>
 
+    <!-- 6b. Cool screen (cheesecake only) -->
+    <div class="screen" id="screen-cool">
+      <div class="tool-area">
+        <div class="fridge-wrap" id="fridge-wrap">
+          <div class="frost" style="left: 25%;"></div>
+          <div class="frost" style="left: 50%; animation-delay: 0.4s;"></div>
+          <div class="frost" style="left: 75%; animation-delay: 0.8s;"></div>
+          <img class="tool" id="fridge-img" src="img_assets/tools_pixel/Refrigerator.png" alt="냉장고" />
+        </div>
+      </div>
+    </div>
+
     <!-- 7. Cream screen (cake only) -->
     <div class="screen" id="screen-cream">
       <div class="tool-area">
@@ -867,6 +987,21 @@
           <img src="img_assets/tools_pixel/Piping Bag.png" alt="짤주머니" id="piping-bag" style="width:120px; position:absolute; top:0; right:40px; image-rendering:pixelated;" />
         </div>
         <div class="gauge"><div class="gauge-fill" id="cream-gauge"></div></div>
+      </div>
+    </div>
+
+    <!-- 7b. Add Addon (e.g. strawberry) screen -->
+    <div class="screen" id="screen-add-addon">
+      <div class="tool-area">
+        <div class="addon-canvas" id="addon-canvas">
+          <img id="addon-base" src="" alt="" class="addon-base-img" />
+        </div>
+        <div style="display:flex; align-items:center; gap:14px;">
+          <div class="addon-icon-wrap">
+            <img id="addon-icon-img" src="" alt="" />
+          </div>
+          <div class="gauge" style="flex:1; min-width:120px;"><div class="gauge-fill" id="addon-gauge"></div></div>
+        </div>
       </div>
     </div>
 
@@ -903,6 +1038,9 @@
 
     <!-- Guide finger overlay -->
     <div class="guide-finger" id="guide-finger" style="display: none;">👆</div>
+
+    <!-- Watermark (always visible) -->
+    <div class="watermark">둥둥이들과 함께 만듦</div>
 
   </div>
 </div>
@@ -978,7 +1116,7 @@ const INGREDIENTS = {
   flour:  { name: '밀가루', emoji: '🌾', img: 'img_assets/ingredients_pixel/Carb_pixel/flour_01.png' },
   sugar:  { name: '설탕',   emoji: '🍬', img: 'img_assets/ingredients_pixel/Carb_pixel/sugar_01.png' },
   butter: { name: '버터',   emoji: '🧈', img: 'img_assets/ingredients_pixel/Condiment_pixel/butter_jar_01.png' },
-  egg:    { name: '달걀',   emoji: '🥚', img: 'img_assets/ingredients_99/ingredients_png/eggs_png/whole_egg_01.png' },
+  egg:    { name: '달걀',   emoji: '🥚', img: 'img_assets/ingredients_pixel/Protein_pixel/boiled_egg_01.png' },
   milk:   { name: '우유',   emoji: '🥛', img: 'img_assets/ingredients_pixel/Condiment_pixel/milk_bottle_02.png' },
   cream:  { name: '크림',   emoji: '🍦', img: 'img_assets/ingredients_pixel/Condiment_pixel/whipped_cream_01.png' },
   choco_chip: { name: '초코칩', emoji: '🍫', img: 'img_assets/ingredients_pixel/Condiment_pixel/chocolate_chips_01.png' },
@@ -1031,6 +1169,12 @@ const DESSERTS = {
     finalImg: 'img_assets/foods_pixel/90_strawberrycake.png',
     ingredients: ['flour', 'sugar', 'butter', 'egg'],
     needCream: true,
+    creamBaseImg: 'img_assets/foods_pixel/105_cake_bread.png',
+    addonStep: {
+      img: 'img_assets/foods_pixel/106_strawberry.png',
+      label: '딸기',
+      requiredCount: 1
+    },
     needChocochip: false,
     toppings: ['strawberry', 'cherry', 'heart', 'sprinkles', 'chocolate', 'star', 'blueberry', 'kiwi', 'pink_heart', 'flower', 'rainbow', 'ribbon']
   },
@@ -1038,7 +1182,8 @@ const DESSERTS = {
     name: '치즈 케이크',
     finalImg: 'img_assets/foods_pixel/22_cheesecake.png',
     ingredients: ['flour', 'cream_cheese', 'sugar', 'egg'],
-    needCream: true,
+    needCool: true,
+    needCream: false,
     needChocochip: false,
     toppings: ['strawberry', 'blueberry', 'cherry', 'heart', 'sprinkles', 'star', 'kiwi', 'peach', 'flower', 'sparkle', 'rainbow', 'pink_heart']
   },
@@ -1054,7 +1199,7 @@ const DESSERTS = {
     name: '컵케이크',
     finalImg: 'img_assets/foods_pixel/104_cup_cake.png',
     ingredients: ['flour', 'sugar', 'butter', 'egg'],
-    needCream: true,
+    needCream: false,
     needChocochip: false,
     toppings: ['strawberry', 'cherry', 'heart', 'sprinkles', 'star', 'blueberry', 'choco_chip', 'pink_heart', 'flower', 'crown', 'rainbow', 'sparkle']
   },
@@ -1063,6 +1208,8 @@ const DESSERTS = {
     finalImg: 'img_assets/foods_pixel/34_donut.png',
     ingredients: ['flour', 'sugar', 'egg', 'butter'],
     needCream: true,
+    creamBaseImg: 'img_assets/foods_pixel/20_bagel.png',
+    creamVerb: '글레이즈',
     needChocochip: false,
     toppings: ['sprinkles', 'choco_chip', 'heart', 'star', 'cherry', 'chocolate', 'rainbow', 'sparkle', 'pink_heart', 'flower']
   }
@@ -1610,12 +1757,38 @@ function startBakeScreen() {
     setTimeout(() => {
       wrap.classList.remove('cooking');
       const dessert = DESSERTS[state.currentDessert];
-      if (dessert.needCream) startCreamScreen();
+      if (dessert.needCool) startCoolScreen();
+      else if (dessert.needCream) startCreamScreen();
       else startDecorateScreen();
     }, AUTO_DURATION_MS);
   };
 
   setIdleHint(() => showGuideFinger(oven));
+}
+
+// ============================================================
+// SCREEN: COOL (cheesecake — tap fridge then auto wait)
+// ============================================================
+function startCoolScreen() {
+  showScreen('screen-cool');
+  const fridge = $('#fridge-img');
+  const wrap = $('#fridge-wrap');
+  say('냉장고에 넣어서 식혀줘!');
+
+  fridge.onclick = () => {
+    Sounds.glide();
+    fridge.onclick = null;
+    wrap.classList.add('cooling');
+    hideBubble();
+    setTimeout(() => {
+      wrap.classList.remove('cooling');
+      const dessert = DESSERTS[state.currentDessert];
+      if (dessert.needCream) startCreamScreen();
+      else startDecorateScreen();
+    }, AUTO_DURATION_MS);
+  };
+
+  setIdleHint(() => showGuideFinger(fridge));
 }
 
 // ============================================================
@@ -1627,12 +1800,12 @@ function startCreamScreen() {
   const bag = $('#piping-bag');
   const gauge = $('#cream-gauge');
   const dessert = DESSERTS[state.currentDessert];
-  $('#cake-base').src = dessert.finalImg;
+  $('#cake-base').src = dessert.creamBaseImg || dessert.finalImg;
   $('#cake-base').alt = dessert.name;
   let count = 0;
   gauge.style.width = '0%';
-  const verb = state.currentDessert === 'donut' ? '글레이즈를 발라줘!' : '크림을 발라줘!';
-  say('짤주머니로 ' + verb);
+  const verbWord = dessert.creamVerb || '크림';
+  say(`짤주머니로 ${verbWord}을(를) 발라줘!`);
 
   bag.onclick = () => {
     count++;
@@ -1644,11 +1817,64 @@ function startCreamScreen() {
     if (count >= REPEAT_TAPS_REQUIRED) {
       bag.onclick = null;
       hideBubble();
-      setTimeout(() => startDecorateScreen(), 500);
+      setTimeout(() => {
+        if (dessert.addonStep) startAddAddonScreen();
+        else startDecorateScreen();
+      }, 500);
     }
   };
 
   setIdleHint(() => showGuideFinger(bag));
+}
+
+// ============================================================
+// SCREEN: ADD ADDON (e.g. strawberries on cream)
+// ============================================================
+function startAddAddonScreen() {
+  showScreen('screen-add-addon');
+  const dessert = DESSERTS[state.currentDessert];
+  const addon = dessert.addonStep;
+  if (!addon) { startDecorateScreen(); return; }
+
+  // Base = cream-applied bread (creamBaseImg) so user sees their cream stay
+  $('#addon-base').src = dessert.creamBaseImg || dessert.finalImg;
+  $('#addon-base').alt = dessert.name;
+  $('#addon-icon-img').src = addon.img;
+
+  const canvas = $('#addon-canvas');
+  // Clear previous addons
+  canvas.querySelectorAll('.placed-addon').forEach(el => el.remove());
+
+  const gauge = $('#addon-gauge');
+  gauge.style.width = '0%';
+  let count = 0;
+  const required = addon.requiredCount || 5;
+
+  say(`${addon.label}을(를) ${required}개 올려줘!`);
+
+  canvas.onclick = e => {
+    if (count >= required) return;
+    Sounds.tap();
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const item = document.createElement('img');
+    item.src = addon.img;
+    item.className = 'placed-addon';
+    item.style.left = x + 'px';
+    item.style.top = y + 'px';
+    canvas.appendChild(item);
+    count++;
+    gauge.style.width = (count / required) * 100 + '%';
+    if (count >= required) {
+      Sounds.pop();
+      canvas.onclick = null;
+      hideBubble();
+      setTimeout(() => startDecorateScreen(), 700);
+    }
+  };
+
+  setIdleHint(() => showGuideFinger(canvas));
 }
 
 // ============================================================
