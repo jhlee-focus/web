@@ -1,1 +1,175 @@
-<!DOCTYPE html> <html lang="ko"> <head> <meta charset="UTF-8"> <meta name="viewport" content="width=device-width, initial-scale=1.0"> <title>SweetK 멀티LLM 서비스</title> <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script> <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/github-dark.min.css"> <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script> <style> :root { --primary-color: #007bff; --bg-color: #f0f2f5; --container-bg: #ffffff; --sidebar-bg: #f8f9fa; --text-main: #1c1e21; --text-sub: #65676b; --border-color: #ebedf0; --input-bg: #f0f2f5; --sidebar-width: 260px; } [data-theme='dark'] { --bg-color: #18191a; --container-bg: #242526; --sidebar-bg: #1c1e21; --text-main: #e4e6eb; --text-sub: #b0b3b8; --border-color: #3e4042; --input-bg: #3a3b3c; } body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: var(--bg-color); margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; } .main-wrapper { width: 100%; max-width: 1400px; height: 95vh; display: flex; background: var(--container-bg); box-shadow: 0 12px 28px rgba(0,0,0,0.12); border-radius: 16px; overflow: hidden; margin: 10px; position: relative; } /* 사이드바 스타일 및 애니메이션 */ .sidebar { width: var(--sidebar-width); background: var(--sidebar-bg); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; transition: transform 0.3s ease, margin-left 0.3s ease; flex-shrink: 0; z-index: 100; } .sidebar.collapsed { margin-left: calc(var(--sidebar-width) * -1); } .sidebar-header { padding: 20px; } .new-chat-btn { width: 100%; padding: 12px; background: var(--primary-color); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; } .history-list { flex: 1; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 5px; } .history-item { position: relative; padding: 10px 35px 10px 10px; border-radius: 8px; cursor: pointer; font-size: 0.9rem; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .history-item:hover { background: var(--input-bg); } .history-item.active { background: var(--input-bg); font-weight: 600; border: 1px solid var(--primary-color); } .delete-chat-btn { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text-sub); cursor: pointer; opacity: 0; transition: opacity 0.2s; } .history-item:hover .delete-chat-btn { opacity: 1; } /* 메인 채팅 영역 */ .chat-container { flex: 1; display: flex; flex-direction: column; min-width: 0; } .chat-header { padding: 10px 15px; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; } .header-left { display: flex; align-items: center; gap: 10px; } /* 햄버거 메뉴 버튼 */ #menu-toggle { background: none; border: none; cursor: pointer; padding: 5px; font-size: 1.5rem; color: var(--text-main); display: flex; align-items: center; } #chat-messages { flex: 1; padding: 20px; overflow-y: auto; background-color: var(--bg-color); display: flex; flex-direction: column; gap: 12px; } .message { max-width: 85%; padding: 10px 15px; border-radius: 18px; font-size: 0.95rem; line-height: 1.5; color: var(--text-main); } .message.bot { align-self: flex-start; background: var(--container-bg); border: 1px solid var(--border-color); border-bottom-left-radius: 4px; } .message.user { align-self: flex-end; background: var(--primary-color); color: white; border-bottom-right-radius: 4px; } .chat-input-area { padding: 15px 20px; border-top: 1px solid var(--border-color); display: flex; gap: 10px; align-items: center; } #user-input { flex: 1; padding: 12px 15px; border-radius: 20px; border: 1px solid var(--border-color); outline: none; background: var(--input-bg); color: var(--text-main); } /* 모바일 대응 */ @media (max-width: 768px) { .sidebar { position: absolute; height: 100%; left: 0; top: 0; box-shadow: 5px 0 15px rgba(0,0,0,0.1); } .sidebar.collapsed { margin-left: 0; transform: translateX(-100%); } } </style> </head> <body> <div class="main-wrapper"> <!-- 사이드바 --> <div class="sidebar" id="sidebar"> <div class="sidebar-header"> <button class="new-chat-btn" id="new-chat-btn">＋ 새 채팅</button> </div> <div class="history-list" id="history-list"></div> </div> <!-- 채팅창 --> <div class="chat-container"> <div class="chat-header"> <div class="header-left"> <button id="menu-toggle">☰</button> <img src="C:\Users\coga\Downloads\[primary] sweetk_logo_세로형_color.png" alt="SweetK Logo" style="height:24px;"> <h2 style="margin:0; font-size:0.95rem; color:var(--text-main)">SweetK 멀티LLM</h2> </div> <button id="theme-toggle-btn" style="background:var(--input-bg); border:none; padding:5px 10px; border-radius:15px; color:var(--primary-color); font-size:0.75rem; cursor:pointer;">다크모드</button> </div> <div id="chat-messages"></div> <div id="loading" style="padding:10px 20px; font-size:0.8rem; color:var(--text-sub); display:none;">생각 중...</div> <div class="chat-input-area"> <input type="text" id="user-input" placeholder="메시지 입력..." autocomplete="off"> <button id="send-btn" style="background:var(--primary-color); color:white; border:none; width:35px; height:35px; border-radius:50%; cursor:pointer;">➤</button> </div> </div> </div> <script> window.onload = function() { const sidebar = document.getElementById('sidebar'); const menuToggle = document.getElementById('menu-toggle'); const historyList = document.getElementById('history-list'); const chatMessages = document.getElementById('chat-messages'); const userInput = document.getElementById('user-input'); const sendBtn = document.getElementById('send-btn'); const newChatBtn = document.getElementById('new-chat-btn'); let conversations = JSON.parse(localStorage.getItem('sweetk_chats') || '[]'); let currentChatId = null; // 1. 초기 반응형 사이드바 설정 if (window.innerWidth <= 768) { sidebar.classList.add('collapsed'); } // 2. 사이드바 토글 기능 menuToggle.onclick = () => { sidebar.classList.toggle('collapsed'); }; function renderHistory() { historyList.innerHTML = ''; conversations.forEach(chat => { const item = document.createElement('div'); item.className = `history-item ${chat.id === currentChatId ? 'active' : ''}`; item.textContent = chat.title; item.onclick = (e) => { if(e.target.className !== 'delete-chat-btn') { loadChat(chat.id); if(window.innerWidth <= 768) sidebar.classList.add('collapsed'); // 모바일은 선택 시 닫기 } }; const delBtn = document.createElement('button'); delBtn.className = 'delete-chat-btn'; delBtn.innerHTML = '×'; delBtn.onclick = (e) => { e.stopPropagation(); // 3. 삭제 확인 팝업 if(confirm("이 대화 내역을 삭제하시겠습니까?")) { deleteChat(chat.id); } }; item.appendChild(delBtn); historyList.appendChild(item); }); } function deleteChat(id) { conversations = conversations.filter(c => c.id !== id); localStorage.setItem('sweetk_chats', JSON.stringify(conversations)); if (currentChatId === id) startNewChat(); else renderHistory(); } function startNewChat() { currentChatId = Date.now(); chatMessages.innerHTML = '<div class="message bot">안녕하세요. 무엇을 도와드릴까요?</div>'; renderHistory(); } function loadChat(id) { currentChatId = id; const chat = conversations.find(c => c.id === id); chatMessages.innerHTML = ''; if(chat) chat.messages.forEach(m => addMessage(m.content, m.sender, false)); renderHistory(); } function addMessage(content, sender, shouldSave = true) { const div = document.createElement('div'); div.className = `message ${sender}`; div.innerHTML = sender === 'bot' ? marked.parse(content) : content; chatMessages.appendChild(div); chatMessages.scrollTop = chatMessages.scrollHeight; if (shouldSave) { let chat = conversations.find(c => c.id === currentChatId); if (!chat) { chat = { id: currentChatId, title: content.substring(0, 15), messages: [] }; conversations.unshift(chat); } chat.messages.push({ sender, content }); localStorage.setItem('sweetk_chats', JSON.stringify(conversations)); renderHistory(); } } async function sendMessage() { const text = userInput.value.trim(); if (!text) return; addMessage(text, 'user'); userInput.value = ''; try { const res = await fetch('https://jhleefocus.app.n8n.cloud/webhook/d232c2f6-ea39-41e5-b310-c389eab49e06/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chatInput: text }), }); const data = await res.json(); addMessage(data.output || "응답이 없습니다.", 'bot'); } catch (err) { addMessage('에러가 발생했습니다.', 'bot'); } } newChatBtn.onclick = startNewChat; sendBtn.onclick = sendMessage; userInput.onkeypress = (e) => { if (e.key === 'Enter') sendMessage(); }; marked.setOptions({ breaks: true }); // 초기 로드 if (conversations.length > 0) loadChat(conversations[0].id); else startNewChat(); }; </script> </body> </html>
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>jhlee-focus · playground</title>
+  <link rel="icon" href="sweetklogo.png">
+  <style>
+    :root {
+      --bg: #0f1115;
+      --bg-card: #181b22;
+      --bg-card-hover: #20242d;
+      --border: #2a2f3a;
+      --text: #e7e9ee;
+      --text-dim: #9aa0ac;
+      --accent: #7c9cff;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans KR",
+                   "Apple SD Gothic Neo", sans-serif;
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+    }
+    body {
+      display: flex;
+      flex-direction: column;
+      padding: 64px 24px 48px;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 56px;
+    }
+    header img {
+      width: 44px;
+      height: 44px;
+      object-fit: contain;
+    }
+    header .title h1 {
+      font-size: 22px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+    header .title p {
+      font-size: 13px;
+      color: var(--text-dim);
+      margin-top: 2px;
+    }
+    main {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 16px;
+    }
+    .card {
+      display: block;
+      padding: 24px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      text-decoration: none;
+      color: inherit;
+      transition: background 0.15s ease, transform 0.15s ease, border-color 0.15s ease;
+    }
+    .card:hover {
+      background: var(--bg-card-hover);
+      border-color: var(--accent);
+      transform: translateY(-2px);
+    }
+    .card .label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      color: var(--accent);
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+    .card h2 {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      letter-spacing: -0.01em;
+    }
+    .card p {
+      font-size: 13.5px;
+      line-height: 1.55;
+      color: var(--text-dim);
+    }
+    .card .path {
+      display: block;
+      margin-top: 14px;
+      font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+      font-size: 12px;
+      color: var(--text-dim);
+      opacity: 0.7;
+    }
+    footer {
+      margin-top: 56px;
+      padding-top: 24px;
+      border-top: 1px solid var(--border);
+      font-size: 12px;
+      color: var(--text-dim);
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    footer a {
+      color: var(--text-dim);
+      text-decoration: none;
+    }
+    footer a:hover { color: var(--accent); }
+    @media (max-width: 600px) {
+      body { padding: 40px 18px 32px; }
+      header { margin-bottom: 36px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <img src="sweetklogo.png" alt="SweetK">
+    <div class="title">
+      <h1>jhlee-focus · playground</h1>
+      <p>웹에서 굴려보고 있는 작은 실험들</p>
+    </div>
+  </header>
+
+  <main>
+    <a class="card" href="teenieping/">
+      <div class="label">Game</div>
+      <h2>티니핑</h2>
+      <p>티니핑 캐릭터·픽셀 음식·주방 배경 자산 기반 게임.</p>
+      <span class="path">/teenieping/</span>
+    </a>
+
+    <a class="card" href="avengers_game/">
+      <div class="label">Game</div>
+      <h2>어벤져스 게임</h2>
+      <p>드래그 퍼즐, 히어로런, 메모리 게임 등 미니게임 모음.</p>
+      <span class="path">/avengers_game/</span>
+    </a>
+
+    <a class="card" href="clock_twins/">
+      <div class="label">Game</div>
+      <h2>클록 트윈스</h2>
+      <p>티니핑 12종으로 즐기는 시계 짝맞추기.</p>
+      <span class="path">/clock_twins/</span>
+    </a>
+
+    <a class="card" href="chat/">
+      <div class="label">Tool</div>
+      <h2>Chat</h2>
+      <p>채팅 UI 실험 페이지.</p>
+      <span class="path">/chat/</span>
+    </a>
+
+    <a class="card" href="pgr21_manwoo_2026/">
+      <div class="label">Fun</div>
+      <h2>PGR21 만우절 2026</h2>
+      <p>2026 만우절 기념 페이지.</p>
+      <span class="path">/pgr21_manwoo_2026/</span>
+    </a>
+  </main>
+
+  <footer>
+    <span>&copy; jhlee-focus</span>
+    <a href="https://github.com/jhlee-focus/web" target="_blank" rel="noopener">github.com/jhlee-focus/web</a>
+  </footer>
+</body>
+</html>
