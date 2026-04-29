@@ -1,0 +1,15 @@
+# 사용자가 그때그때 만들어내는 작업물
+uploads/
+
+# OMC 세션/상태 (개인 환경 전용)
+.omc/
+
+# OS 메타파일
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# 에디터 캐시
+.vscode/
+.idea/
+*.swp
