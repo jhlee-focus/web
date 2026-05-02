@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Cat's Cradle — Neon Hand Tracking</title>
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background: #000;
+    color: #9ff;
+    font-family: 'Courier New', Consolas, monospace;
+  }
+  /* Hidden source <video>; we paint frames manually onto the p5 canvas. */
+  #cam { display: none; }
+  #status {
+    position: fixed;
+    top: 12px;
+    left: 14px;
+    z-index: 10;
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    opacity: 0.7;
+    text-shadow: 0 0 6px #0ff, 0 0 12px #0ff8;
+    pointer-events: none;
+    transition: opacity 0.8s ease;
+  }
+  canvas { display: block; }
+</style>
+</head>
+<body>
+<!--
+  Run locally:    python -m http.server 8000
+  Then visit:     http://localhost:8000/index.html
+  (Opening this file via file:// blocks getUserMedia in most browsers.)
+-->
+<div id="status">INITIALIZING CAMERA…</div>
+<video id="cam" playsinline autoplay muted></video>
+
+<script src="https://cdn.jsdelivr.net/npm/p5@1.9.4/lib/p5.min.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+
+<script>
+/* ===========================================================
+   Cat's Cradle — neon hand-tracking instrument
+   p5.js (global mode) + MediaPipe Hands
+   =========================================================== */
+
+let videoEl;
+let latestResults = null;
+
+const FINGERTIPS = [4, 8, 12, 16, 20]; // thumb, index, middle, ring, pinky
+const D_MIN = 60;   // px — fully-taut threshold
+const D_MAX = 700;  // px — fully-stretched threshold
+
+function setup() {
+  createCanvas(windowWidth, windowHeight);
+  pixelDensity(1);
+  colorMode(HSB, 360, 100, 100, 1);
+  background(0);
+  videoEl = document.getElementById('cam');
+  initMediaPipe();
+}
+
+function windowResized() {
+  resizeCanvas(windowWidth, windowHeight);
+}
+
+async function initMediaPipe() {
+  const status = document.getElementById('status');
+  try {
+    const hands = new Hands({
+      locateFile: (file) =>
+        `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`,
+    });
+    hands.setOptions({
+      maxNumHands: 2,
+      modelComplexity: 0,         // fast model — fingertips don't need #1
+      minDetectionConfidence: 0.6,
+      minTrackingConfidence: 0.5,
+    });
+    hands.onResults((r) => { latestResults = r; });
+
+    const camera = new Camera(videoEl, {
+      onFrame: async () => { await hands.send({ image: videoEl }); },
+      width: 1280,
+      height: 720,
+    });
+    await camera.start();
+
+    status.textContent = 'SHOW BOTH HANDS';
+    setTimeout(() => { status.style.opacity = '0.18'; }, 3500);
+  } catch (err) {
+    status.textContent = 'CAMERA ERROR: ' + (err.message || err);
+    status.style.color = '#ff5577';
+    status.style.opacity = '0.95';
+    console.error(err);
+  }
+}
+
+function draw() {
+  background(0);
+  if (!videoEl || videoEl.readyState < 2) return;
+
+  drawMirroredWebcam();
+  drawDimOverlay();
+
+  if (!latestResults || !latestResults.multiHandLandmarks) return;
+
+  const allHands = latestResults.multiHandLandmarks;
+  const handedness = latestResults.multiHandedness || [];
+
+  // MediaPipe's "Left/Right" label is from the camera's POV.
+  // Because we mirror the video on screen, the on-screen label is flipped.
+  const handMap = { Left: null, Right: null };
+  for (let i = 0; i < allHands.length; i++) {
+    const raw = handedness[i] && handedness[i].label;
+    const onScreen = raw === 'Left' ? 'Right' : 'Left';
+    handMap[onScreen] = allHands[i];
+  }
+
+  // 1. Glowing dots on every joint of every visible hand.
+  for (let i = 0; i < allHands.length; i++) drawHandDots(allHands[i]);
+
+  // 2. Elastic strings between matching fingertips of left & right.
+  if (handMap.Left && handMap.Right) drawCradleStrings(handMap.Left, handMap.Right);
+}
+
+/* ----- helpers ------------------------------------------------ */
+
+// Mirrored projection: MediaPipe gives normalised (x,y) in the un-mirrored
+// frame; we flip x at draw time so the user sees a selfie-style view.
+function projX(lm) { return (1 - lm.x) * width; }
+function projY(lm) { return lm.y * height; }
+
+function drawMirroredWebcam() {
+  const vw = videoEl.videoWidth  || 1280;
+  const vh = videoEl.videoHeight || 720;
+  const s  = Math.max(width / vw, height / vh); // cover-fit
+  const dw = vw * s, dh = vh * s;
+  const dx = (width  - dw) / 2;
+  const dy = (height - dh) / 2;
+
+  push();
+  translate(width, 0);
+  scale(-1, 1);
+  drawingContext.drawImage(videoEl, dx, dy, dw, dh);
+  pop();
+}
+
+function drawDimOverlay() {
+  noStroke();
+  fill(230, 35, 4, 0.40);   // deep blue-black wash to make neon pop
+  rect(0, 0, width, height);
+}
+
+function drawHandDots(landmarks) {
+  const ctx = drawingContext;
+  const palette = [180, 300, 50]; // cyan, magenta, yellow
+  noStroke();
+
+  for (let i = 0; i < landmarks.length; i++) {
+    const lm = landmarks[i];
+    const x = projX(lm);
+    const y = projY(lm);
+    const isTip = FINGERTIPS.indexOf(i) !== -1;
+
+    const hue = palette[i % palette.length];
+    const r   = isTip ? 14 : 8;
+
+    ctx.shadowBlur  = isTip ? 30 : 16;
+    ctx.shadowColor = `hsl(${hue}, 100%, 60%)`;
+    fill(hue, 85, 100, 0.95);
+    circle(x, y, r);
+
+    // Inner bright core
+    ctx.shadowBlur = 4;
+    fill(hue, 20, 100, 1);
+    circle(x, y, r * 0.4);
+  }
+
+  ctx.shadowBlur = 0;
+}
+
+function drawCradleStrings(leftHand, rightHand) {
+  const ctx = drawingContext;
+  noFill();
+
+  for (let f = 0; f < FINGERTIPS.length; f++) {
+    const idx = FINGERTIPS[f];
+    const a = leftHand[idx];
+    const b = rightHand[idx];
+    const ax = projX(a), ay = projY(a);
+    const bx = projX(b), by = projY(b);
+
+    const d = dist(ax, ay, bx, by);
+    const t = constrain((d - D_MIN) / (D_MAX - D_MIN), 0, 1);
+
+    // Hue sweep cyan(180°) → magenta(300°) → yellow(50°, taken as 410° to keep monotonic)
+    const hue = (180 + t * (410 - 180)) % 360;
+    const sat = 95, bri = 100;
+
+    // Taut strings draw thicker; over-stretched ones taper to a thread.
+    const w = lerp(5, 1.2, t);
+
+    // Slack rope sags more when hands are close; taut when far apart.
+    const sag = (1 - t) * 70;
+    const cx = (ax + bx) / 2;
+    const cy = (ay + by) / 2 + sag;
+
+    ctx.shadowBlur  = 22;
+    ctx.shadowColor = `hsl(${hue}, 100%, 60%)`;
+    stroke(hue, sat, bri, 0.92);
+    strokeWeight(w);
+
+    beginShape();
+    vertex(ax, ay);
+    quadraticVertex(cx, cy, bx, by);
+    endShape();
+  }
+
+  ctx.shadowBlur = 0;
+}
+</script>
+</body>
+</html>
