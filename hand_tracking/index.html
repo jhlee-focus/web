@@ -98,11 +98,23 @@
   <div id="status">Initialising hands…</div>
   <div id="hint">Show both hands • touch fingertips for fireworks</div>
 
-  <!-- p5.js -->
-  <script src="https://cdn.jsdelivr.net/npm/p5@1.9.4/lib/p5.min.js"></script>
-  <!-- MediaPipe Hands -->
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+  <!-- p5.js + MediaPipe — fail loudly if the CDN is unreachable -->
+  <script>
+    function __cdnFail(name) {
+      var el = document.getElementById('status');
+      if (el) {
+        el.textContent = 'CDN load failed: ' + name + '. Check your internet / try a local copy.';
+        el.style.color = '#ff6688';
+      }
+      console.error('[neon-cradle] Failed to load library:', name);
+    }
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/p5@1.9.4/lib/p5.min.js"
+          onerror="__cdnFail('p5.js')"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"
+          crossorigin="anonymous" onerror="__cdnFail('mediapipe/camera_utils')"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"
+          crossorigin="anonymous" onerror="__cdnFail('mediapipe/hands')"></script>
 
   <script>
   // ---------------------------------------------------------------------------
@@ -127,7 +139,11 @@
 
   let landmarksList = [];   // latest results from MediaPipe (array of hands)
   let particles = [];
-  let canvas, statusEl;
+  let canvas, statusEl, videoEl;
+
+  // Cover-fit transform from normalized (0..1, video-aspect) → canvas pixels.
+  // Recomputed every frame so it survives window resizes & late video metadata.
+  let videoTransform = { drawW: 0, drawH: 0, offsetX: 0, offsetY: 0 };
 
   // Elastic strings: persistent connection between Left fingertip i and Right fingertip i
   // We carry over previous endpoints to fake a tiny bit of inertia/elasticity.
@@ -135,27 +151,56 @@
     aPrev: null, bPrev: null
   }));
 
+  // Per-fingertip cooldown so a sustained touch doesn't flood particles.
+  const lastBurstAt = new Array(5).fill(0);
+  const BURST_COOLDOWN_MS = 140;
+
   // ---------- p5 setup ----------
   function setup() {
-    const w = Math.min(window.innerWidth, 1280);
-    const h = Math.min(window.innerHeight, 720);
-    canvas = createCanvas(w, h);
+    canvas = createCanvas(window.innerWidth, window.innerHeight);
     canvas.parent('stage');
     pixelDensity(1);          // perf: avoid 2x render on retina
     frameRate(60);
     statusEl = document.getElementById('status');
+    if (typeof Hands === 'undefined' || typeof Camera === 'undefined') {
+      statusEl.textContent = 'MediaPipe not available — check network/CDN.';
+      return;
+    }
     initMediaPipe();
   }
 
   function windowResized() {
-    const w = Math.min(window.innerWidth, 1280);
-    const h = Math.min(window.innerHeight, 720);
-    resizeCanvas(w, h);
+    resizeCanvas(window.innerWidth, window.innerHeight);
   }
+
+  // Compute a cover-fit rectangle for the camera's aspect inside the canvas.
+  // Falls back to 16:9 until the <video> reports its real dimensions.
+  function updateVideoTransform() {
+    const vw = (videoEl && videoEl.videoWidth)  || 1280;
+    const vh = (videoEl && videoEl.videoHeight) || 720;
+    const ar = vw / vh;
+    const cAr = width / height;
+    let drawW, drawH;
+    if (cAr > ar) {           // canvas is wider → match width, crop top/bottom
+      drawW = width;
+      drawH = width / ar;
+    } else {                  // canvas is taller → match height, crop sides
+      drawH = height;
+      drawW = height * ar;
+    }
+    videoTransform.drawW   = drawW;
+    videoTransform.drawH   = drawH;
+    videoTransform.offsetX = (width  - drawW) / 2;
+    videoTransform.offsetY = (height - drawH) / 2;
+  }
+
+  // Map a MediaPipe normalized landmark to canvas pixels with proper aspect.
+  function mapX(nx) { return videoTransform.offsetX + nx * videoTransform.drawW; }
+  function mapY(ny) { return videoTransform.offsetY + ny * videoTransform.drawH; }
 
   // ---------- MediaPipe wiring ----------
   function initMediaPipe() {
-    const videoElement = document.getElementById('input_video');
+    videoEl = document.getElementById('input_video');
 
     const hands = new Hands({
       locateFile: (file) =>
@@ -168,13 +213,15 @@
       minTrackingConfidence: 0.5
     });
     hands.onResults((results) => {
-      // Pair each hand with its handedness label ("Left" / "Right")
+      // MediaPipe Hands assumes a *mirrored* (selfie) input; the Camera util
+      // sends the raw, unmirrored webcam frame, so its handedness labels are
+      // swapped relative to what the user sees on the mirrored canvas.
+      // → Flip the label here so "Left" really means the user's left hand.
       const paired = [];
       if (results.multiHandLandmarks) {
         for (let i = 0; i < results.multiHandLandmarks.length; i++) {
-          const label = results.multiHandedness?.[i]?.label || 'Right';
-          // Note: MediaPipe reports handedness as if the camera were a mirror;
-          // because we already mirror the canvas, the label matches what the user sees.
+          const raw = results.multiHandedness?.[i]?.label || 'Right';
+          const label = raw === 'Left' ? 'Right' : 'Left';
           paired.push({ landmarks: results.multiHandLandmarks[i], label });
         }
       }
@@ -186,10 +233,11 @@
       }
     });
 
-    const camera = new Camera(videoElement, {
-      onFrame: async () => { await hands.send({ image: videoElement }); },
+    const camera = new Camera(videoEl, {
+      onFrame: async () => { await hands.send({ image: videoEl }); },
       width: 1280,
-      height: 720
+      height: 720,
+      facingMode: 'user'
     });
     camera.start().catch(err => {
       statusEl.textContent = 'Camera error: ' + err.message;
@@ -201,6 +249,10 @@
   function draw() {
     // Midnight-blue base + slight motion-trail for ghosting glow
     background(5, 0, 24, 230);
+
+    // Recompute the cover-fit transform so resizes / late video metadata
+    // never stretch the hand geometry away from the real camera aspect.
+    updateVideoTransform();
 
     // Subtle moving scanline highlight (in addition to CSS overlay)
     drawSoftBackgroundGrid();
@@ -260,7 +312,7 @@
     beginShape();
     for (const id of HAND_OUTLINE) {
       const p = lm[id];
-      vertex(p.x * width, p.y * height);
+      vertex(mapX(p.x), mapY(p.y));
     }
     endShape(CLOSE);
     drawingContext.restore();
@@ -276,7 +328,7 @@
     noFill();
     for (const [a, b] of HAND_CONNECTIONS) {
       const pa = lm[a], pb = lm[b];
-      line(pa.x * width, pa.y * height, pb.x * width, pb.y * height);
+      line(mapX(pa.x), mapY(pa.y), mapX(pb.x), mapY(pb.y));
     }
     drawingContext.restore();
   }
@@ -290,12 +342,13 @@
       drawingContext.shadowBlur = isTip ? 28 : 14;
       drawingContext.shadowColor = baseColor;
       noStroke();
+      const px = mapX(p.x), py = mapY(p.y);
       // Outer halo
       fill(label === 'Left' ? color(0, 246, 255, 60) : color(255, 90, 214, 60));
-      circle(p.x * width, p.y * height, isTip ? 22 : 12);
+      circle(px, py, isTip ? 22 : 12);
       // Bright core
       fill(255, 255, 255, isTip ? 230 : 200);
-      circle(p.x * width, p.y * height, isTip ? 8 : 4);
+      circle(px, py, isTip ? 8 : 4);
     }
     drawingContext.restore();
   }
@@ -315,8 +368,8 @@
     drawingContext.save();
     for (let i = 0; i < FINGERTIP_IDS.length; i++) {
       const id = FINGERTIP_IDS[i];
-      const a = { x: leftLm[id].x  * width, y: leftLm[id].y  * height };
-      const b = { x: rightLm[id].x * width, y: rightLm[id].y * height };
+      const a = { x: mapX(leftLm[id].x),  y: mapY(leftLm[id].y)  };
+      const b = { x: mapX(rightLm[id].x), y: mapY(rightLm[id].y) };
 
       // Elastic interpolation toward target (cheap inertia)
       const s = stringState[i];
@@ -333,8 +386,10 @@
 
       const dx = bx - ax, dy = by - ay;
       const dist = Math.sqrt(dx * dx + dy * dy);
-      const maxDist = Math.hypot(width, height);
-      const tension = constrain(dist / (width * 0.7), 0, 1); // 0 = slack, 1 = stretched
+      // Tension is referenced against the video's *drawn* width so it stays
+      // consistent regardless of window aspect / letterboxing.
+      const refW = videoTransform.drawW || width;
+      const tension = constrain(dist / (refW * 0.7), 0, 1);
 
       // Sag toward the bottom — looks like a real string under gravity, less when taut
       const sag = (1 - tension) * 80;
@@ -375,23 +430,28 @@
 
   // ---------- Particles ----------
   function checkFingertipCollisions(leftLm, rightLm) {
-    for (const id of FINGERTIP_IDS) {
-      const ax = leftLm[id].x  * width;
-      const ay = leftLm[id].y  * height;
-      const bx = rightLm[id].x * width;
-      const by = rightLm[id].y * height;
+    const now = millis();
+    // Hit threshold scales with video size so it works at any aspect ratio
+    const refW = videoTransform.drawW || width;
+    const hitDist = Math.max(18, refW * 0.022);
+    for (let i = 0; i < FINGERTIP_IDS.length; i++) {
+      const id = FINGERTIP_IDS[i];
+      const ax = mapX(leftLm[id].x);
+      const ay = mapY(leftLm[id].y);
+      const bx = mapX(rightLm[id].x);
+      const by = mapY(rightLm[id].y);
       const d = dist(ax, ay, bx, by);
-      if (d < 28) {
-        // Throttle: only spawn if not too many recent particles at this spot
-        if (Math.random() < 0.6) {
-          spawnBurst((ax + bx) / 2, (ay + by) / 2);
-        }
+      if (d < hitDist && now - lastBurstAt[i] >= BURST_COOLDOWN_MS) {
+        lastBurstAt[i] = now;
+        spawnBurst((ax + bx) / 2, (ay + by) / 2);
       }
     }
   }
 
   function spawnBurst(x, y) {
-    const n = 28;
+    // Drop particle count if we're already near the cap to protect frame rate
+    const headroom = 600 - particles.length;
+    const n = Math.min(22, Math.max(6, headroom));
     const palette = ['#00f6ff', '#fff200', '#ff5ad6', '#a577ff', '#7dffd0'];
     for (let i = 0; i < n; i++) {
       const angle = Math.random() * Math.PI * 2;
