@@ -32,10 +32,11 @@
   }
 
   body {
-    background-image: url('img_assets/Kitchen Interior Backgrounds/kitchen interior background 1.png');
+    background-color: #FFF5F7;
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
+    transition: background-image 0.4s ease-in-out;
   }
 
   .game-root {
@@ -1446,18 +1447,20 @@ function closeCharacterModal() {
   $('#modal-character').classList.remove('active');
 }
 function tryChangeGuide() {
-  const raw = $('#character-input').value.trim();
-  if (!raw) { closeCharacterModal(); return; }
-  let key = raw;
+  const rawInput = $('#character-input').value;
+  // Strip all whitespace (incl. tabs, full-width spaces, internal spaces)
+  // so '하츄 핑', ' 하츄핑 ', '하 츄 핑' all match '하츄핑'.
+  const key = rawInput.replace(/\s+/g, '');
+  if (!key) { closeCharacterModal(); return; }
   if (TEENIEPINGS[key]) { applyGuide(key); return; }
   const withSuffix = key.endsWith('핑') ? key : key + '핑';
   if (TEENIEPINGS[withSuffix]) { applyGuide(withSuffix); return; }
-  // partial match (substring)
+  // partial match (substring) — also strip whitespace from registered names just in case
   const found = Object.keys(TEENIEPINGS).find(n => n.includes(key));
   if (found) { applyGuide(found); return; }
   // not found
   closeCharacterModal();
-  say(`'${raw}' 친구는 아직 못 찾았어! 하츄핑이랑 같이 놀자!`);
+  say(`'${rawInput.trim()}' 친구는 아직 못 찾았어! 하츄핑이랑 같이 놀자!`);
   setTimeout(hideBubble, 2500);
 }
 function applyGuide(name) {
@@ -1484,6 +1487,7 @@ function goHome() {
   state.currentDessert = null;
   state.selectedIngredients = [];
   state.placedToppings = [];
+  pickRandomBackground();
   showScreen('screen-start');
 }
 
@@ -2435,10 +2439,23 @@ async function captureCompletedDessert() {
     ctx.fillText(TOPPING_EMOJI[t.type] || '✨', x, y);
   });
 
-  // Guide character on bottom-left
+  // Guide character on bottom-left — preserve aspect ratio
   const guideEl = await loadImage(state.guideSrc);
   if (guideEl) {
-    ctx.drawImage(guideEl, 24, H - 140, 100, 100);
+    const maxBox = 110;
+    const naturalAspect = guideEl.naturalWidth / guideEl.naturalHeight;
+    let drawW, drawH;
+    if (naturalAspect >= 1) {
+      drawW = maxBox;
+      drawH = maxBox / naturalAspect;
+    } else {
+      drawH = maxBox;
+      drawW = maxBox * naturalAspect;
+    }
+    // Anchor: align bottom-left so character feet sit at H-30
+    const baseX = 24;
+    const baseY = H - 30 - drawH;
+    ctx.drawImage(guideEl, baseX, baseY, drawW, drawH);
   }
 
   // "made with X" text next to character
@@ -2554,9 +2571,25 @@ async function shareDessert() {
 }
 
 // ============================================================
+// BACKGROUND (random kitchen background)
+// ============================================================
+const KITCHEN_BACKGROUNDS = [
+  'img_assets/Kitchen Interior Backgrounds/kitchen interior background 1.png',
+  'img_assets/Kitchen Interior Backgrounds/kitchen interior background 2.png',
+  'img_assets/Kitchen Interior Backgrounds/kitchen interior background 3.png',
+  'img_assets/Kitchen Interior Backgrounds/kitchen interior background 4.png'
+];
+function pickRandomBackground() {
+  const url = KITCHEN_BACKGROUNDS[Math.floor(Math.random() * KITCHEN_BACKGROUNDS.length)];
+  // encodeURI handles spaces in filenames
+  document.body.style.backgroundImage = `url("${encodeURI(url)}")`;
+}
+
+// ============================================================
 // INIT
 // ============================================================
 function init() {
+  pickRandomBackground();
   refreshGuideUi();
   setupStart();
   // Reset idle on any tap
