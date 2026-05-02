@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Neon Cat's Cradle</title>
+  <script src="https://cdn.jsdelivr.net/npm/p5@1.9.4/lib/p5.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+  <style>
+    :root {
+      color-scheme: dark;
+      --cyan: #00f6ff;
+      --magenta: #ff2afc;
+      --yellow: #ffe95c;
+      --ink: #020713;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: radial-gradient(circle at 50% 35%, #0b1838 0%, #030712 48%, #00030a 100%);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    canvas {
+      display: block;
+    }
+
+    #video-input {
+      position: fixed;
+      width: 1px;
+      height: 1px;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .hud {
+      position: fixed;
+      top: 18px;
+      left: 18px;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-height: 34px;
+      padding: 8px 12px;
+      border: 1px solid rgba(0, 246, 255, 0.28);
+      border-radius: 8px;
+      color: rgba(236, 252, 255, 0.9);
+      background: rgba(2, 7, 19, 0.44);
+      box-shadow: 0 0 22px rgba(0, 246, 255, 0.12);
+      backdrop-filter: blur(10px);
+      font-size: 13px;
+      letter-spacing: 0;
+      user-select: none;
+    }
+
+    .pulse {
+      width: 9px;
+      height: 9px;
+      flex: 0 0 auto;
+      border-radius: 50%;
+      background: var(--cyan);
+      box-shadow: 0 0 14px var(--cyan);
+      animation: pulse 1.35s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%,
+      100% {
+        opacity: 0.45;
+        transform: scale(0.72);
+      }
+
+      50% {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+  </style>
+</head>
+<body>
+  <video id="video-input" playsinline></video>
+  <div class="hud">
+    <span class="pulse" aria-hidden="true"></span>
+    <span id="status">Initializing camera...</span>
+  </div>
+
+  <script>
+    const TIP_IDS = [4, 8, 12, 16, 20];
+    const PALETTE = [
+      [0, 246, 255],
+      [255, 42, 252],
+      [255, 233, 92]
+    ];
+    const SMOOTHING = 0.38;
+    const videoElement = document.getElementById('video-input');
+    const statusElement = document.getElementById('status');
+
+    let latestHands = [];
+    let smoothedHands = new Map();
+    let cameraReady = false;
+    let trackingReady = false;
+    let statusText = '';
+
+    function setup() {
+      createCanvas(windowWidth, windowHeight);
+      pixelDensity(Math.min(window.devicePixelRatio || 1, 2));
+      frameRate(60);
+      initializeHands();
+    }
+
+    function windowResized() {
+      resizeCanvas(windowWidth, windowHeight);
+    }
+
+    function draw() {
+      background(2, 7, 19);
+      drawVideoBackground();
+      drawAtmosphere();
+      updateStatus();
+
+      const hands = getRenderableHands();
+      if (hands.length > 0) {
+        drawFingerStrings(hands);
+        hands.forEach(drawLandmarks);
+      }
+    }
+
+    function initializeHands() {
+      const hands = new Hands({
+        locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+      });
+
+      hands.setOptions({
+        maxNumHands: 2,
+        modelComplexity: 1,
+        minDetectionConfidence: 0.72,
+        minTrackingConfidence: 0.68
+      });
+
+      hands.onResults((results) => {
+        trackingReady = true;
+        latestHands = normalizeHands(results);
+      });
+
+      const camera = new Camera(videoElement, {
+        width: 1280,
+        height: 720,
+        onFrame: async () => {
+          await hands.send({ image: videoElement });
+        }
+      });
+
+      camera.start()
+        .then(() => {
+          cameraReady = true;
+        })
+        .catch((error) => {
+          statusElement.textContent = 'Camera permission needed';
+          console.error('Unable to start camera:', error);
+        });
+    }
+
+    function normalizeHands(results) {
+      const landmarks = results.multiHandLandmarks || [];
+      const handedness = results.multiHandedness || [];
+
+      return landmarks.slice(0, 2).map((points, index) => {
+        const label = handedness[index]?.label || `Hand-${index}`;
+        return {
+          id: `${label}-${index}`,
+          label,
+          points: points.map((point) => ({ x: 1 - point.x, y: point.y, z: point.z || 0 }))
+        };
+      });
+    }
+
+    function getRenderableHands() {
+      const activeIds = new Set(latestHands.map((hand) => hand.id));
+
+      for (const id of smoothedHands.keys()) {
+        if (!activeIds.has(id)) {
+          smoothedHands.delete(id);
+        }
+      }
+
+      latestHands.forEach((hand) => {
+        const previous = smoothedHands.get(hand.id);
+        if (!previous) {
+          smoothedHands.set(hand.id, hand.points.map((point) => ({ ...point })));
+          return;
+        }
+
+        hand.points.forEach((point, index) => {
+          previous[index].x = lerp(previous[index].x, point.x, SMOOTHING);
+          previous[index].y = lerp(previous[index].y, point.y, SMOOTHING);
+          previous[index].z = lerp(previous[index].z, point.z, SMOOTHING);
+        });
+      });
+
+      return latestHands.map((hand) => ({
+        ...hand,
+        points: smoothedHands.get(hand.id) || hand.points
+      }));
+    }
+
+    function drawVideoBackground() {
+      if (videoElement.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) {
+        drawGrid();
+        return;
+      }
+
+      const videoAspect = videoElement.videoWidth / videoElement.videoHeight || 16 / 9;
+      const canvasAspect = width / height;
+      let drawWidth = width;
+      let drawHeight = height;
+
+      if (canvasAspect > videoAspect) {
+        drawHeight = width / videoAspect;
+      } else {
+        drawWidth = height * videoAspect;
+      }
+
+      const dx = (width - drawWidth) / 2;
+      const dy = (height - drawHeight) / 2;
+
+      push();
+      tint(105, 125, 150, 132);
+      translate(width, 0);
+      scale(-1, 1);
+      image(videoElement, width - dx - drawWidth, dy, drawWidth, drawHeight);
+      pop();
+
+      push();
+      noStroke();
+      fill(0, 5, 14, 118);
+      rect(0, 0, width, height);
+      pop();
+    }
+
+    function drawAtmosphere() {
+      drawGrid();
+      push();
+      drawingContext.save();
+      drawingContext.globalCompositeOperation = 'screen';
+      noFill();
+      strokeWeight(1);
+      for (let y = 0; y < height; y += 4) {
+        stroke(0, 246, 255, y % 16 === 0 ? 18 : 7);
+        line(0, y, width, y);
+      }
+      drawingContext.restore();
+      pop();
+    }
+
+    function drawGrid() {
+      push();
+      const spacing = 54;
+      strokeWeight(1);
+      stroke(0, 246, 255, 22);
+      for (let x = (frameCount * -0.18) % spacing; x < width; x += spacing) {
+        line(x, 0, x, height);
+      }
+      for (let y = (frameCount * -0.12) % spacing; y < height; y += spacing) {
+        line(0, y, width, y);
+      }
+      pop();
+    }
+
+    function drawFingerStrings(hands) {
+      if (hands.length < 2) {
+        return;
+      }
+
+      const [firstHand, secondHand] = hands;
+
+      TIP_IDS.forEach((tipId, index) => {
+        const start = toScreen(firstHand.points[tipId]);
+        const end = toScreen(secondHand.points[tipId]);
+        const distance = dist(start.x, start.y, end.x, end.y);
+        const tension = constrain(distance / min(width, height), 0.08, 1);
+        const colorA = PALETTE[index % PALETTE.length];
+        const colorB = PALETTE[(index + 1) % PALETTE.length];
+        const wave = sin(frameCount * 0.045 + index * 1.8) * 0.5 + 0.5;
+        const stringColor = mixColor(colorA, colorB, wave);
+        const thickness = lerp(1.1, 4.6, tension);
+        const alpha = lerp(110, 245, tension);
+
+        drawGlowingLine(start, end, stringColor, thickness, alpha, index, tension);
+      });
+    }
+
+    function drawGlowingLine(start, end, rgb, thickness, alpha, index, tension) {
+      const ctx = drawingContext;
+      const midpoint = {
+        x: (start.x + end.x) * 0.5,
+        y: (start.y + end.y) * 0.5
+      };
+      const sag = sin(frameCount * 0.06 + index) * 18 * (1 - tension);
+      const control = {
+        x: midpoint.x,
+        y: midpoint.y + sag
+      };
+
+      push();
+      noFill();
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.shadowColor = `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, 0.92)`;
+      ctx.shadowBlur = 18 + tension * 28;
+
+      for (let pass = 3; pass >= 0; pass -= 1) {
+        stroke(rgb[0], rgb[1], rgb[2], alpha / (pass + 1));
+        strokeWeight(thickness + pass * 2.8);
+        beginShape();
+        vertex(start.x, start.y);
+        quadraticVertex(control.x, control.y, end.x, end.y);
+        endShape();
+      }
+
+      ctx.shadowBlur = 6;
+      stroke(255, 255, 255, 190);
+      strokeWeight(max(0.8, thickness * 0.32));
+      beginShape();
+      vertex(start.x, start.y);
+      quadraticVertex(control.x, control.y, end.x, end.y);
+      endShape();
+
+      ctx.restore();
+      pop();
+    }
+
+    function drawLandmarks(hand) {
+      hand.points.forEach((point, index) => {
+        const screenPoint = toScreen(point);
+        const tipBoost = TIP_IDS.includes(index) ? 1.45 : 1;
+        const rgb = PALETTE[index % PALETTE.length];
+        const radius = (4.2 + max(0, -point.z) * 18) * tipBoost;
+
+        push();
+        drawingContext.save();
+        drawingContext.globalCompositeOperation = 'lighter';
+        drawingContext.shadowColor = `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, 0.95)`;
+        drawingContext.shadowBlur = 18 * tipBoost;
+        noStroke();
+        fill(rgb[0], rgb[1], rgb[2], 215);
+        circle(screenPoint.x, screenPoint.y, radius * 2);
+        fill(255, 255, 255, 165);
+        circle(screenPoint.x, screenPoint.y, radius * 0.68);
+        drawingContext.restore();
+        pop();
+      });
+    }
+
+    function updateStatus() {
+      let nextStatus = '';
+
+      if (!cameraReady) {
+        nextStatus = 'Initializing camera...';
+      } else if (!trackingReady) {
+        nextStatus = 'Loading hand tracker...';
+      } else if (latestHands.length === 0) {
+        nextStatus = 'Show your hands';
+      } else if (latestHands.length === 1) {
+        nextStatus = 'One hand detected';
+      } else {
+        nextStatus = 'Cat\'s cradle linked';
+      }
+
+      if (nextStatus !== statusText) {
+        statusText = nextStatus;
+        statusElement.textContent = nextStatus;
+      }
+    }
+
+    function toScreen(point) {
+      return {
+        x: point.x * width,
+        y: point.y * height
+      };
+    }
+
+    function mixColor(a, b, amount) {
+      return [
+        lerp(a[0], b[0], amount),
+        lerp(a[1], b[1], amount),
+        lerp(a[2], b[2], amount)
+      ];
+    }
+  </script>
+</body>
+</html>
