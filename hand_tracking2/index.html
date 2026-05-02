@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Cat's Cradle — Hand Tracking</title>
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background: #03050d;
+    color: #b8f7ff;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    height: 100%;
+  }
+  #status {
+    position: fixed;
+    top: 12px;
+    left: 12px;
+    z-index: 10;
+    padding: 6px 10px;
+    background: rgba(0, 0, 0, 0.55);
+    border: 1px solid rgba(0, 255, 229, 0.45);
+    border-radius: 4px;
+    font-size: 12px;
+    letter-spacing: 0.5px;
+    text-shadow: 0 0 6px rgba(0, 255, 229, 0.6);
+    pointer-events: none;
+  }
+  #title {
+    position: fixed;
+    bottom: 12px;
+    right: 14px;
+    z-index: 10;
+    font-size: 11px;
+    opacity: 0.65;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    pointer-events: none;
+  }
+  #input_video { display: none; }
+  canvas { display: block; }
+</style>
+</head>
+<body>
+  <div id="status">Initializing camera…</div>
+  <div id="title">// CAT'S CRADLE · MediaPipe + p5</div>
+  <video id="input_video" autoplay muted playsinline></video>
+
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469240/hands.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3.1675466862/camera_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/p5@1.9.0/lib/p5.min.js"></script>
+
+  <script>
+    const FINGERTIPS = [4, 8, 12, 16, 20];
+    const FINGER_CHAINS = [
+      [0, 1, 2, 3, 4],
+      [0, 5, 6, 7, 8],
+      [0, 9, 10, 11, 12],
+      [0, 13, 14, 15, 16],
+      [0, 17, 18, 19, 20],
+    ];
+    const PALM_BRIDGE = [5, 9, 13, 17];
+    const NEON = ['#00FFE5', '#FF3DD0', '#FFE34F'];
+
+    let video;
+    let handsResults = null;
+    let handsModel = null;
+    let camera = null;
+    let smoothedHands = [];
+    const SMOOTH = 0.55;
+
+    const statusEl = () => document.getElementById('status');
+
+    function setup() {
+      const cnv = createCanvas(windowWidth, windowHeight);
+      cnv.style('display', 'block');
+      pixelDensity(1);
+      frameRate(60);
+
+      video = document.getElementById('input_video');
+      initMediaPipe().catch((err) => {
+        statusEl().textContent = 'Camera error: ' + err.message;
+        console.error(err);
+      });
+    }
+
+    async function initMediaPipe() {
+      handsModel = new Hands({
+        locateFile: (file) =>
+          `https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469240/${file}`,
+      });
+
+      handsModel.setOptions({
+        maxNumHands: 2,
+        modelComplexity: 1,
+        minDetectionConfidence: 0.6,
+        minTrackingConfidence: 0.5,
+      });
+
+      handsModel.onResults((results) => {
+        handsResults = results;
+      });
+
+      camera = new Camera(video, {
+        onFrame: async () => {
+          if (handsModel) await handsModel.send({ image: video });
+        },
+        width: 1280,
+        height: 720,
+      });
+
+      await camera.start();
+      statusEl().textContent = 'Camera live · waiting for hands…';
+    }
+
+    function windowResized() {
+      resizeCanvas(windowWidth, windowHeight);
+    }
+
+    function draw() {
+      drawBackground();
+
+      if (!handsResults || !handsResults.multiHandLandmarks) {
+        smoothedHands = [];
+        return;
+      }
+
+      const raw = handsResults.multiHandLandmarks;
+      const screenHands = raw.map((landmarks) =>
+        landmarks.map((p) => ({
+          x: (1 - p.x) * width,
+          y: p.y * height,
+          z: p.z,
+        }))
+      );
+
+      // simple temporal smoothing per hand index — reduces jitter for the strings
+      if (smoothedHands.length !== screenHands.length) {
+        smoothedHands = screenHands.map((h) => h.map((p) => ({ ...p })));
+      } else {
+        for (let i = 0; i < screenHands.length; i++) {
+          for (let j = 0; j < screenHands[i].length; j++) {
+            const cur = screenHands[i][j];
+            const prev = smoothedHands[i][j];
+            prev.x = lerp(prev.x, cur.x, SMOOTH);
+            prev.y = lerp(prev.y, cur.y, SMOOTH);
+            prev.z = lerp(prev.z, cur.z, SMOOTH);
+          }
+        }
+      }
+
+      for (const hand of smoothedHands) drawHand(hand);
+
+      if (smoothedHands.length >= 2) {
+        drawCradleStrings(smoothedHands[0], smoothedHands[1]);
+      }
+
+      statusEl().textContent =
+        `Hands: ${smoothedHands.length} · FPS: ${nf(frameRate(), 0, 1)}`;
+    }
+
+    function drawBackground() {
+      // mirrored video as background
+      push();
+      translate(width, 0);
+      scale(-1, 1);
+      if (video && video.readyState >= 2) {
+        drawingContext.globalAlpha = 0.55;
+        image(video, 0, 0, width, height);
+        drawingContext.globalAlpha = 1.0;
+      } else {
+        background(4, 7, 18);
+      }
+      pop();
+
+      // dark futuristic vignette
+      const ctx = drawingContext;
+      ctx.save();
+      const grad = ctx.createRadialGradient(
+        width / 2, height / 2, Math.min(width, height) * 0.15,
+        width / 2, height / 2, Math.max(width, height) * 0.7
+      );
+      grad.addColorStop(0, 'rgba(3, 5, 18, 0.15)');
+      grad.addColorStop(1, 'rgba(2, 3, 14, 0.85)');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, width, height);
+      ctx.restore();
+    }
+
+    function drawHand(hand) {
+      const ctx = drawingContext;
+
+      // bones
+      ctx.save();
+      ctx.shadowBlur = 16;
+      ctx.shadowColor = 'rgba(0, 220, 255, 0.85)';
+      ctx.strokeStyle = 'rgba(150, 240, 255, 0.78)';
+      ctx.lineWidth = 2;
+      ctx.lineCap = 'round';
+      for (const chain of FINGER_CHAINS) {
+        ctx.beginPath();
+        ctx.moveTo(hand[chain[0]].x, hand[chain[0]].y);
+        for (let i = 1; i < chain.length; i++) {
+          ctx.lineTo(hand[chain[i]].x, hand[chain[i]].y);
+        }
+        ctx.stroke();
+      }
+      // palm bridge
+      ctx.beginPath();
+      ctx.moveTo(hand[0].x, hand[0].y);
+      for (const j of PALM_BRIDGE) ctx.lineTo(hand[j].x, hand[j].y);
+      ctx.stroke();
+      ctx.restore();
+
+      // joints
+      ctx.save();
+      for (let i = 0; i < hand.length; i++) {
+        const p = hand[i];
+        const isTip = FINGERTIPS.includes(i);
+        const r = isTip ? 9 : 5;
+        const c = NEON[i % NEON.length];
+
+        ctx.shadowBlur = isTip ? 30 : 14;
+        ctx.shadowColor = c;
+        ctx.fillStyle = c;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
+        ctx.fill();
+
+        // bright core
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.92)';
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, r * 0.4, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+
+    function drawCradleStrings(handA, handB) {
+      const ctx = drawingContext;
+
+      // average tip-to-tip distance drives the elastic feel
+      let sum = 0;
+      for (const li of FINGERTIPS) {
+        for (const ri of FINGERTIPS) {
+          sum += dist(handA[li].x, handA[li].y, handB[ri].x, handB[ri].y);
+        }
+      }
+      const avgDist = sum / (FINGERTIPS.length * FINGERTIPS.length);
+      const minD = 80;
+      const maxD = Math.min(Math.max(width, height), 1400);
+      const tension = constrain((avgDist - minD) / (maxD - minD), 0, 1); // 0 = close, 1 = far
+
+      // closer = warm magenta/yellow, farther = cool cyan
+      const hueA = lerp(50, 185, tension);   // yellow → cyan
+      const hueB = lerp(310, 215, tension);  // magenta → blue
+      const thickness = lerp(2.6, 1.1, tension);
+      const sag = lerp(45, 6, tension);
+
+      ctx.save();
+      ctx.shadowBlur = 22;
+      ctx.lineCap = 'round';
+      ctx.globalCompositeOperation = 'lighter';
+
+      for (const li of FINGERTIPS) {
+        const a = handA[li];
+        for (const ri of FINGERTIPS) {
+          const b = handB[ri];
+
+          const grad = ctx.createLinearGradient(a.x, a.y, b.x, b.y);
+          grad.addColorStop(0.0, `hsla(${hueA}, 100%, 62%, 0.95)`);
+          grad.addColorStop(0.5, `hsla(${(hueA + hueB) / 2}, 100%, 68%, 0.85)`);
+          grad.addColorStop(1.0, `hsla(${hueB}, 100%, 62%, 0.95)`);
+
+          ctx.strokeStyle = grad;
+          ctx.shadowColor = `hsla(${hueA}, 100%, 60%, 0.9)`;
+          ctx.lineWidth = thickness;
+
+          const mx = (a.x + b.x) / 2;
+          const my = (a.y + b.y) / 2 + sag;
+
+          ctx.beginPath();
+          ctx.moveTo(a.x, a.y);
+          ctx.quadraticCurveTo(mx, my, b.x, b.y);
+          ctx.stroke();
+        }
+      }
+      ctx.restore();
+    }
+  </script>
+</body>
+</html>
