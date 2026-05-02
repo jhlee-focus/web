@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Neon Cat's Cradle — MediaPipe Hands × p5.js</title>
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: #050018;
+    color: #d8e8ff;
+    font-family: "Segoe UI", "Helvetica Neue", sans-serif;
+    overflow: hidden;
+    height: 100%;
+  }
+  #stage {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background:
+      radial-gradient(ellipse at center, #0a0030 0%, #03000d 80%) ;
+  }
+  /* Hidden raw video — only used as MediaPipe input source */
+  #input_video {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+  }
+  /* Main p5 canvas is appended into #stage by p5.js */
+  canvas {
+    display: block;
+    max-width: 100%;
+    max-height: 100%;
+    box-shadow: 0 0 60px rgba(120, 0, 200, 0.45);
+    border-radius: 8px;
+  }
+  /* CRT scanline overlay */
+  #scanlines {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background: repeating-linear-gradient(
+      to bottom,
+      rgba(0,0,0,0.18) 0px,
+      rgba(0,0,0,0.18) 1px,
+      rgba(255,255,255,0.02) 2px,
+      rgba(255,255,255,0.02) 3px
+    );
+    mix-blend-mode: overlay;
+    z-index: 10;
+  }
+  #vignette {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background: radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.65) 100%);
+    z-index: 11;
+  }
+  #status {
+    position: fixed;
+    top: 14px;
+    left: 16px;
+    z-index: 20;
+    font-size: 13px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #6cf0ff;
+    text-shadow: 0 0 8px #00e7ff, 0 0 18px #5a00ff;
+    background: rgba(5,0,24,0.55);
+    padding: 6px 12px;
+    border: 1px solid rgba(108, 240, 255, 0.35);
+    border-radius: 4px;
+    backdrop-filter: blur(4px);
+  }
+  #hint {
+    position: fixed;
+    bottom: 14px;
+    right: 16px;
+    z-index: 20;
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: #ff7ad8;
+    text-shadow: 0 0 6px #ff00aa;
+    opacity: 0.75;
+  }
+</style>
+</head>
+<body>
+  <div id="stage"></div>
+  <video id="input_video" playsinline muted></video>
+  <div id="scanlines"></div>
+  <div id="vignette"></div>
+  <div id="status">Initialising hands…</div>
+  <div id="hint">Show both hands • touch fingertips for fireworks</div>
+
+  <!-- p5.js -->
+  <script src="https://cdn.jsdelivr.net/npm/p5@1.9.4/lib/p5.min.js"></script>
+  <!-- MediaPipe Hands -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+
+  <script>
+  // ---------------------------------------------------------------------------
+  // Neon Cat's Cradle
+  // - MediaPipe Hands (2 hands) feeds normalized landmarks
+  // - p5.js renders glowing dots, elastic strings, particle bursts on touch
+  // - Raw video is hidden; instead we draw a soft neon silhouette of each hand
+  // - CRT scanline overlay & midnight-blue vignette for the futuristic look
+  // ---------------------------------------------------------------------------
+
+  const FINGERTIP_IDS = [4, 8, 12, 16, 20];      // thumb, index, middle, ring, pinky
+  const HAND_CONNECTIONS = [
+    [0,1],[1,2],[2,3],[3,4],            // thumb
+    [0,5],[5,6],[6,7],[7,8],            // index
+    [5,9],[9,10],[10,11],[11,12],       // middle
+    [9,13],[13,14],[14,15],[15,16],     // ring
+    [13,17],[17,18],[18,19],[19,20],    // pinky
+    [0,17]                              // palm base
+  ];
+  // Convex-hull-ish ordering of landmarks for a smooth silhouette
+  const HAND_OUTLINE = [0, 1, 2, 3, 4, 8, 12, 16, 20, 17, 0];
+
+  let landmarksList = [];   // latest results from MediaPipe (array of hands)
+  let particles = [];
+  let canvas, statusEl;
+
+  // Elastic strings: persistent connection between Left fingertip i and Right fingertip i
+  // We carry over previous endpoints to fake a tiny bit of inertia/elasticity.
+  const stringState = Array.from({length: 5}, () => ({
+    aPrev: null, bPrev: null
+  }));
+
+  // ---------- p5 setup ----------
+  function setup() {
+    const w = Math.min(window.innerWidth, 1280);
+    const h = Math.min(window.innerHeight, 720);
+    canvas = createCanvas(w, h);
+    canvas.parent('stage');
+    pixelDensity(1);          // perf: avoid 2x render on retina
+    frameRate(60);
+    statusEl = document.getElementById('status');
+    initMediaPipe();
+  }
+
+  function windowResized() {
+    const w = Math.min(window.innerWidth, 1280);
+    const h = Math.min(window.innerHeight, 720);
+    resizeCanvas(w, h);
+  }
+
+  // ---------- MediaPipe wiring ----------
+  function initMediaPipe() {
+    const videoElement = document.getElementById('input_video');
+
+    const hands = new Hands({
+      locateFile: (file) =>
+        `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+    });
+    hands.setOptions({
+      maxNumHands: 2,
+      modelComplexity: 1,
+      minDetectionConfidence: 0.6,
+      minTrackingConfidence: 0.5
+    });
+    hands.onResults((results) => {
+      // Pair each hand with its handedness label ("Left" / "Right")
+      const paired = [];
+      if (results.multiHandLandmarks) {
+        for (let i = 0; i < results.multiHandLandmarks.length; i++) {
+          const label = results.multiHandedness?.[i]?.label || 'Right';
+          // Note: MediaPipe reports handedness as if the camera were a mirror;
+          // because we already mirror the canvas, the label matches what the user sees.
+          paired.push({ landmarks: results.multiHandLandmarks[i], label });
+        }
+      }
+      landmarksList = paired;
+      if (statusEl) {
+        statusEl.textContent = paired.length === 0
+          ? 'Show your hands…'
+          : `Tracking ${paired.length} hand${paired.length>1?'s':''}`;
+      }
+    });
+
+    const camera = new Camera(videoElement, {
+      onFrame: async () => { await hands.send({ image: videoElement }); },
+      width: 1280,
+      height: 720
+    });
+    camera.start().catch(err => {
+      statusEl.textContent = 'Camera error: ' + err.message;
+      console.error(err);
+    });
+  }
+
+  // ---------- Drawing ----------
+  function draw() {
+    // Midnight-blue base + slight motion-trail for ghosting glow
+    background(5, 0, 24, 230);
+
+    // Subtle moving scanline highlight (in addition to CSS overlay)
+    drawSoftBackgroundGrid();
+
+    // Mirror the world horizontally so movement feels natural
+    push();
+    translate(width, 0);
+    scale(-1, 1);
+
+    // Sort hands so we always know "left" vs "right" from the user's POV
+    const left  = landmarksList.find(h => h.label === 'Left');
+    const right = landmarksList.find(h => h.label === 'Right');
+
+    // Draw silhouettes first (behind everything else)
+    for (const h of landmarksList) drawHandSilhouette(h.landmarks, h.label);
+
+    // Skeleton + glowing joints
+    for (const h of landmarksList) {
+      drawHandSkeleton(h.landmarks, h.label);
+      drawHandJoints(h.landmarks, h.label);
+    }
+
+    // Cat's cradle strings between corresponding fingertips of both hands
+    if (left && right) {
+      drawCradleStrings(left.landmarks, right.landmarks);
+      checkFingertipCollisions(left.landmarks, right.landmarks);
+    } else {
+      // Reset elastic state when a hand disappears
+      for (const s of stringState) { s.aPrev = null; s.bPrev = null; }
+    }
+
+    // Particles on top
+    updateAndDrawParticles();
+
+    pop();
+  }
+
+  function drawSoftBackgroundGrid() {
+    // very faint moving gradient pulses to give the CRT feel
+    const t = millis() * 0.0006;
+    noStroke();
+    for (let i = 0; i < 3; i++) {
+      const a = 8 + 4 * Math.sin(t + i);
+      fill(20 + i * 6, 0, 60 + i * 10, a);
+      ellipse(width * (0.3 + 0.2 * i), height * (0.5 + 0.15 * Math.sin(t + i)), 600, 600);
+    }
+  }
+
+  // Soft glowing silhouette so the user still "sees" their hand without raw video
+  function drawHandSilhouette(lm, label) {
+    const tint = label === 'Left' ? color(0, 220, 255, 28) : color(255, 60, 200, 28);
+    drawingContext.save();
+    drawingContext.shadowBlur = 40;
+    drawingContext.shadowColor = label === 'Left' ? '#00e0ff' : '#ff3ccf';
+    noStroke();
+    fill(tint);
+    beginShape();
+    for (const id of HAND_OUTLINE) {
+      const p = lm[id];
+      vertex(p.x * width, p.y * height);
+    }
+    endShape(CLOSE);
+    drawingContext.restore();
+  }
+
+  function drawHandSkeleton(lm, label) {
+    const c = label === 'Left' ? [0, 230, 255] : [255, 80, 220];
+    drawingContext.save();
+    drawingContext.shadowBlur = 12;
+    drawingContext.shadowColor = label === 'Left' ? '#00e7ff' : '#ff44d4';
+    stroke(c[0], c[1], c[2], 180);
+    strokeWeight(2);
+    noFill();
+    for (const [a, b] of HAND_CONNECTIONS) {
+      const pa = lm[a], pb = lm[b];
+      line(pa.x * width, pa.y * height, pb.x * width, pb.y * height);
+    }
+    drawingContext.restore();
+  }
+
+  function drawHandJoints(lm, label) {
+    drawingContext.save();
+    for (let i = 0; i < lm.length; i++) {
+      const p = lm[i];
+      const isTip = FINGERTIP_IDS.includes(i);
+      const baseColor = label === 'Left' ? '#00f6ff' : '#ff5ad6';
+      drawingContext.shadowBlur = isTip ? 28 : 14;
+      drawingContext.shadowColor = baseColor;
+      noStroke();
+      // Outer halo
+      fill(label === 'Left' ? color(0, 246, 255, 60) : color(255, 90, 214, 60));
+      circle(p.x * width, p.y * height, isTip ? 22 : 12);
+      // Bright core
+      fill(255, 255, 255, isTip ? 230 : 200);
+      circle(p.x * width, p.y * height, isTip ? 8 : 4);
+    }
+    drawingContext.restore();
+  }
+
+  // Five strings — thumb↔thumb, index↔index, … pinky↔pinky.
+  // Color & thickness shift with distance to fake elastic tension.
+  function drawCradleStrings(leftLm, rightLm) {
+    // The three-stop neon palette
+    const palette = [
+      [0,   246, 255],   // cyan
+      [255, 240, 0],     // yellow
+      [255, 60,  220],   // magenta
+      [120, 80,  255],   // violet
+      [0,   255, 170]    // mint
+    ];
+
+    drawingContext.save();
+    for (let i = 0; i < FINGERTIP_IDS.length; i++) {
+      const id = FINGERTIP_IDS[i];
+      const a = { x: leftLm[id].x  * width, y: leftLm[id].y  * height };
+      const b = { x: rightLm[id].x * width, y: rightLm[id].y * height };
+
+      // Elastic interpolation toward target (cheap inertia)
+      const s = stringState[i];
+      const ease = 0.35;
+      if (!s.aPrev) s.aPrev = { ...a };
+      if (!s.bPrev) s.bPrev = { ...b };
+      s.aPrev.x += (a.x - s.aPrev.x) * ease;
+      s.aPrev.y += (a.y - s.aPrev.y) * ease;
+      s.bPrev.x += (b.x - s.bPrev.x) * ease;
+      s.bPrev.y += (b.y - s.bPrev.y) * ease;
+
+      const ax = s.aPrev.x, ay = s.aPrev.y;
+      const bx = s.bPrev.x, by = s.bPrev.y;
+
+      const dx = bx - ax, dy = by - ay;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      const maxDist = Math.hypot(width, height);
+      const tension = constrain(dist / (width * 0.7), 0, 1); // 0 = slack, 1 = stretched
+
+      // Sag toward the bottom — looks like a real string under gravity, less when taut
+      const sag = (1 - tension) * 80;
+      const mx = (ax + bx) / 2;
+      const my = (ay + by) / 2 + sag;
+
+      // Pick color: interpolate within palette by tension
+      const col = palette[i % palette.length];
+      const stretchTint = lerpColor(
+        color(col[0], col[1], col[2]),
+        color(255, 255, 255),
+        tension
+      );
+
+      // Glowing laser-beam effect — draw twice with varying blur for depth
+      drawingContext.shadowBlur = 24;
+      drawingContext.shadowColor = `rgb(${col[0]}, ${col[1]}, ${col[2]})`;
+      stroke(red(stretchTint), green(stretchTint), blue(stretchTint), 220);
+      strokeWeight(lerp(1.4, 4.5, tension));
+      noFill();
+      // Quadratic bezier so the string can sag naturally
+      beginShape();
+      vertex(ax, ay);
+      quadraticVertex(mx, my, bx, by);
+      endShape();
+
+      // Inner bright core
+      drawingContext.shadowBlur = 8;
+      stroke(255, 255, 255, 180);
+      strokeWeight(lerp(0.5, 1.6, tension));
+      beginShape();
+      vertex(ax, ay);
+      quadraticVertex(mx, my, bx, by);
+      endShape();
+    }
+    drawingContext.restore();
+  }
+
+  // ---------- Particles ----------
+  function checkFingertipCollisions(leftLm, rightLm) {
+    for (const id of FINGERTIP_IDS) {
+      const ax = leftLm[id].x  * width;
+      const ay = leftLm[id].y  * height;
+      const bx = rightLm[id].x * width;
+      const by = rightLm[id].y * height;
+      const d = dist(ax, ay, bx, by);
+      if (d < 28) {
+        // Throttle: only spawn if not too many recent particles at this spot
+        if (Math.random() < 0.6) {
+          spawnBurst((ax + bx) / 2, (ay + by) / 2);
+        }
+      }
+    }
+  }
+
+  function spawnBurst(x, y) {
+    const n = 28;
+    const palette = ['#00f6ff', '#fff200', '#ff5ad6', '#a577ff', '#7dffd0'];
+    for (let i = 0; i < n; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = 2 + Math.random() * 6;
+      particles.push({
+        x, y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        life: 1.0,
+        decay: 0.012 + Math.random() * 0.02,
+        size: 3 + Math.random() * 4,
+        color: palette[Math.floor(Math.random() * palette.length)]
+      });
+    }
+  }
+
+  function updateAndDrawParticles() {
+    drawingContext.save();
+    for (let i = particles.length - 1; i >= 0; i--) {
+      const p = particles[i];
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vx *= 0.96;
+      p.vy = p.vy * 0.96 + 0.08; // light gravity
+      p.life -= p.decay;
+      if (p.life <= 0) { particles.splice(i, 1); continue; }
+      drawingContext.shadowBlur = 18;
+      drawingContext.shadowColor = p.color;
+      noStroke();
+      fill(red(color(p.color)), green(color(p.color)), blue(color(p.color)), 255 * p.life);
+      circle(p.x, p.y, p.size * (0.4 + p.life));
+    }
+    // Hard cap so a long touch doesn't pile up forever
+    if (particles.length > 600) particles.splice(0, particles.length - 600);
+    drawingContext.restore();
+  }
+  </script>
+</body>
+</html>
