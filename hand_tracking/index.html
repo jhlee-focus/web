@@ -247,35 +247,42 @@
 
   // ---------- Drawing ----------
   function draw() {
-    // Midnight-blue base + slight motion-trail for ghosting glow
-    background(5, 0, 24, 230);
+    // Hard clear each frame (no motion-trail) so the live video stays crisp.
+    background(5, 0, 24);
 
     // Recompute the cover-fit transform so resizes / late video metadata
     // never stretch the hand geometry away from the real camera aspect.
     updateVideoTransform();
 
-    // Subtle moving scanline highlight (in addition to CSS overlay)
-    drawSoftBackgroundGrid();
-
-    // Mirror the world horizontally so movement feels natural
+    // Mirror the world horizontally so movement feels natural.
+    // Drawing the VIDEO inside the same mirror means the camera image and the
+    // landmark overlays stay perfectly aligned with the user's POV.
     push();
     translate(width, 0);
     scale(-1, 1);
+
+    // 1) Live camera feed as the background layer
+    drawCameraBackground();
+
+    // 2) Subtle ambient glow on top of the video (kept very faint so the user
+    //    can still clearly see their own image)
+    drawSoftBackgroundGrid();
 
     // Sort hands so we always know "left" vs "right" from the user's POV
     const left  = landmarksList.find(h => h.label === 'Left');
     const right = landmarksList.find(h => h.label === 'Right');
 
-    // Draw silhouettes first (behind everything else)
+    // 3) Faint neon outline on each hand (no longer a full silhouette since
+    //    the real hand is visible underneath)
     for (const h of landmarksList) drawHandSilhouette(h.landmarks, h.label);
 
-    // Skeleton + glowing joints
+    // 4) Skeleton + glowing joints
     for (const h of landmarksList) {
       drawHandSkeleton(h.landmarks, h.label);
       drawHandJoints(h.landmarks, h.label);
     }
 
-    // Cat's cradle strings between corresponding fingertips of both hands
+    // 5) Cat's cradle strings between corresponding fingertips of both hands
     if (left && right) {
       drawCradleStrings(left.landmarks, right.landmarks);
       checkFingertipCollisions(left.landmarks, right.landmarks);
@@ -284,10 +291,25 @@
       for (const s of stringState) { s.aPrev = null; s.bPrev = null; }
     }
 
-    // Particles on top
+    // 6) Particles on top
     updateAndDrawParticles();
 
     pop();
+  }
+
+  // Paint the webcam frame onto the canvas using the same cover-fit rectangle
+  // we use to map landmarks. A slight dark wash keeps the neon overlays popping.
+  function drawCameraBackground() {
+    if (!videoEl || !videoEl.videoWidth) return;
+    const { drawW, drawH, offsetX, offsetY } = videoTransform;
+    drawingContext.save();
+    drawingContext.filter = 'saturate(1.05) contrast(1.05)';
+    image(videoEl, offsetX, offsetY, drawW, drawH);
+    drawingContext.restore();
+    // Dark midnight-blue wash so the camera image reads as "background"
+    noStroke();
+    fill(5, 0, 32, 90);
+    rect(offsetX, offsetY, drawW, drawH);
   }
 
   function drawSoftBackgroundGrid() {
@@ -301,14 +323,15 @@
     }
   }
 
-  // Soft glowing silhouette so the user still "sees" their hand without raw video
+  // Soft glowing aura around the hand. Kept very subtle now that the real
+  // camera image is visible underneath — just a colored halo, not a fill.
   function drawHandSilhouette(lm, label) {
-    const tint = label === 'Left' ? color(0, 220, 255, 28) : color(255, 60, 200, 28);
     drawingContext.save();
-    drawingContext.shadowBlur = 40;
+    drawingContext.shadowBlur = 30;
     drawingContext.shadowColor = label === 'Left' ? '#00e0ff' : '#ff3ccf';
-    noStroke();
-    fill(tint);
+    noFill();
+    stroke(label === 'Left' ? color(0, 220, 255, 110) : color(255, 80, 210, 110));
+    strokeWeight(1.2);
     beginShape();
     for (const id of HAND_OUTLINE) {
       const p = lm[id];
