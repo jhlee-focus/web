@@ -56,6 +56,15 @@ const FINGERTIPS = [4, 8, 12, 16, 20]; // thumb, index, middle, ring, pinky
 const D_MIN = 60;   // px — fully-taut threshold
 const D_MAX = 700;  // px — fully-stretched threshold
 
+// Touch / particle-burst tuning
+const TOUCH_DIST    = 38;   // px — fingers count as "touching" below this
+const TOUCH_RELEASE = 70;   // px — must move beyond this to re-arm a burst
+const MAX_PARTICLES = 800;  // hard cap so the array doesn't grow without bound
+
+// One "in-contact" flag per matching fingertip pair (thumb..pinky).
+const contactState = [false, false, false, false, false];
+let particles = [];
+
 function setup() {
   createCanvas(windowWidth, windowHeight);
   pixelDensity(1);
@@ -126,7 +135,15 @@ function draw() {
   for (let i = 0; i < allHands.length; i++) drawHandDots(allHands[i]);
 
   // 2. Elastic strings between matching fingertips of left & right.
-  if (handMap.Left && handMap.Right) drawCradleStrings(handMap.Left, handMap.Right);
+  if (handMap.Left && handMap.Right) {
+    drawCradleStrings(handMap.Left, handMap.Right);
+  } else {
+    // Lost a hand → re-arm every pair so the next touch fires a fresh burst.
+    for (let i = 0; i < contactState.length; i++) contactState[i] = false;
+  }
+
+  // 3. Particles always update on top of everything else.
+  updateAndDrawParticles();
 }
 
 /* ----- helpers ------------------------------------------------ */
@@ -201,6 +218,17 @@ function drawCradleStrings(leftHand, rightHand) {
 
     // Hue sweep cyan(180°) → magenta(300°) → yellow(50°, taken as 410° to keep monotonic)
     const hue = (180 + t * (410 - 180)) % 360;
+
+    // ----- Touch detection: spawn one burst on the rising edge ----- //
+    const midX = (ax + bx) / 2;
+    const midY = (ay + by) / 2;
+    if (d < TOUCH_DIST && !contactState[f]) {
+      contactState[f] = true;
+      // Bursts inherit the current string's hue, plus a sibling palette splash.
+      spawnBurst(midX, midY, hue);
+    } else if (d > TOUCH_RELEASE) {
+      contactState[f] = false;
+    }
     const sat = 95, bri = 100;
 
     // Taut strings draw thicker; over-stretched ones taper to a thread.
@@ -220,6 +248,65 @@ function drawCradleStrings(leftHand, rightHand) {
     vertex(ax, ay);
     quadraticVertex(cx, cy, bx, by);
     endShape();
+  }
+
+  ctx.shadowBlur = 0;
+}
+
+/* ----- particle burst on fingertip touch ---------------------- */
+
+function spawnBurst(x, y, baseHue) {
+  // Cap total particle count so a furious tapper can't blow the budget.
+  const budget = MAX_PARTICLES - particles.length;
+  if (budget <= 0) return;
+
+  const COUNT = Math.min(48, budget);
+  for (let i = 0; i < COUNT; i++) {
+    const ang = Math.random() * Math.PI * 2;
+    const sp  = 2.0 + Math.random() * 7.5;     // 2 → 9.5 px/frame
+    // Slight hue jitter around the string's current hue, plus an occasional
+    // palette flash (cyan / magenta / yellow) for visual contrast.
+    const palette = [180, 300, 50];
+    const useFlash = Math.random() < 0.25;
+    const hue = useFlash
+      ? palette[(Math.random() * palette.length) | 0]
+      : (baseHue + (Math.random() - 0.5) * 80 + 360) % 360;
+
+    particles.push({
+      x, y,
+      vx: Math.cos(ang) * sp,
+      vy: Math.sin(ang) * sp,
+      life: 1.0,                                // 1 → 0 over ~45 frames
+      decay: 0.020 + Math.random() * 0.015,
+      hue,
+      size: 3 + Math.random() * 6,
+    });
+  }
+}
+
+function updateAndDrawParticles() {
+  if (particles.length === 0) return;
+  const ctx = drawingContext;
+  noStroke();
+
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+    // Verlet-ish step: drag + gentle gravity for a "spark" feel.
+    p.x  += p.vx;
+    p.y  += p.vy;
+    p.vx *= 0.93;
+    p.vy  = p.vy * 0.93 + 0.18;
+    p.life -= p.decay;
+
+    if (p.life <= 0) {
+      particles.splice(i, 1);
+      continue;
+    }
+
+    ctx.shadowBlur  = 18;
+    ctx.shadowColor = `hsl(${p.hue}, 100%, 65%)`;
+    fill(p.hue, 90, 100, p.life);
+    circle(p.x, p.y, p.size * p.life + 0.8);
   }
 
   ctx.shadowBlur = 0;
