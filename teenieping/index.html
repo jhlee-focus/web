@@ -1204,7 +1204,7 @@ const TOPPING_EMOJI = {
   heart:      '❤️',
   pink_heart: '💖',
   star:       '🌟',
-  sparkle:    '✨',
+  sparkle:    '💫',
   sprinkles:  '✨',
   rainbow:    '🌈',
   flower:     '🌸',
@@ -1650,22 +1650,33 @@ function setupDessertSelect() {
     const card = document.createElement('div');
     card.className = 'dessert-card';
     card.dataset.dessert = key;
+    // Accessibility: role + keyboard support so it's recognised as a selectable button
+    card.setAttribute('role', 'button');
+    card.setAttribute('tabindex', '0');
+    card.setAttribute('aria-label', `${d.name} 만들기`);
     const stats = getCollectionStats(key);
-    const playBadge = stats.count > 0 ? `<div class="play-count">${stats.count}회</div>` : '';
-    const starBadge = stats.bestStars > 0 ? `<div class="best-stars">${'⭐'.repeat(stats.bestStars)}</div>` : '';
+    const playBadge = stats.count > 0 ? `<div class="play-count" aria-hidden="true">${stats.count}회</div>` : '';
+    const starBadge = stats.bestStars > 0 ? `<div class="best-stars" aria-label="최고 ${stats.bestStars}점">${'⭐'.repeat(stats.bestStars)}</div>` : '';
     card.innerHTML = `
       ${playBadge}
       ${starBadge}
-      <img class="dessert-img" src="${d.finalImg}" alt="${d.name}" />
+      <img class="dessert-img" src="${d.finalImg}" alt="" />
       <div class="name">${d.name}</div>
     `;
-    card.onclick = () => {
+    const activate = () => {
       Sounds.pop();
       state.currentDessert = key;
       state.selectedIngredients = [];
       state.placedToppings = [];
       startIngredientsScreen();
     };
+    card.onclick = activate;
+    card.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        activate();
+      }
+    });
     grid.appendChild(card);
   });
   setIdleHint(() => {
@@ -2194,6 +2205,16 @@ function startDecorateScreen() {
   };
 
   $('#finish-btn').onclick = () => {
+    // Gentle nudge: encourage at least one topping (game design — decoration is the core action)
+    if (state.placedToppings.length === 0) {
+      Sounds.error();
+      const palette = $('#topping-palette');
+      const firstTopping = palette && palette.querySelector('.topping-btn');
+      say('잠깐! 토핑을 하나라도 올려보자~ 더 예뻐질 거야!');
+      if (firstTopping) showGuideFinger(firstTopping);
+      setTimeout(hideBubble, 2800);
+      return;
+    }
     canvas.onclick = null;
     startCompleteScreen();
   };
