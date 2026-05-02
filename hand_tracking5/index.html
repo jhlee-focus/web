@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Neon Cat's Cradle</title>
+  <script src="https://cdn.jsdelivr.net/npm/p5@1.9.4/lib/p5.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+  <style>
+    :root {
+      color-scheme: dark;
+      --cyan: #00f5ff;
+      --magenta: #ff2bd6;
+      --yellow: #ffe95c;
+      --ink: #030711;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 18% 20%, rgba(0, 245, 255, 0.18), transparent 30%),
+        radial-gradient(circle at 84% 78%, rgba(255, 43, 214, 0.16), transparent 32%),
+        linear-gradient(135deg, #02040b 0%, #071020 54%, #030711 100%);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    canvas {
+      position: fixed;
+      inset: 0;
+      z-index: 1;
+      display: block;
+      width: 100vw !important;
+      height: 100vh !important;
+      pointer-events: none;
+    }
+
+    #camera-feed {
+      position: fixed;
+      left: 0;
+      top: 0;
+      z-index: 0;
+      width: 100vw;
+      height: 100vh;
+      opacity: 0.58;
+      object-fit: cover;
+      transform: scaleX(-1);
+      filter: brightness(1.14) contrast(1.08) saturate(1.2);
+      background: #030711;
+      pointer-events: none;
+    }
+
+    .hud {
+      position: fixed;
+      left: max(18px, env(safe-area-inset-left));
+      right: max(18px, env(safe-area-inset-right));
+      bottom: max(16px, env(safe-area-inset-bottom));
+      z-index: 3;
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 14px;
+      pointer-events: none;
+      color: rgba(232, 252, 255, 0.88);
+      text-shadow: 0 0 18px rgba(0, 245, 255, 0.38);
+    }
+
+    .title {
+      display: grid;
+      gap: 3px;
+      min-width: 0;
+    }
+
+    .title strong {
+      font-size: clamp(0.9rem, 1.8vw, 1.25rem);
+      font-weight: 760;
+      line-height: 1.05;
+      letter-spacing: 0;
+    }
+
+    .title span,
+    .status {
+      font-size: clamp(0.72rem, 1.25vw, 0.86rem);
+      line-height: 1.3;
+      color: rgba(210, 241, 255, 0.68);
+    }
+
+    .status {
+      max-width: min(42vw, 340px);
+      text-align: right;
+    }
+
+    .camera-permission {
+      position: fixed;
+      inset: 0;
+      z-index: 4;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      background:
+        linear-gradient(rgba(3, 7, 17, 0.72), rgba(3, 7, 17, 0.72)),
+        radial-gradient(circle at center, rgba(0, 245, 255, 0.16), transparent 44%);
+      transition: opacity 220ms ease, visibility 220ms ease;
+    }
+
+    .camera-permission[hidden] {
+      visibility: hidden;
+      opacity: 0;
+    }
+
+    .permission-panel {
+      width: min(520px, 100%);
+      padding: 24px;
+      border: 1px solid rgba(0, 245, 255, 0.3);
+      border-radius: 8px;
+      background: rgba(6, 12, 28, 0.74);
+      box-shadow: 0 0 42px rgba(0, 245, 255, 0.18), inset 0 0 24px rgba(255, 43, 214, 0.08);
+      backdrop-filter: blur(18px);
+      color: #e8fcff;
+    }
+
+    .permission-panel h1 {
+      margin: 0 0 8px;
+      font-size: clamp(1.5rem, 7vw, 2.75rem);
+      line-height: 0.95;
+      letter-spacing: 0;
+    }
+
+    .permission-panel p {
+      margin: 0 0 18px;
+      color: rgba(222, 246, 255, 0.72);
+      line-height: 1.55;
+    }
+
+    .permission-panel button {
+      width: 100%;
+      min-height: 48px;
+      border: 0;
+      border-radius: 8px;
+      background: linear-gradient(90deg, var(--cyan), var(--magenta), var(--yellow));
+      color: #050816;
+      font: inherit;
+      font-weight: 800;
+      cursor: pointer;
+      box-shadow: 0 0 28px rgba(0, 245, 255, 0.3);
+    }
+
+    .permission-panel button:focus-visible {
+      outline: 3px solid rgba(255, 233, 92, 0.8);
+      outline-offset: 4px;
+    }
+
+    .scanline {
+      position: fixed;
+      inset: 0;
+      z-index: 2;
+      pointer-events: none;
+      background: repeating-linear-gradient(
+        to bottom,
+        rgba(255, 255, 255, 0.035) 0,
+        rgba(255, 255, 255, 0.035) 1px,
+        transparent 1px,
+        transparent 5px
+      );
+      mix-blend-mode: screen;
+      opacity: 0.28;
+    }
+
+    .debug {
+      position: fixed;
+      top: max(14px, env(safe-area-inset-top));
+      right: max(14px, env(safe-area-inset-right));
+      z-index: 3;
+      max-width: min(360px, calc(100vw - 28px));
+      padding: 10px 12px;
+      border: 1px solid rgba(0, 245, 255, 0.26);
+      border-radius: 8px;
+      background: rgba(3, 7, 17, 0.58);
+      color: rgba(232, 252, 255, 0.82);
+      font: 12px/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      pointer-events: none;
+      white-space: pre-wrap;
+      box-shadow: 0 0 24px rgba(0, 245, 255, 0.12);
+    }
+
+    @media (max-width: 640px) {
+      .hud {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .status {
+        max-width: 100%;
+        text-align: left;
+      }
+    }
+  </style>
+</head>
+<body>
+  <video id="camera-feed" playsinline muted></video>
+
+  <div class="camera-permission" id="camera-permission">
+    <section class="permission-panel" aria-labelledby="permission-title">
+      <h1 id="permission-title">Neon Cat's Cradle</h1>
+      <p id="permission-message">Use both hands in view. Fingertips become anchors, and the space between them turns into elastic light.</p>
+      <button id="start-camera" type="button">Start Camera</button>
+    </section>
+  </div>
+
+  <div class="scanline" aria-hidden="true"></div>
+  <div class="debug" id="debug-panel">camera: idle</div>
+  <div class="hud" aria-live="polite">
+    <div class="title">
+      <strong>Neon Cat's Cradle</strong>
+      <span>Both hands tracked with MediaPipe Hands</span>
+    </div>
+    <div class="status" id="tracking-status">Waiting for camera permission</div>
+  </div>
+
+  <script>
+    const videoElement = document.getElementById('camera-feed');
+    const permissionOverlay = document.getElementById('camera-permission');
+    const permissionMessage = document.getElementById('permission-message');
+    const startButton = document.getElementById('start-camera');
+    const trackingStatus = document.getElementById('tracking-status');
+    const debugPanel = document.getElementById('debug-panel');
+
+    const CAMERA_WIDTH = 640;
+    const CAMERA_HEIGHT = 480;
+    const CAMERA_FPS = 24;
+    const TRACKING_FPS = 18;
+    const RENDER_FPS = 30;
+    const TIP_INDICES = [4, 8, 12, 16, 20];
+    const TIP_SET = new Set(TIP_INDICES);
+    const HAND_CONNECTIONS = [
+      [0, 1], [1, 2], [2, 3], [3, 4],
+      [0, 5], [5, 6], [6, 7], [7, 8],
+      [5, 9], [9, 10], [10, 11], [11, 12],
+      [9, 13], [13, 14], [14, 15], [15, 16],
+      [13, 17], [17, 18], [18, 19], [19, 20], [0, 17]
+    ];
+    const CROSS_WEAVE_PAIRS = [[8, 12], [12, 8], [16, 20], [20, 16]];
+    const PALETTE = ['#00f5ff', '#ff2bd6', '#ffe95c', '#64ffda', '#ff7adf'];
+
+    let hands;
+    let cameraStream;
+    let trackingData = [];
+    let smoothedHands = [];
+    let isCameraReady = false;
+    let isSendingFrame = false;
+    let frameLoopId = null;
+    let lastSendAt = 0;
+    let lastFrameAt = 0;
+    let sentFrames = 0;
+    let resultFrames = 0;
+    let lastError = '';
+    let diagnosticTimer = null;
+
+    function setup() {
+      createCanvas(windowWidth, windowHeight);
+      pixelDensity(1);
+      frameRate(RENDER_FPS);
+      textFont('Inter, system-ui, sans-serif');
+      initHands();
+      updateDiagnostics();
+      diagnosticTimer = window.setInterval(updateDiagnostics, 1000);
+    }
+
+    function windowResized() {
+      resizeCanvas(windowWidth, windowHeight);
+    }
+
+    function draw() {
+      drawVideoBackground();
+      drawAtmosphere();
+      drawHandSilhouettes();
+      drawCradleStrings();
+      drawLandmarks();
+      drawStatusHint();
+    }
+
+    function initHands() {
+      hands = new Hands({
+        locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+      });
+
+      hands.setOptions({
+        maxNumHands: 2,
+        modelComplexity: 0,
+        minDetectionConfidence: 0.64,
+        minTrackingConfidence: 0.58,
+        selfieMode: false
+      });
+
+      hands.onResults(onHandsResults);
+    }
+
+    async function startCamera() {
+      trackingStatus.textContent = 'Starting camera and hand tracker';
+      permissionMessage.textContent = 'Requesting camera access from the browser';
+      startButton.disabled = true;
+      startButton.textContent = 'Starting Camera';
+      videoElement.muted = true;
+      videoElement.playsInline = true;
+
+      try {
+        lastError = '';
+        if (!navigator.mediaDevices?.getUserMedia) {
+          throw new Error('Camera API is not available in this browser');
+        }
+
+        stopCameraStream();
+        cameraStream = await navigator.mediaDevices.getUserMedia({
+          audio: false,
+          video: {
+            facingMode: 'user',
+            width: { ideal: CAMERA_WIDTH },
+            height: { ideal: CAMERA_HEIGHT },
+            frameRate: { ideal: CAMERA_FPS, max: 30 }
+          }
+        });
+
+        videoElement.srcObject = cameraStream;
+        await videoElement.play();
+
+        if (!videoElement.videoWidth || !videoElement.videoHeight) {
+          await new Promise((resolve) => {
+            videoElement.onloadedmetadata = resolve;
+          });
+        }
+
+        isCameraReady = true;
+        sentFrames = 0;
+        resultFrames = 0;
+        startButton.textContent = 'Camera Running';
+        permissionOverlay.hidden = true;
+        permissionMessage.textContent = 'Camera is running';
+        trackingStatus.textContent = `Camera ready ${videoElement.videoWidth}x${videoElement.videoHeight}. Show both hands`;
+        startFrameLoop();
+      } catch (error) {
+        lastError = `${error?.name || 'Error'}: ${error?.message || 'unknown camera error'}`;
+        isCameraReady = false;
+        stopCameraStream();
+        startButton.disabled = false;
+        startButton.textContent = 'Retry Camera';
+        permissionMessage.textContent = error?.name === 'NotAllowedError'
+          ? 'Camera permission is blocked for this page. Use the browser toolbar or OS privacy settings to allow camera access, then retry.'
+          : `Camera could not start: ${error?.message || 'webcam unavailable'}`;
+        trackingStatus.textContent = error?.name === 'NotAllowedError'
+          ? 'Camera blocked. Allow camera access in the browser toolbar, then retry'
+          : `Camera failed: ${error?.message || 'webcam unavailable'}`;
+        console.error('Camera startup failed:', error);
+      }
+    }
+
+    function startFrameLoop() {
+      if (frameLoopId !== null) {
+        cancelAnimationFrame(frameLoopId);
+      }
+
+      frameLoopId = requestAnimationFrame(sendVideoFrame);
+    }
+
+    async function sendVideoFrame(now) {
+      if (!isCameraReady) {
+        frameLoopId = null;
+        return;
+      }
+
+      const targetFrameDelay = 1000 / TRACKING_FPS;
+      const isVideoReady = videoElement.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA;
+
+      if (isVideoReady && !isSendingFrame && now - lastSendAt >= targetFrameDelay) {
+        isSendingFrame = true;
+        lastSendAt = now;
+
+        try {
+          await hands.send({ image: videoElement });
+          sentFrames += 1;
+        } catch (error) {
+          lastError = `${error?.name || 'Error'}: ${error?.message || 'hand tracking frame failed'}`;
+          console.error('Hand tracking frame failed:', error);
+        } finally {
+          isSendingFrame = false;
+        }
+      }
+
+      frameLoopId = requestAnimationFrame(sendVideoFrame);
+    }
+
+    function stopCameraStream() {
+      if (cameraStream) {
+        for (const track of cameraStream.getTracks()) {
+          track.stop();
+        }
+
+        cameraStream = null;
+      }
+
+      if (videoElement.srcObject) {
+        videoElement.srcObject = null;
+      }
+    }
+
+    function onHandsResults(results) {
+      const landmarks = results.multiHandLandmarks || [];
+      const handedness = results.multiHandedness || [];
+      resultFrames += 1;
+
+      trackingData = landmarks.map((hand, index) => ({
+        label: handedness[index]?.label || `Hand ${index + 1}`,
+        score: handedness[index]?.score || 0,
+        landmarks: hand.map(toScreenPoint)
+      }));
+
+      smoothHands();
+      lastFrameAt = performance.now();
+
+      if (trackingData.length === 0) {
+        trackingStatus.textContent = isCameraReady ? 'Searching for hands' : 'Waiting for camera permission';
+      } else if (trackingData.length === 1) {
+        trackingStatus.textContent = 'One hand detected. Add the other hand to connect strings';
+      } else {
+        trackingStatus.textContent = 'Two hands detected. Stretch the cradle';
+      }
+    }
+
+    function toScreenPoint(landmark) {
+      const cover = getVideoCoverRect();
+
+      return {
+        x: cover.x + (1 - landmark.x) * cover.w,
+        y: cover.y + landmark.y * cover.h,
+        z: landmark.z || 0
+      };
+    }
+
+    function getVideoCoverRect() {
+      const sourceW = videoElement.videoWidth || 1280;
+      const sourceH = videoElement.videoHeight || 720;
+      const canvasRatio = width / height;
+      const videoRatio = sourceW / sourceH;
+
+      let w = width;
+      let h = height;
+      let offsetX = 0;
+      let offsetY = 0;
+
+      if (videoRatio > canvasRatio) {
+        h = height;
+        w = height * videoRatio;
+        offsetX = (width - w) * 0.5;
+      } else {
+        w = width;
+        h = width / videoRatio;
+        offsetY = (height - h) * 0.5;
+      }
+
+      return { x: offsetX, y: offsetY, w, h };
+    }
+
+    function smoothHands() {
+      const smoothing = 0.42;
+      const used = new Set();
+
+      smoothedHands = trackingData.map((hand, handIndex) => {
+        let previousIndex = smoothedHands.findIndex((candidate, index) => {
+          return !used.has(index) && candidate.label === hand.label;
+        });
+
+        if (previousIndex === -1) {
+          previousIndex = handIndex;
+        }
+
+        const previous = smoothedHands[previousIndex];
+        used.add(previousIndex);
+
+        if (!previous) {
+          return hand;
+        }
+
+        return {
+          ...hand,
+          landmarks: hand.landmarks.map((point, index) => {
+            const old = previous.landmarks[index] || point;
+            return {
+              x: lerp(old.x, point.x, smoothing),
+              y: lerp(old.y, point.y, smoothing),
+              z: lerp(old.z, point.z, smoothing)
+            };
+          })
+        };
+      });
+    }
+
+    function drawVideoBackground() {
+      clear();
+
+      if (!isCameraReady || !videoElement.videoWidth) {
+        background(3, 7, 17);
+        drawIdleGrid();
+        return;
+      }
+
+      noStroke();
+      fill(3, 7, 17, 112);
+      rect(0, 0, width, height);
+    }
+
+    function drawIdleGrid() {
+      push();
+      strokeWeight(1);
+      stroke(0, 245, 255, 22);
+
+      const spacing = 44;
+      const drift = (frameCount * 0.22) % spacing;
+
+      for (let x = -spacing; x < width + spacing; x += spacing) {
+        line(x + drift, 0, x - spacing + drift, height);
+      }
+
+      for (let y = 0; y < height + spacing; y += spacing) {
+        line(0, y + drift, width, y - spacing + drift);
+      }
+
+      pop();
+    }
+
+    function drawAtmosphere() {
+      push();
+      blendMode(ADD);
+      noStroke();
+
+      const pulse = 0.5 + Math.sin(frameCount * 0.018) * 0.5;
+      fill(0, 245, 255, 12 + pulse * 8);
+      ellipse(width * 0.2, height * 0.18, width * 0.52, width * 0.52);
+
+      fill(255, 43, 214, 10 + (1 - pulse) * 8);
+      ellipse(width * 0.82, height * 0.74, width * 0.45, width * 0.45);
+
+      fill(255, 233, 92, 7);
+      ellipse(width * 0.52, height * 0.48, width * 0.34, width * 0.34);
+      pop();
+    }
+
+    function drawHandSilhouettes() {
+      if (!smoothedHands.length) {
+        return;
+      }
+
+      push();
+      blendMode(ADD);
+      drawingContext.shadowBlur = 6;
+      drawingContext.shadowColor = 'rgba(0, 245, 255, 0.5)';
+
+      for (const hand of smoothedHands) {
+        stroke(0, 245, 255, 56);
+        strokeWeight(1);
+        noFill();
+
+        for (const [a, b] of HAND_CONNECTIONS) {
+          const start = hand.landmarks[a];
+          const end = hand.landmarks[b];
+          line(start.x, start.y, end.x, end.y);
+        }
+      }
+
+      drawingContext.shadowBlur = 0;
+      pop();
+    }
+
+    function drawCradleStrings() {
+      if (smoothedHands.length < 2) {
+        return;
+      }
+
+      const orderedHands = [...smoothedHands].sort((a, b) => {
+        return averageX(a.landmarks) - averageX(b.landmarks);
+      });
+      const leftVisualHand = orderedHands[0];
+      const rightVisualHand = orderedHands[1];
+
+      push();
+      blendMode(ADD);
+
+      TIP_INDICES.forEach((tipIndex, index) => {
+        const start = leftVisualHand.landmarks[tipIndex];
+        const end = rightVisualHand.landmarks[tipIndex];
+        const distance = dist(start.x, start.y, end.x, end.y);
+        const tension = constrain(map(distance, width * 0.08, width * 0.72, 0, 1), 0, 1);
+        const sag = map(tension, 0, 1, 46, 7);
+        const wave = Math.sin(frameCount * 0.07 + index * 1.3) * (1 - tension) * 16;
+        const midX = (start.x + end.x) * 0.5;
+        const midY = (start.y + end.y) * 0.5 + sag + wave;
+        const thickness = 1.4 + tension * 4.2;
+
+        drawLaserString(start, { x: midX, y: midY }, end, index, tension, thickness);
+      });
+
+      drawCrossWeave(leftVisualHand, rightVisualHand);
+      pop();
+    }
+
+    function drawLaserString(start, control, end, index, tension, thickness) {
+      const context = drawingContext;
+      const gradient = context.createLinearGradient(start.x, start.y, end.x, end.y);
+      gradient.addColorStop(0, PALETTE[index % PALETTE.length]);
+      gradient.addColorStop(0.5, tension > 0.58 ? '#ffe95c' : '#ff2bd6');
+      gradient.addColorStop(1, PALETTE[(index + 1) % PALETTE.length]);
+
+      context.save();
+      context.shadowBlur = 16;
+      context.shadowColor = tension > 0.6 ? 'rgba(255, 233, 92, 0.7)' : 'rgba(0, 245, 255, 0.65)';
+      context.strokeStyle = gradient;
+      context.lineCap = 'round';
+
+      context.globalAlpha = 0.16;
+      context.lineWidth = thickness + 5;
+      context.beginPath();
+      context.moveTo(start.x, start.y);
+      context.quadraticCurveTo(control.x, control.y, end.x, end.y);
+      context.stroke();
+
+      context.globalAlpha = 0.92;
+      context.lineWidth = thickness;
+      context.beginPath();
+      context.moveTo(start.x, start.y);
+      context.quadraticCurveTo(control.x, control.y, end.x, end.y);
+      context.stroke();
+      context.restore();
+    }
+
+    function drawCrossWeave(leftHand, rightHand) {
+      drawingContext.save();
+      drawingContext.shadowBlur = 8;
+      drawingContext.shadowColor = 'rgba(255, 43, 214, 0.46)';
+
+      for (const [leftTip, rightTip] of CROSS_WEAVE_PAIRS) {
+        const start = leftHand.landmarks[leftTip];
+        const end = rightHand.landmarks[rightTip];
+        const distance = dist(start.x, start.y, end.x, end.y);
+        const alpha = constrain(map(distance, 50, width * 0.62, 120, 34), 34, 120);
+
+        stroke(255, 43, 214, alpha);
+        strokeWeight(0.85);
+        line(start.x, start.y, end.x, end.y);
+      }
+
+      drawingContext.restore();
+    }
+
+    function drawLandmarks() {
+      if (!smoothedHands.length) {
+        return;
+      }
+
+      push();
+      blendMode(ADD);
+      drawingContext.save();
+      drawingContext.shadowBlur = 12;
+      drawingContext.shadowColor = 'rgba(0, 245, 255, 0.76)';
+      noStroke();
+
+      for (const hand of smoothedHands) {
+        hand.landmarks.forEach((point, index) => {
+          const isTip = TIP_SET.has(index);
+          const color = landmarkColor(index);
+          const radius = isTip ? 7 : 4.2;
+          const pulse = isTip ? 1 + Math.sin(frameCount * 0.11 + index) * 0.16 : 1;
+
+          fill(color);
+          circle(point.x, point.y, radius * pulse);
+        });
+      }
+
+      drawingContext.restore();
+
+      for (const hand of smoothedHands) {
+        hand.landmarks.forEach((point, index) => {
+          const isTip = TIP_SET.has(index);
+          const color = landmarkColor(index);
+          const radius = isTip ? 7 : 4.2;
+
+          noFill();
+          stroke(colorWithAlpha(color, isTip ? 120 : 58));
+          strokeWeight(isTip ? 1.1 : 0.6);
+          circle(point.x, point.y, radius * 2);
+        });
+      }
+
+      pop();
+    }
+
+    function drawStatusHint() {
+      const hasRecentTracking = performance.now() - lastFrameAt < 900;
+
+      if (hasRecentTracking || isCameraReady) {
+        return;
+      }
+
+      push();
+      noStroke();
+      fill(232, 252, 255, 166);
+      textAlign(CENTER, CENTER);
+      textSize(constrain(width * 0.035, 18, 34));
+      text('Allow camera access to begin', width * 0.5, height * 0.46);
+      pop();
+    }
+
+    function updateDiagnostics() {
+      const tracks = cameraStream?.getVideoTracks?.() || [];
+      const track = tracks[0];
+      const settings = track?.getSettings?.() || {};
+      const trackingAge = lastFrameAt ? Math.round(performance.now() - lastFrameAt) : 'none';
+      const lines = [
+        `camera: ${isCameraReady ? 'ready' : 'idle/blocked'}`,
+        `video: ${videoElement.videoWidth || 0}x${videoElement.videoHeight || 0} readyState=${videoElement.readyState}`,
+        `track: ${track ? `${track.readyState} ${settings.width || '?'}x${settings.height || '?'}` : 'none'}`,
+        `hands: ${trackingData.length} sent=${sentFrames} results=${resultFrames} age=${trackingAge}ms`
+      ];
+
+      if (lastError) {
+        lines.push(`error: ${lastError}`);
+      }
+
+      debugPanel.textContent = lines.join('\n');
+    }
+
+    function averageX(points) {
+      return points.reduce((sum, point) => sum + point.x, 0) / points.length;
+    }
+
+    function landmarkColor(index) {
+      if (TIP_SET.has(index)) {
+        return PALETTE[TIP_INDICES.indexOf(index) % PALETTE.length];
+      }
+
+      if (index % 4 === 0) {
+        return '#ffe95c';
+      }
+
+      return index % 2 === 0 ? '#00f5ff' : '#ff2bd6';
+    }
+
+    function colorWithAlpha(hex, alpha) {
+      const value = hex.replace('#', '');
+      const red = parseInt(value.slice(0, 2), 16);
+      const green = parseInt(value.slice(2, 4), 16);
+      const blue = parseInt(value.slice(4, 6), 16);
+      return `rgba(${red}, ${green}, ${blue}, ${alpha / 255})`;
+    }
+
+    startButton.addEventListener('click', startCamera);
+  </script>
+</body>
+</html>

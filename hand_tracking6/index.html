@@ -67,12 +67,48 @@
     background: #f6f;
     box-shadow: 0 0 7px #f6f, 0 0 16px #f6f8;
   }
+  #modeControls {
+    position: fixed;
+    left: 50%;
+    bottom: 18px;
+    z-index: 20;
+    display: inline-flex;
+    gap: 2px;
+    padding: 3px;
+    border: 1px solid #1a8;
+    background: rgba(0, 20, 24, 0.58);
+    box-shadow: 0 0 14px #0ff4, inset 0 0 18px #033;
+    transform: translateX(-50%);
+  }
+  #modeControls button {
+    border: 0;
+    background: transparent;
+    color: #8dd;
+    cursor: pointer;
+    font: 700 11px/1 'Courier New', Consolas, monospace;
+    letter-spacing: 0.1em;
+    padding: 9px 13px;
+    text-shadow: 0 0 7px #0ff8;
+  }
+  #modeControls button.active {
+    background: #9ff;
+    color: #001719;
+    box-shadow: 0 0 10px #0ff, 0 0 22px #0ff7;
+    text-shadow: none;
+  }
   @media (max-width: 520px) {
     #hud {
       top: 36px;
       right: auto;
       left: 14px;
       gap: 8px;
+      font-size: 10px;
+    }
+    #modeControls {
+      bottom: 12px;
+    }
+    #modeControls button {
+      padding: 8px 10px;
       font-size: 10px;
     }
   }
@@ -92,6 +128,10 @@
   <span id="fpsReadout" class="hud-item">-- FPS</span>
   <span id="perfReadout" class="hud-item">HI</span>
 </div>
+<div id="modeControls" role="group" aria-label="Visualization mode">
+  <button type="button" class="active" data-mode="strings" aria-pressed="true">STRINGS</button>
+  <button type="button" data-mode="sphere" aria-pressed="false">SPHERE</button>
+</div>
 <video id="cam" playsinline autoplay muted></video>
 
 <script src="https://cdn.jsdelivr.net/npm/p5@1.9.4/lib/p5.min.js" crossorigin="anonymous"></script>
@@ -108,8 +148,13 @@ let videoEl;
 let latestResults = null;
 
 const FINGERTIPS = [4, 8, 12, 16, 20]; // thumb, index, middle, ring, pinky
+const SPHERE_FINGERS = [8, 12, 16, 20]; // index..pinky tips anchor the sphere
 const D_MIN = 60;   // px — fully-taut threshold
 const D_MAX = 700;  // px — fully-stretched threshold
+const SPHERE_D_MIN = 90;
+const SPHERE_D_MAX = 760;
+const SPHERE_R_MIN = 42;
+const SPHERE_R_MAX = 300;
 
 // Touch / particle-burst tuning
 const TOUCH_DIST    = 38;   // px — fingers count as "touching" below this
@@ -136,6 +181,10 @@ let rightDotEl;
 let fpsReadoutEl;
 let perfReadoutEl;
 let lastHudKey = '';
+let visualMode = 'strings';
+let modeButtonEls = [];
+let spherePitch = -0.34;
+let sphereRoll = 0;
 
 function setup() {
   createCanvas(windowWidth, windowHeight);
@@ -144,6 +193,7 @@ function setup() {
   background(0);
   videoEl = document.getElementById('cam');
   initHud();
+  initModeControls();
   initMediaPipe();
 }
 
@@ -222,10 +272,15 @@ function draw() {
 
   // 2. Elastic strings between matching fingertips of left & right.
   if (handMap.Left && handMap.Right) {
-    drawCradleStrings(handMap.Left, handMap.Right);
+    if (visualMode === 'sphere') {
+      resetContactState();
+      drawWireSphereBetweenHands(handMap.Left, handMap.Right);
+    } else {
+      drawCradleStrings(handMap.Left, handMap.Right);
+    }
   } else {
     // Lost a hand → re-arm every pair so the next touch fires a fresh burst.
-    for (let i = 0; i < contactState.length; i++) contactState[i] = false;
+    resetContactState();
   }
 
   // 3. Particles always update on top of everything else.
@@ -241,6 +296,33 @@ function initHud() {
   rightDotEl = document.getElementById('rightDot');
   fpsReadoutEl = document.getElementById('fpsReadout');
   perfReadoutEl = document.getElementById('perfReadout');
+}
+
+function initModeControls() {
+  modeButtonEls = Array.from(document.querySelectorAll('#modeControls button'));
+  for (const button of modeButtonEls) {
+    button.addEventListener('click', () => setVisualMode(button.dataset.mode));
+  }
+  syncModeButtons();
+}
+
+function setVisualMode(mode) {
+  if (mode !== 'strings' && mode !== 'sphere') return;
+  if (visualMode === mode) return;
+
+  visualMode = mode;
+  particles = [];
+  pulseLevel = 0;
+  resetContactState();
+  syncModeButtons();
+}
+
+function syncModeButtons() {
+  for (const button of modeButtonEls) {
+    const active = button.dataset.mode === visualMode;
+    button.classList.toggle('active', active);
+    button.setAttribute('aria-pressed', active ? 'true' : 'false');
+  }
 }
 
 function getPerfProfile() {
@@ -413,6 +495,282 @@ function drawCradleStrings(leftHand, rightHand) {
   }
 
   ctx.shadowBlur = 0;
+}
+
+function drawWireSphereBetweenHands(leftHand, rightHand) {
+  const bridge = getFingerBridge(leftHand, rightHand);
+  const t = constrain((bridge.distance - SPHERE_D_MIN) / (SPHERE_D_MAX - SPHERE_D_MIN), 0, 1);
+  const maxRadius = Math.min(SPHERE_R_MAX, Math.min(width, height) * 0.38);
+  const radius = lerp(SPHERE_R_MIN, maxRadius, t);
+  const hue = (185 + t * 145 + frameCount * 0.35) % 360;
+
+  drawWireSphere(bridge.x, bridge.y, radius, hue, bridge);
+}
+
+function getFingerBridge(leftHand, rightHand) {
+  let x = 0;
+  let y = 0;
+  let leftX = 0;
+  let leftY = 0;
+  let rightX = 0;
+  let rightY = 0;
+  let distance = 0;
+
+  for (let i = 0; i < SPHERE_FINGERS.length; i++) {
+    const idx = SPHERE_FINGERS[i];
+    const lx = projX(leftHand[idx]);
+    const ly = projY(leftHand[idx]);
+    const rx = projX(rightHand[idx]);
+    const ry = projY(rightHand[idx]);
+
+    x += (lx + rx) / 2;
+    y += (ly + ry) / 2;
+    leftX += lx;
+    leftY += ly;
+    rightX += rx;
+    rightY += ry;
+    distance += dist(lx, ly, rx, ry);
+  }
+
+  leftX /= SPHERE_FINGERS.length;
+  leftY /= SPHERE_FINGERS.length;
+  rightX /= SPHERE_FINGERS.length;
+  rightY /= SPHERE_FINGERS.length;
+
+  return {
+    x: x / SPHERE_FINGERS.length,
+    y: y / SPHERE_FINGERS.length,
+    leftX,
+    leftY,
+    rightX,
+    rightY,
+    distance: distance / SPHERE_FINGERS.length,
+  };
+}
+
+function drawWireSphere(x, y, radius, hue, bridge) {
+  const ctx = drawingContext;
+  const profile = getPerfProfile();
+  const meridianCount = perfMode === 'low' ? 5 : 7;
+  const latitudes = perfMode === 'low'
+    ? [-0.62, 0, 0.62]
+    : [-0.78, -0.45, 0, 0.45, 0.78];
+  const samples = perfMode === 'low' ? 18 : 28;
+  const yaw = frameCount * 0.048;
+  const handHeight = constrain((bridge.y - height * 0.5) / (height * 0.5), -1, 1);
+  const handTilt = Math.atan2(bridge.rightY - bridge.leftY, bridge.rightX - bridge.leftX);
+  const targetPitch = -0.34 + handHeight * 0.42 + Math.sin(frameCount * 0.018) * 0.04;
+  const targetRoll = constrain(handTilt, -0.85, 0.85);
+  spherePitch = lerp(spherePitch, targetPitch, 0.16);
+  sphereRoll = lerp(sphereRoll, targetRoll, 0.18);
+  const pitch = spherePitch;
+  const roll = sphereRoll;
+
+  push();
+  translate(x, y);
+  noFill();
+
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.shadowColor = `hsl(${hue}, 100%, 62%)`;
+  ctx.shadowBlur = 10 * profile.glowScale;
+
+  stroke(hue, 70, 100, 0.11);
+  strokeWeight(5);
+  circle(0, 0, radius * 2.08);
+
+  ctx.shadowBlur = 0;
+  drawSaturnRings(radius, hue, yaw, pitch, roll, samples, 'back');
+
+  for (let i = 0; i < latitudes.length; i++) {
+    const latitude = latitudes[i];
+    const isEquator = latitude === 0;
+    const curve = (u) => spherePoint(u * TWO_PI, latitude);
+
+    drawProjectedSphereCurve(curve, {
+      samples,
+      radius,
+      yaw,
+      pitch,
+      roll,
+      hue: (hue + i * 5) % 360,
+      sat: 78,
+      alpha: isEquator ? 0.16 : 0.11,
+      weight: isEquator ? 1.45 : 1.0,
+      frontOnly: false,
+    });
+    drawProjectedSphereCurve(curve, {
+      samples,
+      radius,
+      yaw,
+      pitch,
+      roll,
+      hue: (hue + i * 5) % 360,
+      sat: 82,
+      alpha: isEquator ? 0.58 : 0.40,
+      weight: isEquator ? 1.65 : 1.12,
+      frontOnly: true,
+    });
+  }
+
+  for (let i = 0; i < meridianCount; i++) {
+    const theta = (TWO_PI / meridianCount) * i;
+    const curve = (u) => spherePoint(theta, -HALF_PI + u * TWO_PI);
+
+    drawProjectedSphereCurve(curve, {
+      samples,
+      radius,
+      yaw,
+      pitch,
+      roll,
+      hue: (hue + 24) % 360,
+      sat: 86,
+      alpha: 0.12,
+      weight: 1.1,
+      frontOnly: false,
+    });
+    drawProjectedSphereCurve(curve, {
+      samples,
+      radius,
+      yaw,
+      pitch,
+      roll,
+      hue: (hue + 24) % 360,
+      sat: 90,
+      alpha: 0.44,
+      weight: 1.18,
+      frontOnly: true,
+    });
+  }
+
+  // A brighter seam makes the left-right spin readable instead of symmetrical.
+  drawProjectedSphereCurve((u) => spherePoint(0, -HALF_PI + u * TWO_PI), {
+    samples,
+    radius,
+    yaw,
+    pitch,
+    roll,
+    hue: (hue + 58) % 360,
+    sat: 90,
+    alpha: 0.88,
+    weight: 2.15,
+    frontOnly: true,
+  });
+
+  drawSaturnRings(radius, hue, yaw, pitch, roll, samples, 'front');
+
+  ctx.shadowBlur = 2 * profile.glowScale;
+  stroke(hue, 12, 100, 0.86);
+  strokeWeight(0.85);
+  circle(0, 0, radius * 2.04);
+
+  pop();
+  ctx.shadowBlur = 0;
+}
+
+function drawSaturnRings(radius, hue, yaw, pitch, roll, samples, depthMode) {
+  const ringHue = 42;
+  const rings = [
+    { scale: 1.24, alpha: 0.18, weight: 0.75, hueShift: -8 },
+    { scale: 1.34, alpha: 0.34, weight: 1.15, hueShift: 0 },
+    { scale: 1.43, alpha: 0.50, weight: 1.65, hueShift: 10 },
+    { scale: 1.51, alpha: 0.74, weight: 2.65, hueShift: 24 },
+    { scale: 1.60, alpha: 0.42, weight: 1.25, hueShift: 42 },
+    { scale: 1.70, alpha: 0.22, weight: 0.85, hueShift: 58 },
+  ];
+  const ringPitch = pitch + 0.08;
+
+  for (let i = 0; i < rings.length; i++) {
+    const ring = rings[i];
+    const passAlpha = depthMode === 'front' ? ring.alpha : ring.alpha * 0.46;
+    const passWeight = depthMode === 'front' ? ring.weight : ring.weight * 0.78;
+
+    drawProjectedSphereCurve((u) => saturnRingPoint(u, ring.scale), {
+      samples,
+      radius,
+      yaw: yaw * 0.72,
+      pitch: ringPitch,
+      roll,
+      hue: (ringHue + ring.hueShift + 360) % 360,
+      sat: 92,
+      alpha: passAlpha,
+      weight: passWeight,
+      depthMode,
+    });
+  }
+}
+
+function saturnRingPoint(u, scale) {
+  const angle = u * TWO_PI;
+  return {
+    x: Math.cos(angle) * scale,
+    y: 0,
+    z: Math.sin(angle) * scale,
+  };
+}
+
+function spherePoint(theta, phi) {
+  const cosPhi = Math.cos(phi);
+  return {
+    x: cosPhi * Math.cos(theta),
+    y: Math.sin(phi),
+    z: cosPhi * Math.sin(theta),
+  };
+}
+
+function drawProjectedSphereCurve(pointAt, options) {
+  stroke(options.hue, options.sat, 100, options.alpha);
+  strokeWeight(options.weight);
+
+  let drawing = false;
+  for (let i = 0; i <= options.samples; i++) {
+    const u = i / options.samples;
+    const point = projectSpherePoint(pointAt(u), options.radius, options.yaw, options.pitch, options.roll || 0);
+    const depthMode = options.depthMode || (options.frontOnly ? 'front' : 'all');
+    const visible = depthMode === 'front'
+      ? point.z > -0.08
+      : depthMode === 'back'
+        ? point.z <= 0.08
+        : true;
+
+    if (visible && !drawing) {
+      beginShape();
+      drawing = true;
+    }
+
+    if (visible) vertex(point.x, point.y);
+
+    if ((!visible || i === options.samples) && drawing) {
+      endShape();
+      drawing = false;
+    }
+  }
+}
+
+function projectSpherePoint(point, radius, yaw, pitch, roll) {
+  const x0 = point.x * radius;
+  const y0 = point.y * radius;
+  const z0 = point.z * radius;
+  const yawCos = Math.cos(yaw);
+  const yawSin = Math.sin(yaw);
+  const pitchCos = Math.cos(pitch);
+  const pitchSin = Math.sin(pitch);
+  const rollCos = Math.cos(roll);
+  const rollSin = Math.sin(roll);
+  const x1 = x0 * yawCos + z0 * yawSin;
+  const z1 = -x0 * yawSin + z0 * yawCos;
+  const y1 = y0 * pitchCos - z1 * pitchSin;
+  const z2 = y0 * pitchSin + z1 * pitchCos;
+  const x2 = x1 * rollCos - y1 * rollSin;
+  const y2 = x1 * rollSin + y1 * rollCos;
+  const cameraZ = radius * 4.2;
+  const scale = cameraZ / (cameraZ - z2);
+
+  return {
+    x: x2 * scale,
+    y: y2 * scale,
+    z: z2 / radius,
+  };
 }
 
 function drawLayeredString(ax, ay, cx, cy, bx, by, hue, sat, bri, w) {
