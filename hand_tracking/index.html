@@ -22,21 +22,34 @@
     background:
       radial-gradient(ellipse at center, #0a0030 0%, #03000d 80%) ;
   }
-  /* Hidden raw video — only used as MediaPipe input source */
+  /* Live camera feed sits behind the canvas as the visible background.
+     We mirror it via CSS so the user's image matches the mirrored overlay. */
   #input_video {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    opacity: 0;
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    object-fit: cover;
+    transform: scaleX(-1);          /* mirror like a selfie camera */
+    z-index: 1;
+    background: #050018;
+    filter: saturate(1.05) contrast(1.05) brightness(0.85);
     pointer-events: none;
   }
   /* Main p5 canvas is appended into #stage by p5.js */
   canvas {
     display: block;
-    max-width: 100%;
-    max-height: 100%;
-    box-shadow: 0 0 60px rgba(120, 0, 200, 0.45);
-    border-radius: 8px;
+    background: transparent;        /* let the video show through */
+    position: relative;
+    z-index: 2;                     /* over the video, under scanlines */
+  }
+  /* Subtle dark wash so neon overlays read clearly */
+  #cameraTint {
+    position: fixed;
+    inset: 0;
+    background: rgba(5, 0, 32, 0.35);
+    pointer-events: none;
+    z-index: 2;
   }
   /* CRT scanline overlay */
   #scanlines {
@@ -91,8 +104,9 @@
 </style>
 </head>
 <body>
+  <video id="input_video" playsinline muted autoplay></video>
+  <div id="cameraTint"></div>
   <div id="stage"></div>
-  <video id="input_video" playsinline muted></video>
   <div id="scanlines"></div>
   <div id="vignette"></div>
   <div id="status">Initialising hands…</div>
@@ -247,69 +261,43 @@
 
   // ---------- Drawing ----------
   function draw() {
-    // Hard clear each frame (no motion-trail) so the live video stays crisp.
-    background(5, 0, 24);
+    // Transparent clear — the camera <video> element behind the canvas shows
+    // through, so we never draw the video to the canvas itself (more reliable
+    // across browsers than image(videoEl, ...)).
+    clear();
 
     // Recompute the cover-fit transform so resizes / late video metadata
     // never stretch the hand geometry away from the real camera aspect.
     updateVideoTransform();
 
-    // Mirror the world horizontally so movement feels natural.
-    // Drawing the VIDEO inside the same mirror means the camera image and the
-    // landmark overlays stay perfectly aligned with the user's POV.
+    // Subtle ambient glow blobs (kept very faint so the camera shows through)
+    drawSoftBackgroundGrid();
+
+    // The CSS already mirrors the <video> element. We mirror the canvas the
+    // same way so landmark coordinates land on top of the user's real hands.
     push();
     translate(width, 0);
     scale(-1, 1);
 
-    // 1) Live camera feed as the background layer
-    drawCameraBackground();
-
-    // 2) Subtle ambient glow on top of the video (kept very faint so the user
-    //    can still clearly see their own image)
-    drawSoftBackgroundGrid();
-
-    // Sort hands so we always know "left" vs "right" from the user's POV
     const left  = landmarksList.find(h => h.label === 'Left');
     const right = landmarksList.find(h => h.label === 'Right');
 
-    // 3) Faint neon outline on each hand (no longer a full silhouette since
-    //    the real hand is visible underneath)
     for (const h of landmarksList) drawHandSilhouette(h.landmarks, h.label);
-
-    // 4) Skeleton + glowing joints
     for (const h of landmarksList) {
       drawHandSkeleton(h.landmarks, h.label);
       drawHandJoints(h.landmarks, h.label);
     }
 
-    // 5) Cat's cradle strings between corresponding fingertips of both hands
     if (left && right) {
       drawCradleStrings(left.landmarks, right.landmarks);
       checkFingertipCollisions(left.landmarks, right.landmarks);
     } else {
-      // Reset elastic state when a hand disappears
       for (const s of stringState) { s.aPrev = null; s.bPrev = null; }
     }
 
-    // 6) Particles on top
     updateAndDrawParticles();
 
     pop();
-  }
-
-  // Paint the webcam frame onto the canvas using the same cover-fit rectangle
-  // we use to map landmarks. A slight dark wash keeps the neon overlays popping.
-  function drawCameraBackground() {
-    if (!videoEl || !videoEl.videoWidth) return;
-    const { drawW, drawH, offsetX, offsetY } = videoTransform;
-    drawingContext.save();
-    drawingContext.filter = 'saturate(1.05) contrast(1.05)';
-    image(videoEl, offsetX, offsetY, drawW, drawH);
-    drawingContext.restore();
-    // Dark midnight-blue wash so the camera image reads as "background"
-    noStroke();
-    fill(5, 0, 32, 90);
-    rect(offsetX, offsetY, drawW, drawH);
   }
 
   function drawSoftBackgroundGrid() {
