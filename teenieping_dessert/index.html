@@ -1188,7 +1188,8 @@ const INGREDIENTS = {
   kataifi: { name: '카다이프', emoji: '🍜', img: 'img_assets/ingredients_pixel/Carb_pixel/noodle_coil_01.png' },
   white_chocolate: { name: '화이트초콜릿', emoji: '🤍', img: 'img_assets/ingredients_pixel/Condiment_pixel/white_chocolate_01.png' },
   cocoa_powder: { name: '코코아가루', emoji: '🍫', img: 'img_assets/ingredients_pixel/Condiment_pixel/cocoa_powder_01.png' },
-  pistachio: { name: '피스타치오', emoji: '🥜', img: 'img_assets/ingredients_pixel/Green_pixel/pistachio_01.png' }
+  pistachio: { name: '피스타치오', emoji: '🥜', img: 'img_assets/ingredients_pixel/Green_pixel/pistachio_01.png' },
+  vanilla: { name: '바닐라', emoji: '🌼', img: 'img_assets/ingredients_pixel/Condiment_pixel/vanilla_extract_01.png' }
 };
 
 const TOPPING_EMOJI = {
@@ -1320,6 +1321,31 @@ const DESSERTS = {
     needChocochip: false,
     needCool: false,
     toppings: ['sparkle', 'star', 'heart', 'pink_heart', 'flower', 'sprinkles']
+  },
+  chocolate_cake: {
+    name: '초콜릿 케이크',
+    finalImg: 'img_assets/foods_pixel/30_chocolatecake.png',
+    ingredients: ['flour', 'cocoa_powder', 'sugar', 'egg'],
+    needCream: true,
+    creamBaseImg: 'img_assets/foods_pixel/105_cake_bread.png',
+    creamVerb: '초콜릿 가나슈',
+    needChocochip: false,
+    needCool: false,
+    toppings: ['choco_chip', 'chocolate', 'heart', 'cherry', 'star', 'sparkle', 'pink_heart', 'rainbow', 'crown', 'flower']
+  },
+  pudding: {
+    name: '커스터드 푸딩',
+    finalImg: 'img_assets/foods_pixel/75_pudding.png',
+    ingredients: ['egg', 'milk', 'sugar', 'vanilla'],
+    needCream: false,
+    needCool: true,
+    addonStep: {
+      img: 'img_assets/ingredients_pixel/Condiment_pixel/caramel_sauce_01.png',
+      label: '카라멜 소스',
+      requiredCount: 3
+    },
+    needChocochip: false,
+    toppings: ['heart', 'sparkle', 'star', 'pink_heart', 'flower', 'cherry', 'sprinkles', 'rainbow']
   }
 };
 
@@ -1348,7 +1374,8 @@ const state = {
   guideName: '하츄핑',
   guideSrc: TEENIEPINGS['하츄핑'],
   idleTimer: null,
-  selectedTopping: null
+  selectedTopping: null,
+  decorateNudgeCount: 0
 };
 
 // ============================================================
@@ -1777,7 +1804,14 @@ function onIngredientTap(ingKey, btn) {
     Sounds.error();
     shake(btn);
     say('이건 다음에 써보자!');
-    setTimeout(hideBubble, 1500);
+    setTimeout(() => {
+      // Restore the "pick next" prompt so the helper stays visible
+      const expectedName = INGREDIENTS[expected].name;
+      const stillFirst = state.selectedIngredients.length === 0;
+      say(stillFirst
+        ? `${dessert.name}를 만들어보자! 먼저 ${expectedName}부터 골라줘!`
+        : `${expectedName}을(를) 골라줘!`);
+    }, 1500);
     return;
   }
   // correct
@@ -1811,7 +1845,6 @@ function onIngredientTap(ingKey, btn) {
   if (state.selectedIngredients.length === dessert.ingredients.length) {
     say('잘했어! 이제 섞어보자!');
     setTimeout(() => {
-      hideBubble();
       startMixScreen();
     }, 1400);
   } else {
@@ -1851,7 +1884,7 @@ function startMixScreen() {
     if (count >= REPEAT_TAPS_REQUIRED) {
       Sounds.pop();
       stack.onclick = null;
-      hideBubble();
+      say('완벽해! 잘 섞였어~');
       setTimeout(() => proceedAfterMix(), 600);
     }
   };
@@ -1942,7 +1975,6 @@ function onFillingTap(ingKey, btn) {
   if (remaining === 0) {
     say('와! 피스타치오 카다이프 필링 완성! 이제 마시멜로우 반죽으로 감싸자!');
     setTimeout(() => {
-      hideBubble();
       proceedAfterFilling();
     }, 1800);
   } else {
@@ -1999,11 +2031,9 @@ function startCoatingScreen() {
 
     if (count >= REPEAT_TAPS_REQUIRED) {
       btn.onclick = null;
-      hideBubble();
       Sounds.pop();
-      setTimeout(() => say('우와~ 진짜 두바이 쫀득쿠키처럼 됐어!'), 200);
+      say('우와~ 진짜 두바이 쫀득쿠키처럼 됐어!');
       setTimeout(() => {
-        hideBubble();
         if (dessert.addonStep) startAddAddonScreen();
         else startDecorateScreen();
       }, 1800);
@@ -2032,8 +2062,8 @@ function startAddChocochipScreen() {
       : '🍫🍫🍫';
     pile.style.animation = 'drop 0.5s ease-out';
     btn.onclick = null;
+    say('완벽해! 이제 오븐에 넣어보자~');
     setTimeout(() => {
-      hideBubble();
       startBakeScreen();
     }, 1000);
   };
@@ -2054,7 +2084,7 @@ function startBakeScreen() {
     Sounds.bake();
     oven.onclick = null;
     wrap.classList.add('cooking');
-    hideBubble();
+    say('맛있게 노릇노릇 익는 중이야...');
     setTimeout(() => {
       wrap.classList.remove('cooking');
       proceedAfterBake();
@@ -2077,7 +2107,7 @@ function startCoolScreen() {
     Sounds.glide();
     fridge.onclick = null;
     wrap.classList.add('cooling');
-    hideBubble();
+    say('차갑게 식고 있어... 조금만 기다려줘!');
     setTimeout(() => {
       wrap.classList.remove('cooling');
       const dessert = DESSERTS[state.currentDessert];
@@ -2114,7 +2144,7 @@ function startCreamScreen() {
     gauge.style.width = (count / REPEAT_TAPS_REQUIRED) * 100 + '%';
     if (count >= REPEAT_TAPS_REQUIRED) {
       bag.onclick = null;
-      hideBubble();
+      say('정말 예쁘게 짰어!');
       setTimeout(() => {
         if (dessert.addonStep) startAddAddonScreen();
         else startDecorateScreen();
@@ -2169,7 +2199,7 @@ function startAddAddonScreen() {
     if (count >= required) {
       Sounds.pop();
       canvas.onclick = null;
-      hideBubble();
+      say('잘 올렸어!');
       setTimeout(() => startDecorateScreen(), 700);
     }
   };
@@ -2187,6 +2217,7 @@ function startDecorateScreen() {
   const palette = $('#topping-palette');
   state.placedToppings = [];
   state.selectedTopping = null;
+  state.decorateNudgeCount = 0;
 
   // Set base dessert image
   $('#decorate-base').src = dessert.finalImg;
@@ -2233,12 +2264,13 @@ function startDecorateScreen() {
   };
 
   $('#finish-btn').onclick = () => {
-    // Gentle nudge: encourage at least one topping (game design — decoration is the core action)
-    if (state.placedToppings.length === 0) {
+    // Gentle nudge on first attempt; second attempt proceeds even without toppings
+    if (state.placedToppings.length === 0 && state.decorateNudgeCount === 0) {
+      state.decorateNudgeCount++;
       Sounds.error();
       const palette = $('#topping-palette');
       const firstTopping = palette && palette.querySelector('.topping-btn');
-      say('잠깐! 토핑을 하나라도 올려보자~ 더 예뻐질 거야!');
+      say('잠깐! 토핑을 하나라도 올려보자~ 더 예뻐질 거야! (그냥 넘기려면 한 번 더 눌러줘)');
       if (firstTopping) showGuideFinger(firstTopping);
       setTimeout(hideBubble, 2800);
       return;
