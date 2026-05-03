@@ -1,0 +1,2636 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<title>티니핑 디저트 가게</title>
+<style>
+  :root {
+    --bg-soft: #FFF5F7;
+    --bg-cream: #FFFAF0;
+    --primary: #FF8FAB;
+    --primary-dark: #E96A8A;
+    --secondary: #9FE2BF;
+    --accent: #FFD93D;
+    --text: #5C3A21;
+    --shadow: 0 4px 12px rgba(92, 58, 33, 0.15);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', system-ui, sans-serif;
+    color: var(--text);
+    background: var(--bg-soft);
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
+  }
+
+  body {
+    background-color: #FFF5F7;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    transition: background-image 0.4s ease-in-out;
+  }
+
+  .game-root {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .game-frame {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    max-width: 480px;
+    max-height: 100vh;
+    background: rgba(255, 245, 247, 0.85);
+    backdrop-filter: blur(2px);
+    overflow: hidden;
+    box-shadow: var(--shadow);
+  }
+
+  /* Screen system */
+  .screen {
+    position: absolute;
+    inset: 0;
+    display: none;
+    flex-direction: column;
+    padding: 16px;
+    padding-top: 56px;
+  }
+  .screen.active { display: flex; }
+
+  /* Header (home + guide avatar) */
+  .top-bar {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    right: 8px;
+    height: 48px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    z-index: 5;
+    pointer-events: none;
+  }
+  .top-bar > * { pointer-events: auto; }
+
+  .home-btn {
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.9);
+    border: none;
+    font-size: 22px;
+    cursor: pointer;
+    box-shadow: var(--shadow);
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  .guide-avatar {
+    display: flex; align-items: center; gap: 6px;
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 24px;
+    padding: 4px 12px 4px 4px;
+    border: none;
+    cursor: pointer;
+    box-shadow: var(--shadow);
+    font-size: 14px;
+    color: var(--text);
+    font-weight: 600;
+  }
+  .guide-avatar img {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    object-fit: cover;
+    background: var(--primary);
+  }
+
+  /* Character bubble (left) */
+  .character-bubble {
+    position: absolute;
+    top: 64px;
+    left: 8px;
+    z-index: 4;
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+    max-width: 80%;
+    pointer-events: none;
+  }
+  .character-bubble img.guide-img {
+    width: 72px; height: 72px;
+    object-fit: contain;
+    flex-shrink: 0;
+  }
+  .speech-bubble {
+    background: white;
+    border-radius: 18px;
+    padding: 10px 14px;
+    font-size: 16px;
+    font-weight: 600;
+    box-shadow: var(--shadow);
+    max-width: 220px;
+    position: relative;
+  }
+  .speech-bubble::before {
+    content: '';
+    position: absolute;
+    left: -8px;
+    bottom: 14px;
+    border: 8px solid transparent;
+    border-right-color: white;
+    border-left: 0;
+  }
+
+  /* Buttons */
+  button, .tap-target {
+    min-width: 60px; min-height: 60px;
+    border-radius: 22px;
+    font-size: 22px;
+    font-weight: 700;
+    background: var(--primary);
+    color: white;
+    border: none;
+    cursor: pointer;
+    box-shadow: var(--shadow);
+    transition: transform 0.08s;
+    font-family: inherit;
+  }
+  button:active, .tap-target:active { transform: scale(0.95); }
+  button.secondary { background: var(--secondary); color: var(--text); }
+  button.accent { background: var(--accent); color: var(--text); }
+
+  .big-btn {
+    padding: 18px 32px;
+    font-size: 26px;
+    border-radius: 32px;
+  }
+
+  /* Start screen */
+  #screen-start {
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+  }
+  #screen-start h1 {
+    font-size: 38px;
+    color: var(--primary-dark);
+    text-shadow: 2px 2px 0 white, 4px 4px 12px rgba(0,0,0,0.1);
+    margin-bottom: 16px;
+    line-height: 1.3;
+  }
+  #screen-start .start-character {
+    width: 200px; height: 200px;
+    margin: 16px 0;
+    object-fit: contain;
+    animation: bounce 2s ease-in-out infinite;
+  }
+  @keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-12px); }
+  }
+
+  /* Collection screen */
+  #screen-collection {
+    align-items: center;
+    overflow-y: auto;
+    gap: 6px;
+  }
+  .collection-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    width: 100%;
+    padding: 4px 4px 8px;
+  }
+  .collection-card {
+    padding: 10px 6px;
+    background: white;
+    border-radius: 16px;
+    box-shadow: var(--shadow);
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+  .collection-card img {
+    width: 70px;
+    height: 70px;
+    object-fit: contain;
+    image-rendering: pixelated;
+  }
+  .collection-card.locked img {
+    filter: grayscale(1) brightness(0.4);
+    opacity: 0.5;
+  }
+  .collection-card .name {
+    font-size: 14px;
+    font-weight: 800;
+    color: var(--primary-dark);
+  }
+  .collection-card.locked .name { color: #888; }
+  .collection-card .stats {
+    font-size: 11px;
+    color: var(--text);
+  }
+
+  /* Dessert select screen */
+  #screen-dessert-select {
+    align-items: center;
+    gap: 12px;
+    overflow-y: auto;
+  }
+  #screen-dessert-select h2 {
+    font-size: 24px;
+    margin-bottom: 4px;
+    flex-shrink: 0;
+  }
+  .dessert-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    width: 100%;
+    padding: 8px 4px 16px;
+  }
+  .dessert-card {
+    padding: 10px 8px;
+    background: white;
+    border-radius: 20px;
+    box-shadow: var(--shadow);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    border: 4px solid transparent;
+    transition: all 0.15s;
+    position: relative;
+  }
+  .dessert-card:active {
+    transform: scale(0.95);
+    border-color: var(--primary);
+  }
+  .dessert-card img.dessert-img {
+    width: 90px; height: 90px;
+    object-fit: contain;
+    image-rendering: pixelated;
+  }
+  .dessert-card .name {
+    font-size: 16px;
+    font-weight: 800;
+    color: var(--primary-dark);
+    text-align: center;
+  }
+  .dessert-card .best-stars {
+    position: absolute;
+    top: 6px;
+    right: 8px;
+    font-size: 12px;
+    background: var(--accent);
+    color: var(--text);
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-weight: 800;
+  }
+  .dessert-card .play-count {
+    position: absolute;
+    top: 6px;
+    left: 8px;
+    font-size: 11px;
+    background: var(--secondary);
+    color: var(--text);
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-weight: 700;
+  }
+
+  /* Ingredients screen */
+  .progress-dots {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin: 8px 0 12px;
+  }
+  .progress-dots .dot {
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: rgba(255, 143, 171, 0.3);
+    transition: background 0.2s, transform 0.2s;
+  }
+  .progress-dots .dot.done {
+    background: var(--primary);
+    transform: scale(1.2);
+  }
+
+  .bowl-area {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+  .bowl-area img.bowl {
+    width: 220px; height: 220px;
+    object-fit: contain;
+    image-rendering: pixelated;
+  }
+  .ingredients-in-bowl {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    flex-wrap: wrap;
+    max-width: 60%;
+    margin: auto;
+    bottom: 30%;
+  }
+  .ingredients-in-bowl span {
+    font-size: 32px;
+    animation: drop 0.4s ease-out;
+  }
+  .ingredients-in-bowl img.ing-drop {
+    width: 44px;
+    height: 44px;
+    object-fit: contain;
+    image-rendering: pixelated;
+    animation: drop 0.4s ease-out;
+  }
+  @keyframes drop {
+    0% { transform: translateY(-80px) scale(1.4); opacity: 0; }
+    100% { transform: translateY(0) scale(1); opacity: 1; }
+  }
+
+  .ingredient-palette {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 20px;
+    box-shadow: var(--shadow);
+  }
+  .ingredient-btn {
+    aspect-ratio: 1;
+    background: var(--bg-cream);
+    border: 3px solid transparent;
+    border-radius: 16px;
+    font-size: 36px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--text);
+    padding: 4px;
+    min-width: 0;
+    min-height: 0;
+  }
+  .ingredient-btn .label {
+    font-size: 11px;
+    font-weight: 700;
+    margin-top: 2px;
+  }
+  .ingredient-btn img.ing-icon {
+    width: 56px;
+    height: 56px;
+    object-fit: contain;
+    image-rendering: pixelated;
+  }
+  .ingredient-btn.used {
+    opacity: 0.35;
+    pointer-events: none;
+    background: #eee;
+  }
+  .ingredient-btn.glow {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 4px rgba(255, 217, 61, 0.4);
+  }
+
+  /* Tool screens (mix, bake, cream) */
+  .tool-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    position: relative;
+  }
+  .tool-area img.tool {
+    width: 220px;
+    object-fit: contain;
+    image-rendering: pixelated;
+    cursor: pointer;
+  }
+  .tool-area .stack {
+    position: relative;
+    width: 240px;
+    height: 240px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .tool-area .stack .bowl {
+    width: 220px;
+    image-rendering: pixelated;
+    position: absolute;
+    bottom: 0;
+  }
+  .tool-area .stack .spoon {
+    width: 130px;
+    image-rendering: pixelated;
+    position: absolute;
+    top: 0; right: 30px;
+    transform-origin: bottom left;
+  }
+  .tool-area .stack.shaking .spoon {
+    animation: stir 0.3s;
+  }
+  @keyframes stir {
+    0% { transform: rotate(0); }
+    50% { transform: rotate(-20deg); }
+    100% { transform: rotate(0); }
+  }
+  .tool-area .stack.shaking .bowl {
+    animation: shake 0.2s;
+  }
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-4px); }
+    75% { transform: translateX(4px); }
+  }
+
+  .gauge {
+    width: 70%;
+    height: 22px;
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: var(--shadow);
+  }
+  .gauge-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, var(--accent), var(--primary));
+    transition: width 0.2s;
+  }
+
+  /* Coating screen (cocoa dust shower) */
+  .coating-stack {
+    position: relative;
+    width: 240px;
+    height: 240px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .coating-base {
+    width: 200px;
+    image-rendering: pixelated;
+    transition: filter 0.3s;
+  }
+  .cocoa-dust-layer {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    overflow: hidden;
+  }
+  .cocoa-dust {
+    position: absolute;
+    width: 6px;
+    height: 6px;
+    background: #5C3A21;
+    border-radius: 50%;
+    pointer-events: none;
+    animation: dustFall 0.9s ease-in forwards;
+    box-shadow: 0 0 2px rgba(0,0,0,0.3);
+  }
+  @keyframes dustFall {
+    0% { opacity: 0; transform: translateY(-90px) scale(0.5); }
+    20% { opacity: 1; }
+    100% { opacity: 0.6; transform: translateY(60px) scale(1.2); }
+  }
+
+  /* Cool screen (refrigerator) */
+  .fridge-wrap {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .fridge-wrap img.tool {
+    width: 200px;
+    object-fit: contain;
+    image-rendering: pixelated;
+    cursor: pointer;
+    transition: transform 0.2s;
+  }
+  .fridge-wrap.cooling img.tool {
+    animation: chill 1.5s ease-in-out;
+  }
+  @keyframes chill {
+    0%, 100% { transform: translateY(0); filter: brightness(1); }
+    50% { transform: translateY(-4px); filter: brightness(1.2) hue-rotate(-15deg); }
+  }
+  .fridge-wrap .frost {
+    position: absolute;
+    top: -30px;
+    width: 16px; height: 16px;
+    color: #B3E5FC;
+    font-size: 18px;
+    pointer-events: none;
+    opacity: 0;
+  }
+  .fridge-wrap .frost::before {
+    content: '❄️';
+    font-size: 22px;
+  }
+  .fridge-wrap.cooling .frost {
+    animation: snowfall 1.6s ease-out;
+  }
+  @keyframes snowfall {
+    0% { opacity: 0; transform: translateY(-20px) scale(0.6); }
+    50% { opacity: 1; }
+    100% { opacity: 0; transform: translateY(80px) scale(1.2) rotate(180deg); }
+  }
+
+  /* Bake screen */
+  .oven-wrap {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .oven-wrap .smoke {
+    position: absolute;
+    top: -40px;
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    background: rgba(180, 180, 180, 0.6);
+    pointer-events: none;
+    opacity: 0;
+  }
+  .oven-wrap.cooking .smoke {
+    animation: smoke 1.5s ease-out;
+  }
+  @keyframes smoke {
+    0% { opacity: 0; transform: translateY(0) scale(0.5); }
+    50% { opacity: 1; }
+    100% { opacity: 0; transform: translateY(-80px) scale(2); }
+  }
+
+  /* Addon screen (e.g., strawberry placement) */
+  .addon-canvas {
+    position: relative;
+    width: 280px;
+    height: 280px;
+    background: white;
+    border-radius: 24px;
+    box-shadow: var(--shadow);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: crosshair;
+    overflow: hidden;
+  }
+  .addon-canvas .addon-base-img {
+    width: 85%;
+    object-fit: contain;
+    image-rendering: pixelated;
+    pointer-events: none;
+  }
+  .placed-addon {
+    position: absolute;
+    width: 56px;
+    height: 56px;
+    object-fit: contain;
+    image-rendering: pixelated;
+    pointer-events: none;
+    transform: translate(-50%, -50%);
+    animation: pop 0.3s ease-out;
+  }
+  .addon-icon-wrap {
+    width: 80px;
+    height: 80px;
+    background: var(--bg-cream);
+    border-radius: 20px;
+    box-shadow: var(--shadow);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 3px solid var(--accent);
+  }
+  .addon-icon-wrap img {
+    width: 64px;
+    height: 64px;
+    object-fit: contain;
+    image-rendering: pixelated;
+  }
+
+  /* Decorate screen */
+  #screen-decorate {
+    padding-bottom: 0;
+  }
+  .decorate-canvas {
+    flex: 1;
+    background: white;
+    border-radius: 24px;
+    box-shadow: var(--shadow);
+    position: relative;
+    overflow: hidden;
+    margin: 8px 0;
+    cursor: crosshair;
+  }
+  .decorate-canvas .cake {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 70%;
+    object-fit: contain;
+    image-rendering: pixelated;
+    pointer-events: none;
+  }
+  .placed-topping {
+    position: absolute;
+    font-size: 36px;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    animation: pop 0.3s ease-out;
+  }
+  @keyframes pop {
+    0% { transform: translate(-50%, -50%) scale(0); }
+    50% { transform: translate(-50%, -50%) scale(1.3); }
+    100% { transform: translate(-50%, -50%) scale(1); }
+  }
+
+  .topping-palette {
+    display: flex;
+    gap: 8px;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 20px 20px 0 0;
+    overflow-x: auto;
+    align-items: center;
+  }
+  .topping-btn {
+    flex-shrink: 0;
+    width: 56px; height: 56px;
+    border-radius: 14px;
+    background: var(--bg-cream);
+    border: 3px solid transparent;
+    font-size: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    min-width: 56px;
+    min-height: 56px;
+  }
+  .topping-btn.selected {
+    border-color: var(--primary);
+    background: white;
+    transform: scale(1.05);
+  }
+
+  .decorate-actions {
+    display: flex;
+    gap: 8px;
+    padding: 8px 0 12px;
+  }
+  .decorate-actions button {
+    flex: 1;
+    padding: 14px;
+    font-size: 20px;
+  }
+
+  /* Complete screen */
+  #screen-complete {
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: 16px;
+  }
+  #screen-complete .final-img {
+    width: 220px; height: 220px;
+    object-fit: contain;
+    image-rendering: pixelated;
+    animation: pop 0.6s ease-out;
+  }
+  .final-canvas-wrap {
+    position: relative;
+    width: 240px; height: 240px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .final-canvas-wrap .placed-topping {
+    pointer-events: none;
+  }
+  .stars {
+    display: flex;
+    gap: 12px;
+    font-size: 48px;
+  }
+  .stars span {
+    opacity: 0;
+    transform: scale(0);
+    transition: all 0.3s ease-out;
+  }
+  .stars span.show {
+    opacity: 1;
+    transform: scale(1);
+    animation: starPop 0.5s ease-out;
+  }
+  @keyframes starPop {
+    0% { transform: scale(0) rotate(-180deg); }
+    60% { transform: scale(1.4) rotate(20deg); }
+    100% { transform: scale(1) rotate(0); }
+  }
+
+  .praise {
+    font-size: 26px;
+    font-weight: 800;
+    color: var(--primary-dark);
+    background: white;
+    padding: 14px 22px;
+    border-radius: 24px;
+    box-shadow: var(--shadow);
+  }
+
+  .complete-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 80%;
+  }
+
+  /* Particles */
+  .particle-layer {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    overflow: hidden;
+    z-index: 10;
+  }
+  .particle {
+    position: absolute;
+    font-size: 24px;
+    animation: float 2s ease-out forwards;
+  }
+  @keyframes float {
+    0% { opacity: 1; transform: translateY(0) scale(1); }
+    100% { opacity: 0; transform: translateY(-200px) scale(1.5) rotate(180deg); }
+  }
+
+  /* Modal */
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    padding: 20px;
+  }
+  .modal-backdrop.active { display: flex; }
+  .modal {
+    background: white;
+    border-radius: 24px;
+    padding: 24px;
+    max-width: 360px;
+    width: 100%;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.3);
+    text-align: center;
+  }
+  .modal h3 {
+    font-size: 22px;
+    color: var(--primary-dark);
+    margin-bottom: 12px;
+  }
+  .modal input[type="text"] {
+    width: 100%;
+    padding: 14px;
+    font-size: 20px;
+    border: 3px solid var(--primary);
+    border-radius: 14px;
+    margin: 12px 0;
+    font-family: inherit;
+    text-align: center;
+    color: var(--text);
+    outline: none;
+  }
+  .modal-buttons {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+  }
+  .modal-buttons button {
+    flex: 1;
+    padding: 14px;
+    font-size: 18px;
+  }
+
+  /* Guide finger */
+  .guide-finger {
+    position: absolute;
+    font-size: 36px;
+    pointer-events: none;
+    z-index: 20;
+    animation: bouncePoint 1s ease-in-out infinite;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+  }
+  @keyframes bouncePoint {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+  }
+
+  /* Watermark (always visible at the bottom) */
+  .watermark {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 4px;
+    text-align: center;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--primary-dark);
+    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+    pointer-events: none;
+    z-index: 50;
+    opacity: 0.75;
+    letter-spacing: 0.5px;
+  }
+
+  /* Rotate notice */
+  #screen-rotate {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: var(--bg-soft);
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    text-align: center;
+    padding: 20px;
+    gap: 16px;
+  }
+  #screen-rotate .icon {
+    font-size: 64px;
+    animation: rotateHint 2s ease-in-out infinite;
+  }
+  @keyframes rotateHint {
+    0%, 100% { transform: rotate(0); }
+    50% { transform: rotate(-90deg); }
+  }
+  #screen-rotate p {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text);
+  }
+  @media (orientation: landscape) and (max-height: 500px) {
+    #screen-rotate { display: flex; }
+    .game-root { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Rotate notice -->
+<div id="screen-rotate">
+  <div class="icon">📱</div>
+  <p>폰을 세워주세요!</p>
+</div>
+
+<!-- Game root -->
+<div class="game-root">
+  <div class="game-frame">
+
+    <!-- Top bar (shared) -->
+    <div class="top-bar">
+      <button class="guide-avatar" id="guide-avatar-btn">
+        <img id="guide-avatar-img" src="img_assets/teenieping_imgs/TP-001_하츄핑.webp" alt="안내" />
+        <span>바꾸기</span>
+      </button>
+      <button class="home-btn" id="home-btn" aria-label="홈">🏠</button>
+    </div>
+
+    <!-- Character bubble (shared, hidden by default) -->
+    <div class="character-bubble" id="character-bubble" style="display: none;">
+      <img class="guide-img" id="guide-img" src="img_assets/teenieping_imgs/TP-001_하츄핑.webp" alt="" />
+      <div class="speech-bubble" id="speech-bubble">안녕!</div>
+    </div>
+
+    <!-- 1. Start screen -->
+    <div class="screen active" id="screen-start">
+      <h1>티니핑<br>디저트 가게</h1>
+      <img class="start-character" id="start-character-img" src="img_assets/teenieping_imgs/TP-001_하츄핑.webp" alt="캐릭터" />
+      <button class="big-btn" id="start-btn">시작하기</button>
+      <button class="big-btn secondary" id="collection-btn" style="margin-top:12px;">📖 나의 도감</button>
+    </div>
+
+    <!-- 1b. Collection screen -->
+    <div class="screen" id="screen-collection">
+      <h2 style="font-size:24px; color:var(--primary-dark); margin-bottom:6px;">나의 디저트 도감</h2>
+      <div id="collection-summary" style="font-size:14px; font-weight:700; margin-bottom:8px; text-align:center;"></div>
+      <div class="collection-grid" id="collection-grid"></div>
+      <button class="big-btn accent" id="collection-back-btn" style="margin-top:8px;">🏠 처음으로</button>
+    </div>
+
+    <!-- 2. Dessert select screen -->
+    <div class="screen" id="screen-dessert-select">
+      <h2>무엇을 만들까?</h2>
+      <div class="dessert-grid" id="dessert-grid"></div>
+    </div>
+
+    <!-- 3. Ingredients screen -->
+    <div class="screen" id="screen-ingredients">
+      <div class="progress-dots" id="progress-dots"></div>
+      <div class="bowl-area">
+        <img class="bowl" src="img_assets/tools_pixel/Deep Mixing Bowl.png" alt="그릇" />
+        <div class="ingredients-in-bowl" id="ingredients-in-bowl"></div>
+      </div>
+      <div class="ingredient-palette" id="ingredient-palette"></div>
+    </div>
+
+    <!-- 4. Mix screen -->
+    <div class="screen" id="screen-mix">
+      <div class="tool-area" id="mix-area">
+        <div class="stack" id="mix-stack">
+          <img class="bowl" src="img_assets/tools_pixel/Deep Mixing Bowl.png" alt="그릇" />
+          <img class="spoon" src="img_assets/tools_pixel/Wooden Spoon.png" alt="스푼" />
+        </div>
+        <div class="gauge"><div class="gauge-fill" id="mix-gauge"></div></div>
+      </div>
+    </div>
+
+    <!-- 5. Add chocochip (cookie only) -->
+    <div class="screen" id="screen-add-chocochip">
+      <div class="tool-area">
+        <div class="stack">
+          <img class="bowl" src="img_assets/tools_pixel/Deep Mixing Bowl.png" alt="그릇" />
+          <div id="chocochip-pile" style="position:absolute; top:30%; font-size:48px;"></div>
+        </div>
+        <div style="display:flex; gap:8px; padding:10px; background:rgba(255,255,255,0.9); border-radius:20px;">
+          <button class="ingredient-btn" id="add-chocochip-btn" style="width:90px; height:90px;"><img class="ing-icon" src="img_assets/ingredients_pixel/Condiment_pixel/chocolate_chips_01.png" alt="초코칩" style="width:70px; height:70px;" /></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 5b. Add filling screen (dubai cookie only) -->
+    <div class="screen" id="screen-add-filling">
+      <div class="bowl-area">
+        <img class="bowl" src="img_assets/tools_pixel/Deep Mixing Bowl.png" alt="그릇" />
+        <div class="ingredients-in-bowl" id="filling-in-bowl"></div>
+      </div>
+      <div class="ingredient-palette" id="filling-palette"></div>
+    </div>
+
+    <!-- 5c. Coating screen (cocoa dust shower) -->
+    <div class="screen" id="screen-coating">
+      <div class="tool-area">
+        <div class="coating-stack" id="coating-stack">
+          <img class="coating-base" id="coating-base" src="img_assets/foods_pixel/107_dubai_cookie_base.png" alt="" />
+          <div class="cocoa-dust-layer" id="cocoa-dust-layer"></div>
+        </div>
+        <button class="ingredient-btn" id="coating-btn" style="width:90px; height:90px;">
+          <img class="ing-icon" src="img_assets/ingredients_pixel/Condiment_pixel/cocoa_powder_01.png" alt="코코아가루" />
+        </button>
+        <div class="gauge"><div class="gauge-fill" id="coating-gauge"></div></div>
+      </div>
+    </div>
+
+    <!-- 6. Bake screen -->
+    <div class="screen" id="screen-bake">
+      <div class="tool-area">
+        <div class="oven-wrap" id="oven-wrap">
+          <div class="smoke" style="left: 30%;"></div>
+          <div class="smoke" style="left: 50%; animation-delay: 0.3s;"></div>
+          <div class="smoke" style="left: 70%; animation-delay: 0.6s;"></div>
+          <img class="tool" id="oven-img" src="img_assets/tools_pixel/Toaster Oven.png" alt="오븐" />
+        </div>
+      </div>
+    </div>
+
+    <!-- 6b. Cool screen (cheesecake only) -->
+    <div class="screen" id="screen-cool">
+      <div class="tool-area">
+        <div class="fridge-wrap" id="fridge-wrap">
+          <div class="frost" style="left: 25%;"></div>
+          <div class="frost" style="left: 50%; animation-delay: 0.4s;"></div>
+          <div class="frost" style="left: 75%; animation-delay: 0.8s;"></div>
+          <img class="tool" id="fridge-img" src="img_assets/tools_pixel/Refrigerator.png" alt="냉장고" />
+        </div>
+      </div>
+    </div>
+
+    <!-- 7. Cream screen (cake only) -->
+    <div class="screen" id="screen-cream">
+      <div class="tool-area">
+        <div class="stack" id="cream-stack" style="width:280px; height:280px;">
+          <img class="bowl" id="cake-base" src="img_assets/foods_pixel/90_strawberrycake.png" alt="케이크" style="width:200px; bottom:30px;" />
+          <img src="img_assets/tools_pixel/Piping Bag.png" alt="짤주머니" id="piping-bag" style="width:120px; position:absolute; top:0; right:40px; image-rendering:pixelated;" />
+        </div>
+        <div class="gauge"><div class="gauge-fill" id="cream-gauge"></div></div>
+      </div>
+    </div>
+
+    <!-- 7b. Add Addon (e.g. strawberry) screen -->
+    <div class="screen" id="screen-add-addon">
+      <div class="tool-area">
+        <div class="addon-canvas" id="addon-canvas">
+          <img id="addon-base" src="" alt="" class="addon-base-img" />
+        </div>
+        <div style="display:flex; align-items:center; gap:14px;">
+          <div class="addon-icon-wrap">
+            <img id="addon-icon-img" src="" alt="" />
+          </div>
+          <div class="gauge" style="flex:1; min-width:120px;"><div class="gauge-fill" id="addon-gauge"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 8. Decorate screen -->
+    <div class="screen" id="screen-decorate">
+      <div class="decorate-canvas" id="decorate-canvas">
+        <img class="cake" id="decorate-base" src="img_assets/foods_pixel/90_strawberrycake.png" alt="" />
+      </div>
+      <div class="topping-palette" id="topping-palette"></div>
+      <div class="decorate-actions">
+        <button class="secondary" id="undo-btn">↩️ 되돌리기</button>
+        <button class="accent" id="finish-btn">완성! ✨</button>
+      </div>
+    </div>
+
+    <!-- 9. Complete screen -->
+    <div class="screen" id="screen-complete">
+      <div class="final-canvas-wrap" id="final-canvas-wrap">
+        <img class="final-img" id="final-img" src="" alt="" />
+      </div>
+      <div class="stars">
+        <span id="star-1">⭐</span>
+        <span id="star-2">⭐</span>
+        <span id="star-3">⭐</span>
+      </div>
+      <div class="praise" id="praise-text">와! 정말 맛있겠다!</div>
+      <div class="complete-buttons">
+        <button class="accent" id="share-btn">📸 사진으로 저장</button>
+        <button id="again-same-btn">🔁 다시 만들기</button>
+        <button class="secondary" id="again-other-btn">🍰 다른 디저트</button>
+        <button id="again-home-btn">🏠 처음으로</button>
+      </div>
+      <div class="particle-layer" id="particle-layer"></div>
+    </div>
+
+    <!-- Guide finger overlay -->
+    <div class="guide-finger" id="guide-finger" style="display: none;">👆</div>
+
+    <!-- Watermark (always visible) -->
+    <div class="watermark">둥둥이들과 함께 만듦</div>
+
+  </div>
+</div>
+
+<!-- Character pick modal -->
+<div class="modal-backdrop" id="modal-character">
+  <div class="modal">
+    <h3>핑 친구 바꾸기</h3>
+    <p style="font-size:14px; color:#888;">핑 이름을 입력해줘 (예: 하츄핑, 쪼꼬핑)</p>
+    <input type="text" id="character-input" inputmode="text" placeholder="하츄핑" autocomplete="off" />
+    <div class="modal-buttons">
+      <button class="secondary" id="character-cancel">취소</button>
+      <button id="character-confirm">확인</button>
+    </div>
+  </div>
+</div>
+
+<!-- Home confirm modal -->
+<div class="modal-backdrop" id="modal-home">
+  <div class="modal">
+    <h3>처음으로 갈까?</h3>
+    <p style="font-size:16px; margin:8px 0;">지금까지 만든 건 사라져요!</p>
+    <div class="modal-buttons">
+      <button class="secondary" id="home-cancel">아니요, 계속할래요</button>
+      <button id="home-confirm">네, 처음으로</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// DATA
+// ============================================================
+const TEENIEPING_FILES = [
+  ['하츄핑','TP-001'],['아자핑','TP-002'],['차차핑','TP-003'],['바로핑','TP-004'],['라라핑','TP-005'],
+  ['해핑','TP-006'],['키키핑','TP-007'],['부투핑','TP-008'],['따라핑','TP-009'],['차캐핑','TP-010'],
+  ['아잉핑','TP-011'],['부끄핑','TP-012'],['깜빡핑','TP-013'],['띠용핑','TP-014'],['주르핑','TP-015'],
+  ['차나핑','TP-016'],['나르핑','TP-017'],['무셔핑','TP-018'],['투투핑','TP-019'],['떠벌핑','TP-020'],
+  ['다조핑','TP-021'],['화나핑','TP-022'],['시러핑','TP-023'],['바네핑','TP-024'],['덜덜핑','TP-025'],
+  ['그림핑','TP-026'],['무거핑','TP-027'],['꺼꿀핑','TP-028'],['씽씽핑','TP-029'],['베베핑','TP-030'],
+  ['코자핑','TP-031'],['딱풀핑','TP-032'],['모야핑','TP-033'],['토이핑','TP-034'],['또까핑','TP-035'],
+  ['플라핑','TP-036'],['노라핑&노리핑','TP-037'],['아휴핑','TP-039'],['똑똑핑','TP-040'],
+  ['꽁꽁핑','TP-041'],['찌릿핑','TP-042'],['홀로핑','TP-043'],['앙대핑','TP-044'],['악동핑','TP-045'],
+  ['조아핑','TP-046'],['방글핑','TP-047'],['믿어핑','TP-048'],['까르핑','TP-049'],['아야핑','TP-050'],
+  ['소원핑','TP-051'],['토닥핑','TP-052'],['쪼꼼핑','TP-053'],['싹싹핑','TP-054'],['맛나핑','TP-055'],
+  ['포근핑','TP-056'],['메모핑','TP-057'],['공쥬핑','TP-058'],['짝짝핑','TP-059'],['주네핑','TP-060'],
+  ['뚝딱핑','TP-061'],['발레핑','TP-062'],['원더핑','TP-063'],['가면핑','TP-064'],['다해핑','TP-065'],
+  ['꾸래핑','TP-066'],['솔찌핑','TP-067'],['나나핑','TP-068'],['행운핑','TP-069'],['빨리핑','TP-070'],
+  ['얌얌핑','TP-071'],['뜨거핑','TP-072'],['삐뽀핑','TP-073'],['간호핑','TP-074'],['힘내핑','TP-075'],
+  ['고쳐핑','TP-076'],['아라핑','TP-077'],['꼼딱핑','TP-078'],['퐁당핑','TP-079'],['파티핑','TP-080'],
+  ['꾸며핑','TP-081'],['삐짐핑','TP-082'],['아아핑','TP-083'],['빙글핑','TP-084'],['패션핑','TP-085'],
+  ['포실핑','TP-086'],['말랑핑','TP-087'],['샤샤핑','TP-088'],['새콤핑','TP-089'],['달콤핑','TP-090'],
+  ['캔디핑','TP-091'],['머랭핑','TP-092'],['샌드핑','TP-093'],['또너핑','TP-094'],['와플핑','TP-095'],
+  ['롤리핑','TP-096'],['마카핑','TP-097'],['핫케핑','TP-098'],['커핑&머핑','TP-099'],['요거핑','TP-101'],
+  ['눈꽃핑','TP-102'],['푸딩핑','TP-103'],['멜로핑','TP-104'],['쪼꼬핑','TP-105'],['뿌뿌핑','TP-106'],
+  ['빛나핑','TP-107'],['초롱핑','TP-108'],['빤짝핑','TP-109'],['왕자핑','TP-110'],['오로라핑','TP-111'],
+  ['깡총핑','TP-112'],['훌라핑','TP-113'],['나눔핑','TP-114'],['딩동핑','TP-115'],['나그네핑','TP-116'],
+  ['고고핑','TP-117'],['뿌쵸핑','TP-118'],['고마핑','TP-119'],['아롱핑','TP-120'],['다롱핑','TP-121'],
+  ['뽀송핑','TP-122'],['유리핑','TP-123'],['함께핑','TP-124'],['댄스핑','TP-125'],['여우핑','TP-126'],
+  ['루루핑','TP-127'],['몰래핑','TP-128'],['뽀뽀핑','TP-129'],['트러핑','TP-130'],['사뿐핑','TP-131'],
+  ['아름핑','TP-132'],['뽀니핑','TP-133'],['이클립스핑','TP-134'],['다이아나핑','TP-135'],['뽀득핑','TP-136'],
+  ['차밍핑','TP-137'],['나비핑','TP-138'],['실크핑','TP-139'],['스노우핑','TP-140'],['이슬핑','TP-141'],
+  ['쿨쿨핑','TP-142'],['슈슈핑','TP-143'],['롱롱핑','TP-144'],['큐핑','TP-145'],['야옹핑','TP-146'],
+  ['샤를핑','TP-147'],['트롯핑','TP-148'],['깨굴핑','TP-149'],['젠틀핑','TP-150']
+];
+
+const TEENIEPINGS = {};
+TEENIEPING_FILES.forEach(([name, code]) => {
+  TEENIEPINGS[name] = `img_assets/teenieping_imgs/${code}_${name}.webp`;
+});
+
+const INGREDIENTS = {
+  flour:  { name: '밀가루', emoji: '🌾', img: 'img_assets/ingredients_pixel/Carb_pixel/flour_01.png' },
+  sugar:  { name: '설탕',   emoji: '🍬', img: 'img_assets/ingredients_pixel/Carb_pixel/sugar_01.png' },
+  butter: { name: '버터',   emoji: '🧈', img: 'img_assets/ingredients_pixel/Condiment_pixel/butter_jar_01.png' },
+  egg:    { name: '달걀',   emoji: '🥚', img: 'img_assets/ingredients_pixel/Protein_pixel/boiled_egg_01.png' },
+  milk:   { name: '우유',   emoji: '🥛', img: 'img_assets/ingredients_pixel/Condiment_pixel/milk_bottle_02.png' },
+  cream:  { name: '크림',   emoji: '🍦', img: 'img_assets/ingredients_pixel/Condiment_pixel/whipped_cream_01.png' },
+  choco_chip: { name: '초코칩', emoji: '🍫', img: 'img_assets/ingredients_pixel/Condiment_pixel/chocolate_chips_01.png' },
+  cream_cheese: { name: '크림치즈', emoji: '🧀', img: 'img_assets/ingredients_pixel/Condiment_pixel/cream_cheese_01.png' },
+  cinnamon: { name: '계피', emoji: '🌰', img: 'img_assets/ingredients_pixel/Green_pixel/cinnamon_stick_01.png' },
+  powdered_sugar: { name: '슈가파우더', emoji: '❄️', img: 'img_assets/ingredients_pixel/Condiment_pixel/powdered_sugar_01.png' },
+  marshmallow: { name: '마시멜로우', emoji: '⚪', img: 'img_assets/ingredients_pixel/Condiment_pixel/marshmallow_01.png' },
+  kataifi: { name: '카다이프', emoji: '🍜', img: 'img_assets/ingredients_pixel/Carb_pixel/noodle_coil_01.png' },
+  white_chocolate: { name: '화이트초콜릿', emoji: '🤍', img: 'img_assets/ingredients_pixel/Condiment_pixel/white_chocolate_01.png' },
+  cocoa_powder: { name: '코코아가루', emoji: '🍫', img: 'img_assets/ingredients_pixel/Condiment_pixel/cocoa_powder_01.png' },
+  pistachio: { name: '피스타치오', emoji: '🥜', img: 'img_assets/ingredients_pixel/Green_pixel/pistachio_01.png' }
+};
+
+const TOPPING_EMOJI = {
+  // 과일
+  strawberry: '🍓',
+  cherry:     '🍒',
+  blueberry:  '🫐',
+  kiwi:       '🥝',
+  banana:     '🍌',
+  peach:      '🍑',
+  grape:      '🍇',
+  lemon:      '🍋',
+  // 데코·반짝임
+  heart:      '❤️',
+  pink_heart: '💖',
+  star:       '🌟',
+  sparkle:    '💫',
+  sprinkles:  '✨',
+  rainbow:    '🌈',
+  flower:     '🌸',
+  // 달콤한 것
+  chocolate:  '🍫',
+  choco_chip: '🍫',
+  candy:      '🍬',
+  donut_mini: '🍩',
+  cookie_mini: '🍪',
+  ice_mini:   '🍦',
+  // 액세서리
+  ribbon:     '🎀',
+  crown:      '👑'
+};
+
+const DESSERTS = {
+  cookie: {
+    name: '초코칩 쿠키',
+    finalImg: 'img_assets/foods_pixel/28_cookies.png',
+    ingredients: ['flour', 'sugar', 'butter', 'egg'],
+    needCream: false,
+    needChocochip: true,
+    toppings: ['sprinkles', 'choco_chip', 'heart', 'star', 'pink_heart', 'sparkle', 'flower', 'candy']
+  },
+  cake: {
+    name: '딸기 케이크',
+    finalImg: 'img_assets/foods_pixel/90_strawberrycake.png',
+    ingredients: ['flour', 'sugar', 'butter', 'egg'],
+    needCream: true,
+    creamBaseImg: 'img_assets/foods_pixel/105_cake_bread.png',
+    addonStep: {
+      img: 'img_assets/foods_pixel/106_strawberry.png',
+      label: '딸기',
+      requiredCount: 1
+    },
+    needChocochip: false,
+    toppings: ['strawberry', 'cherry', 'heart', 'sprinkles', 'chocolate', 'star', 'blueberry', 'kiwi', 'pink_heart', 'flower', 'rainbow', 'ribbon']
+  },
+  cheesecake: {
+    name: '치즈 케이크',
+    finalImg: 'img_assets/foods_pixel/22_cheesecake.png',
+    ingredients: ['flour', 'cream_cheese', 'sugar', 'egg'],
+    needCool: true,
+    needCream: false,
+    needChocochip: false,
+    toppings: ['strawberry', 'blueberry', 'cherry', 'heart', 'sprinkles', 'star', 'kiwi', 'peach', 'flower', 'sparkle', 'rainbow', 'pink_heart']
+  },
+  gingerbread: {
+    name: '진저브레드',
+    finalImg: 'img_assets/foods_pixel/52_gingerbreadman.png',
+    ingredients: ['flour', 'butter', 'sugar', 'cinnamon'],
+    needCream: false,
+    needChocochip: false,
+    toppings: ['heart', 'sprinkles', 'star', 'choco_chip', 'cherry', 'crown', 'pink_heart', 'rainbow', 'flower', 'ribbon']
+  },
+  cupcake: {
+    name: '컵케이크',
+    finalImg: 'img_assets/foods_pixel/104_cup_cake.png',
+    ingredients: ['flour', 'sugar', 'butter', 'egg'],
+    needCream: false,
+    needChocochip: false,
+    toppings: ['strawberry', 'cherry', 'heart', 'sprinkles', 'star', 'blueberry', 'choco_chip', 'pink_heart', 'flower', 'crown', 'rainbow', 'sparkle']
+  },
+  donut: {
+    name: '도넛',
+    finalImg: 'img_assets/foods_pixel/34_donut.png',
+    ingredients: ['flour', 'sugar', 'egg', 'butter'],
+    needCream: true,
+    creamBaseImg: 'img_assets/foods_pixel/20_bagel.png',
+    creamVerb: '글레이즈',
+    needChocochip: false,
+    toppings: ['sprinkles', 'choco_chip', 'heart', 'star', 'cherry', 'chocolate', 'rainbow', 'sparkle', 'pink_heart', 'flower']
+  },
+  dubai_cookie: {
+    name: '두바이 쫀득쿠키',
+    finalImg: 'img_assets/foods_pixel/103_dubai_cookie_2.png',
+    ingredients: ['marshmallow', 'butter', 'cocoa_powder', 'milk'],
+    skipBake: true,
+    needFilling: true,
+    fillingItems: ['kataifi', 'pistachio', 'white_chocolate'],
+    fillingResultImg: 'img_assets/foods_pixel/107_dubai_cookie_base.png',
+    needCoating: true,
+    coatingItem: 'cocoa_powder',
+    needCream: false,
+    needChocochip: false,
+    needCool: false,
+    toppings: ['heart', 'sparkle', 'star', 'pink_heart', 'flower', 'crown']
+  },
+  tart: {
+    name: '에그 타르트',
+    finalImg: 'img_assets/foods_pixel/42_eggtart.png',
+    ingredients: ['flour', 'butter', 'sugar', 'egg'],
+    needCream: true,
+    creamBaseImg: 'img_assets/foods_pixel/108_tart_shell.png',
+    creamVerb: '커스터드',
+    needChocochip: false,
+    needCool: false,
+    toppings: ['sparkle', 'star', 'heart', 'pink_heart', 'cherry', 'sprinkles', 'flower']
+  },
+  strawberry_tart: {
+    name: '딸기 타르트',
+    finalImg: 'img_assets/foods_pixel/109_strawberry_tart.png',
+    ingredients: ['flour', 'butter', 'sugar', 'egg'],
+    needCream: true,
+    creamBaseImg: 'img_assets/foods_pixel/108_tart_shell.png',
+    creamVerb: '커스터드',
+    addonStep: {
+      img: 'img_assets/foods_pixel/106_strawberry.png',
+      label: '딸기',
+      requiredCount: 1
+    },
+    needChocochip: false,
+    needCool: false,
+    toppings: ['sparkle', 'star', 'heart', 'pink_heart', 'flower', 'sprinkles']
+  }
+};
+
+const PRAISES = [
+  '와! 정말 맛있겠다!',
+  '예쁘게 만들었네!',
+  '최고야!',
+  '또 만들어줘!',
+  '사랑해, 고마워!',
+  '와아~ 진짜 멋져!',
+  '완벽해!'
+];
+
+const REPEAT_TAPS_REQUIRED = 5;
+const AUTO_DURATION_MS = 1800;
+const IDLE_HINT_MS = 3000;
+
+// ============================================================
+// STATE
+// ============================================================
+const state = {
+  currentScreen: 'screen-start',
+  currentDessert: null,
+  selectedIngredients: [],
+  placedToppings: [], // {x, y, emoji} on decorate canvas
+  guideName: '하츄핑',
+  guideSrc: TEENIEPINGS['하츄핑'],
+  idleTimer: null,
+  selectedTopping: null
+};
+
+// ============================================================
+// HELPERS
+// ============================================================
+const $  = sel => document.querySelector(sel);
+const $$ = sel => document.querySelectorAll(sel);
+
+function showScreen(id) {
+  $$('.screen').forEach(s => s.classList.remove('active'));
+  const target = document.getElementById(id);
+  if (target) target.classList.add('active');
+  state.currentScreen = id;
+  hideGuideFinger();
+  hideBubble();
+  resetIdleTimer();
+}
+
+function showBubble(text) {
+  const bubble = $('#character-bubble');
+  $('#guide-img').src = state.guideSrc;
+  $('#speech-bubble').textContent = text;
+  bubble.style.display = 'flex';
+}
+function hideBubble() {
+  $('#character-bubble').style.display = 'none';
+}
+function say(text) {
+  showBubble(text);
+}
+
+function showGuideFinger(targetEl, offsetX = 0, offsetY = -50) {
+  if (!targetEl) return;
+  const rect = targetEl.getBoundingClientRect();
+  const frame = $('.game-frame').getBoundingClientRect();
+  const finger = $('#guide-finger');
+  finger.style.left = (rect.left - frame.left + rect.width / 2 - 18 + offsetX) + 'px';
+  finger.style.top  = (rect.top  - frame.top  + offsetY) + 'px';
+  finger.style.display = 'block';
+}
+function hideGuideFinger() {
+  $('#guide-finger').style.display = 'none';
+}
+
+function resetIdleTimer() {
+  clearTimeout(state.idleTimer);
+  state.idleTimer = setTimeout(() => triggerIdleHint(), IDLE_HINT_MS);
+}
+
+function triggerIdleHint() {
+  // Each screen registers its own idle hint via `state._currentIdleHint`
+  if (typeof state._currentIdleHint === 'function') state._currentIdleHint();
+}
+
+function setIdleHint(fn) {
+  state._currentIdleHint = fn;
+  resetIdleTimer();
+}
+
+function shake(el, ms = 200) {
+  el.classList.add('shake');
+  setTimeout(() => el.classList.remove('shake'), ms);
+}
+
+function spawnParticles(layer, count = 30) {
+  const symbols = ['✨','⭐','💖','🌟','💕'];
+  for (let i = 0; i < count; i++) {
+    const p = document.createElement('div');
+    p.className = 'particle';
+    p.textContent = symbols[Math.floor(Math.random() * symbols.length)];
+    p.style.left = Math.random() * 100 + '%';
+    p.style.top  = (60 + Math.random() * 40) + '%';
+    p.style.animationDelay = (Math.random() * 0.5) + 's';
+    layer.appendChild(p);
+    setTimeout(() => p.remove(), 2500);
+  }
+}
+
+// ============================================================
+// CHARACTER PICK
+// ============================================================
+function refreshGuideUi() {
+  $('#guide-avatar-img').src = state.guideSrc;
+  $('#guide-img').src = state.guideSrc;
+  $('#start-character-img').src = state.guideSrc;
+}
+
+function openCharacterModal() {
+  const modal = $('#modal-character');
+  const input = $('#character-input');
+  input.value = '';
+  modal.classList.add('active');
+  setTimeout(() => input.focus(), 100);
+}
+function closeCharacterModal() {
+  $('#modal-character').classList.remove('active');
+}
+function tryChangeGuide() {
+  const rawInput = $('#character-input').value;
+  // Strip all whitespace (incl. tabs, full-width spaces, internal spaces)
+  // so '하츄 핑', ' 하츄핑 ', '하 츄 핑' all match '하츄핑'.
+  const key = rawInput.replace(/\s+/g, '');
+  if (!key) { closeCharacterModal(); return; }
+  if (TEENIEPINGS[key]) { applyGuide(key); return; }
+  const withSuffix = key.endsWith('핑') ? key : key + '핑';
+  if (TEENIEPINGS[withSuffix]) { applyGuide(withSuffix); return; }
+  // partial match (substring) — also strip whitespace from registered names just in case
+  const found = Object.keys(TEENIEPINGS).find(n => n.includes(key));
+  if (found) { applyGuide(found); return; }
+  // not found
+  closeCharacterModal();
+  say(`'${rawInput.trim()}' 친구는 아직 못 찾았어! 하츄핑이랑 같이 놀자!`);
+  setTimeout(hideBubble, 2500);
+}
+function applyGuide(name) {
+  state.guideName = name;
+  state.guideSrc = TEENIEPINGS[name];
+  refreshGuideUi();
+  closeCharacterModal();
+  say(`안녕! 나는 ${name}이야!`);
+  setTimeout(hideBubble, 2500);
+  playGuideGreeting();
+}
+
+// ============================================================
+// HOME
+// ============================================================
+function openHomeModal() {
+  if (state.currentScreen === 'screen-start') return;
+  $('#modal-home').classList.add('active');
+}
+function closeHomeModal() {
+  $('#modal-home').classList.remove('active');
+}
+function goHome() {
+  closeHomeModal();
+  state.currentDessert = null;
+  state.selectedIngredients = [];
+  state.placedToppings = [];
+  pickRandomBackground();
+  showScreen('screen-start');
+  playGuideGreeting();
+}
+
+// ============================================================
+// SCREEN: START
+// ============================================================
+function setupStart() {
+  $('#start-btn').addEventListener('click', () => {
+    getAudioCtx(); // unlock audio on first user gesture
+    Sounds.glide();
+    showScreen('screen-dessert-select');
+    setupDessertSelect();
+  });
+
+  $('#collection-btn').addEventListener('click', () => {
+    getAudioCtx();
+    Sounds.pop();
+    renderCollection();
+    showScreen('screen-collection');
+  });
+
+  $('#collection-back-btn').addEventListener('click', () => {
+    Sounds.tap();
+    showScreen('screen-start');
+    setIdleHint(() => showGuideFinger($('#start-btn')));
+  });
+
+  $('#guide-avatar-btn').addEventListener('click', openCharacterModal);
+  $('#home-btn').addEventListener('click', openHomeModal);
+
+  $('#character-cancel').addEventListener('click', closeCharacterModal);
+  $('#character-confirm').addEventListener('click', tryChangeGuide);
+  $('#character-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') tryChangeGuide();
+  });
+
+  $('#home-cancel').addEventListener('click', closeHomeModal);
+  $('#home-confirm').addEventListener('click', goHome);
+
+  setIdleHint(() => showGuideFinger($('#start-btn')));
+}
+
+function renderCollection() {
+  const grid = $('#collection-grid');
+  grid.innerHTML = '';
+  let totalCount = 0;
+  let madeKeys = 0;
+  const totalDesserts = Object.keys(DESSERTS).length;
+  Object.entries(DESSERTS).forEach(([key, d]) => {
+    const stats = getCollectionStats(key);
+    if (stats.count > 0) madeKeys++;
+    totalCount += stats.count;
+    const card = document.createElement('div');
+    card.className = 'collection-card' + (stats.count === 0 ? ' locked' : '');
+    const statText = stats.count > 0
+      ? `${stats.count}회 · ${'⭐'.repeat(stats.bestStars)}`
+      : '아직 안 만들었어';
+    card.innerHTML = `
+      <img src="${d.finalImg}" alt="${d.name}" onerror="this.style.opacity='0.2'" />
+      <div class="name">${stats.count > 0 ? d.name : '???'}</div>
+      <div class="stats">${statText}</div>
+    `;
+    grid.appendChild(card);
+  });
+  $('#collection-summary').textContent =
+    `${madeKeys}/${totalDesserts}개 발견 · 총 ${totalCount}개 만들었어!`;
+}
+
+// ============================================================
+// GUIDE GREETING (per-character audio file)
+// ============================================================
+const GUIDE_GREETINGS = {
+  '하츄핑': 'audio_assets/하츄핑/하츄핑 첫 인사.m4a'
+};
+let _greetingAudio = null;
+function playGuideGreeting() {
+  const src = GUIDE_GREETINGS[state.guideName];
+  if (!src) return;
+  if (!_greetingAudio || _greetingAudio.dataset.guide !== state.guideName) {
+    _greetingAudio = new Audio(encodeURI(src));
+    _greetingAudio.preload = 'auto';
+    _greetingAudio.dataset.guide = state.guideName;
+  }
+  try {
+    _greetingAudio.currentTime = 0;
+    const p = _greetingAudio.play();
+    if (p && p.catch) p.catch(() => {});
+  } catch (e) {}
+}
+
+// ============================================================
+// SOUND (Web Audio API — 자산 없이 합성)
+// ============================================================
+let audioCtx = null;
+let soundEnabled = true;
+function getAudioCtx() {
+  if (!audioCtx) {
+    try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+    catch (e) { soundEnabled = false; }
+  }
+  if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+  return audioCtx;
+}
+function playTone(opts) {
+  if (!soundEnabled) return;
+  const ctx = getAudioCtx();
+  if (!ctx) return;
+  const { freq = 440, duration = 0.15, type = 'sine', volume = 0.25, slide = null, attack = 0.005 } = opts;
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.connect(gain); gain.connect(ctx.destination);
+  osc.type = type;
+  osc.frequency.value = freq;
+  if (slide) osc.frequency.linearRampToValueAtTime(slide, ctx.currentTime + duration);
+  const t = ctx.currentTime;
+  gain.gain.setValueAtTime(0, t);
+  gain.gain.linearRampToValueAtTime(volume, t + attack);
+  gain.gain.exponentialRampToValueAtTime(0.001, t + duration);
+  osc.start(t);
+  osc.stop(t + duration + 0.05);
+}
+const Sounds = {
+  tap:   () => playTone({ freq: 1200, duration: 0.06, type: 'sine', volume: 0.15 }),
+  pop:   () => playTone({ freq: 800,  duration: 0.1,  type: 'sine', volume: 0.2 }),
+  drop:  () => playTone({ freq: 600,  duration: 0.25, type: 'sine', slide: 200, volume: 0.3 }),
+  mix:   () => playTone({ freq: 250 + Math.random() * 100, duration: 0.12, type: 'square', volume: 0.08 }),
+  bake:  () => {
+    playTone({ freq: 80, duration: 1.5, type: 'sawtooth', volume: 0.04 });
+    setTimeout(() => playTone({ freq: 1400, duration: 0.3, type: 'sine', slide: 900, volume: 0.25 }), 1500);
+  },
+  star:  () => playTone({ freq: 1200, duration: 0.4, type: 'sine', slide: 2000, volume: 0.3 }),
+  cheer: () => {
+    [523, 659, 784, 1047, 1319].forEach((f, i) => {
+      setTimeout(() => playTone({ freq: f, duration: 0.22, type: 'sine', volume: 0.2 }), i * 90);
+    });
+  },
+  error: () => playTone({ freq: 180, duration: 0.18, type: 'sawtooth', volume: 0.12 }),
+  glide: () => {
+    const ctx = getAudioCtx();
+    if (!ctx) return;
+    [400, 600, 800].forEach((f, i) => {
+      setTimeout(() => playTone({ freq: f, duration: 0.1, type: 'sine', volume: 0.15 }), i * 80);
+    });
+  }
+};
+
+// ============================================================
+// COLLECTION (localStorage) + STAR TIER
+// ============================================================
+const COLLECTION_KEY = 'teenieping_collection_v1';
+function loadCollection() {
+  try {
+    const raw = localStorage.getItem(COLLECTION_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch (e) { return {}; }
+}
+function saveCollection(data) {
+  try { localStorage.setItem(COLLECTION_KEY, JSON.stringify(data)); } catch (e) {}
+}
+function getCollectionStats(dessertKey) {
+  const c = loadCollection();
+  return c[dessertKey] || { count: 0, bestStars: 0, lastPlayed: null };
+}
+function recordPlay(dessertKey, stars) {
+  const c = loadCollection();
+  const cur = c[dessertKey] || { count: 0, bestStars: 0, lastPlayed: null };
+  cur.count++;
+  cur.bestStars = Math.max(cur.bestStars, stars);
+  cur.lastPlayed = Date.now();
+  c[dessertKey] = cur;
+  saveCollection(c);
+}
+function calculateStars(toppingCount) {
+  if (toppingCount <= 2) return 1;
+  if (toppingCount <= 5) return 2;
+  return 3;
+}
+
+// ============================================================
+// SCREEN: DESSERT SELECT
+// ============================================================
+function setupDessertSelect() {
+  const grid = $('#dessert-grid');
+  grid.innerHTML = '';
+  Object.entries(DESSERTS).forEach(([key, d]) => {
+    const card = document.createElement('div');
+    card.className = 'dessert-card';
+    card.dataset.dessert = key;
+    // Accessibility: role + keyboard support so it's recognised as a selectable button
+    card.setAttribute('role', 'button');
+    card.setAttribute('tabindex', '0');
+    card.setAttribute('aria-label', `${d.name} 만들기`);
+    const stats = getCollectionStats(key);
+    const playBadge = stats.count > 0 ? `<div class="play-count" aria-hidden="true">${stats.count}회</div>` : '';
+    const starBadge = stats.bestStars > 0 ? `<div class="best-stars" aria-label="최고 ${stats.bestStars}점">${'⭐'.repeat(stats.bestStars)}</div>` : '';
+    card.innerHTML = `
+      ${playBadge}
+      ${starBadge}
+      <img class="dessert-img" src="${d.finalImg}" alt="" />
+      <div class="name">${d.name}</div>
+    `;
+    const activate = () => {
+      Sounds.pop();
+      state.currentDessert = key;
+      state.selectedIngredients = [];
+      state.placedToppings = [];
+      startIngredientsScreen();
+    };
+    card.onclick = activate;
+    card.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        activate();
+      }
+    });
+    grid.appendChild(card);
+  });
+  setIdleHint(() => {
+    const first = $('#dessert-grid .dessert-card');
+    if (first) showGuideFinger(first);
+  });
+}
+
+// ============================================================
+// SCREEN: INGREDIENTS
+// ============================================================
+function startIngredientsScreen() {
+  showScreen('screen-ingredients');
+  const dessert = DESSERTS[state.currentDessert];
+  const palette = $('#ingredient-palette');
+  palette.innerHTML = '';
+  const inBowl = $('#ingredients-in-bowl');
+  inBowl.innerHTML = '';
+
+  // Build palette: dessert ingredients + 2 distractors
+  const allKeys = Object.keys(INGREDIENTS).filter(k => k !== 'choco_chip' && k !== 'cream');
+  const distractors = allKeys.filter(k => !dessert.ingredients.includes(k)).slice(0, 2);
+  const paletteKeys = [...dessert.ingredients, ...distractors];
+  // shuffle
+  paletteKeys.sort(() => Math.random() - 0.5);
+
+  paletteKeys.forEach(k => {
+    const btn = document.createElement('button');
+    btn.className = 'ingredient-btn';
+    btn.dataset.ing = k;
+    const ing = INGREDIENTS[k];
+    btn.innerHTML = ing.img
+      ? `<img class="ing-icon" src="${ing.img}" alt="${ing.name}" onerror="this.replaceWith(Object.assign(document.createElement('span'),{textContent:'${ing.emoji}',style:'font-size:36px'}))" /><span class="label">${ing.name}</span>`
+      : `<span>${ing.emoji}</span><span class="label">${ing.name}</span>`;
+    btn.onclick = () => onIngredientTap(k, btn);
+    palette.appendChild(btn);
+  });
+
+  renderProgressDots();
+  const firstIng = INGREDIENTS[dessert.ingredients[0]].name;
+  say(`${dessert.name}를 만들어보자! 먼저 ${firstIng}부터 골라줘!`);
+
+  setIdleHint(() => {
+    const dessert = DESSERTS[state.currentDessert];
+    const next = dessert.ingredients[state.selectedIngredients.length];
+    if (!next) return;
+    const btn = palette.querySelector(`[data-ing="${next}"]`);
+    if (btn) {
+      btn.classList.add('glow');
+      showGuideFinger(btn);
+    }
+  });
+}
+
+function renderProgressDots() {
+  const dots = $('#progress-dots');
+  const total = DESSERTS[state.currentDessert].ingredients.length;
+  dots.innerHTML = '';
+  for (let i = 0; i < total; i++) {
+    const d = document.createElement('div');
+    d.className = 'dot' + (i < state.selectedIngredients.length ? ' done' : '');
+    dots.appendChild(d);
+  }
+}
+
+function onIngredientTap(ingKey, btn) {
+  const dessert = DESSERTS[state.currentDessert];
+  const expected = dessert.ingredients[state.selectedIngredients.length];
+  if (ingKey !== expected) {
+    Sounds.error();
+    shake(btn);
+    say('이건 다음에 써보자!');
+    setTimeout(hideBubble, 1500);
+    return;
+  }
+  // correct
+  Sounds.drop();
+  state.selectedIngredients.push(ingKey);
+  btn.classList.add('used');
+  btn.classList.remove('glow');
+  hideGuideFinger();
+
+  // Drop animation in bowl
+  const ingData = INGREDIENTS[ingKey];
+  let drop;
+  if (ingData.img) {
+    drop = document.createElement('img');
+    drop.src = ingData.img;
+    drop.alt = ingData.name;
+    drop.className = 'ing-drop';
+    drop.onerror = () => {
+      const span = document.createElement('span');
+      span.textContent = ingData.emoji;
+      drop.replaceWith(span);
+    };
+  } else {
+    drop = document.createElement('span');
+    drop.textContent = ingData.emoji;
+  }
+  $('#ingredients-in-bowl').appendChild(drop);
+
+  renderProgressDots();
+
+  if (state.selectedIngredients.length === dessert.ingredients.length) {
+    say('잘했어! 이제 섞어보자!');
+    setTimeout(() => {
+      hideBubble();
+      startMixScreen();
+    }, 1400);
+  } else {
+    const nextKey = dessert.ingredients[state.selectedIngredients.length];
+    say(`${INGREDIENTS[nextKey].name}을(를) 골라줘!`);
+    setIdleHint(() => {
+      const next = $(`#ingredient-palette [data-ing="${nextKey}"]`);
+      if (next) {
+        next.classList.add('glow');
+        showGuideFinger(next);
+      }
+    });
+  }
+}
+
+// ============================================================
+// SCREEN: MIX (repeat tap)
+// ============================================================
+function startMixScreen() {
+  showScreen('screen-mix');
+  const stack = $('#mix-stack');
+  const gauge = $('#mix-gauge');
+  let count = 0;
+  gauge.style.width = '0%';
+  const dessert = DESSERTS[state.currentDessert];
+  const mixVerb = dessert.skipBake
+    ? '마시멜로우가 살살 녹게 그릇을 톡톡 저어줘!'
+    : '그릇을 톡톡 눌러서 잘 섞어줘! 5번이면 충분해~';
+  say(mixVerb);
+
+  stack.onclick = () => {
+    count++;
+    Sounds.mix();
+    stack.classList.add('shaking');
+    setTimeout(() => stack.classList.remove('shaking'), 300);
+    gauge.style.width = (count / REPEAT_TAPS_REQUIRED) * 100 + '%';
+    if (count >= REPEAT_TAPS_REQUIRED) {
+      Sounds.pop();
+      stack.onclick = null;
+      hideBubble();
+      setTimeout(() => proceedAfterMix(), 600);
+    }
+  };
+
+  setIdleHint(() => showGuideFinger(stack));
+}
+
+function proceedAfterMix() {
+  const dessert = DESSERTS[state.currentDessert];
+  if (dessert.needChocochip) return startAddChocochipScreen();
+  if (dessert.needFilling) return startAddFillingScreen();
+  if (dessert.skipBake) return proceedAfterBake();
+  return startBakeScreen();
+}
+
+function proceedAfterBake() {
+  const dessert = DESSERTS[state.currentDessert];
+  if (dessert.needCool) return startCoolScreen();
+  if (dessert.needCoating) return startCoatingScreen();
+  if (dessert.needCream) return startCreamScreen();
+  if (dessert.addonStep) return startAddAddonScreen();
+  return startDecorateScreen();
+}
+
+// ============================================================
+// SCREEN: ADD FILLING (dubai cookie — multi-ingredient mini step)
+// ============================================================
+function startAddFillingScreen() {
+  showScreen('screen-add-filling');
+  const dessert = DESSERTS[state.currentDessert];
+  const palette = $('#filling-palette');
+  const inBowl = $('#filling-in-bowl');
+  palette.innerHTML = '';
+  inBowl.innerHTML = '';
+  state.fillingAdded = [];
+
+  const items = dessert.fillingItems || [];
+  // shuffle palette
+  const shuffled = [...items].sort(() => Math.random() - 0.5);
+  shuffled.forEach(k => {
+    const ing = INGREDIENTS[k];
+    const btn = document.createElement('button');
+    btn.className = 'ingredient-btn';
+    btn.dataset.ing = k;
+    btn.innerHTML = ing.img
+      ? `<img class="ing-icon" src="${ing.img}" alt="${ing.name}" onerror="this.replaceWith(Object.assign(document.createElement('span'),{textContent:'${ing.emoji}',style:'font-size:36px'}))" /><span class="label">${ing.name}</span>`
+      : `<span>${ing.emoji}</span><span class="label">${ing.name}</span>`;
+    btn.onclick = () => onFillingTap(k, btn);
+    palette.appendChild(btn);
+  });
+
+  const firstName = INGREDIENTS[items[0]].name;
+  say(`이제 필링을 만들어보자! 먼저 ${firstName} 같은 재료들을 차례로 그릇에 넣어줄까?`);
+
+  setIdleHint(() => {
+    const next = palette.querySelector('.ingredient-btn:not(.used)');
+    if (next) showGuideFinger(next);
+  });
+}
+
+function onFillingTap(ingKey, btn) {
+  if (btn.classList.contains('used')) return;
+  Sounds.drop();
+  state.fillingAdded.push(ingKey);
+  btn.classList.add('used');
+
+  const ingData = INGREDIENTS[ingKey];
+  let drop;
+  if (ingData.img) {
+    drop = document.createElement('img');
+    drop.src = ingData.img;
+    drop.className = 'ing-drop';
+    drop.onerror = () => {
+      const span = document.createElement('span');
+      span.textContent = ingData.emoji;
+      drop.replaceWith(span);
+    };
+  } else {
+    drop = document.createElement('span');
+    drop.textContent = ingData.emoji;
+  }
+  $('#filling-in-bowl').appendChild(drop);
+
+  const dessert = DESSERTS[state.currentDessert];
+  const total = dessert.fillingItems.length;
+  const remaining = total - state.fillingAdded.length;
+
+  if (remaining === 0) {
+    say('와! 피스타치오 카다이프 필링 완성! 이제 마시멜로우 반죽으로 감싸자!');
+    setTimeout(() => {
+      hideBubble();
+      proceedAfterFilling();
+    }, 1800);
+  } else {
+    const nextKey = dessert.fillingItems.find(k => !state.fillingAdded.includes(k));
+    say(`좋아! 이제 ${INGREDIENTS[nextKey].name} 차례야!`);
+    setIdleHint(() => {
+      const next = $(`#filling-palette [data-ing="${nextKey}"]`);
+      if (next) showGuideFinger(next);
+    });
+  }
+}
+
+function proceedAfterFilling() {
+  const dessert = DESSERTS[state.currentDessert];
+  if (dessert.needCoating) return startCoatingScreen();
+  if (dessert.needCream) return startCreamScreen();
+  if (dessert.addonStep) return startAddAddonScreen();
+  return startDecorateScreen();
+}
+
+// ============================================================
+// SCREEN: COATING (cocoa powder dusting)
+// ============================================================
+function startCoatingScreen() {
+  showScreen('screen-coating');
+  const dessert = DESSERTS[state.currentDessert];
+  const base = $('#coating-base');
+  base.src = dessert.fillingResultImg || dessert.creamBaseImg || dessert.finalImg;
+  base.style.filter = '';
+
+  const btn = $('#coating-btn');
+  const gauge = $('#coating-gauge');
+  const dustLayer = $('#cocoa-dust-layer');
+  let count = 0;
+  gauge.style.width = '0%';
+  dustLayer.innerHTML = '';
+
+  say('이제 코코아 가루를 뿌려서 겉을 덮어주자! 톡톡 두드리면 가루가 살살 떨어져!');
+
+  btn.onclick = () => {
+    count++;
+    Sounds.tap();
+    // 8 dust particles
+    for (let i = 0; i < 8; i++) {
+      const dust = document.createElement('div');
+      dust.className = 'cocoa-dust';
+      dust.style.left = (40 + Math.random() * 160) + 'px';
+      dust.style.animationDelay = (Math.random() * 0.25) + 's';
+      dustLayer.appendChild(dust);
+      setTimeout(() => dust.remove(), 1100);
+    }
+    base.style.filter = `brightness(${Math.max(0.55, 1 - count * 0.09)}) sepia(${count * 0.15})`;
+    gauge.style.width = (count / REPEAT_TAPS_REQUIRED) * 100 + '%';
+
+    if (count >= REPEAT_TAPS_REQUIRED) {
+      btn.onclick = null;
+      hideBubble();
+      Sounds.pop();
+      setTimeout(() => say('우와~ 진짜 두바이 쫀득쿠키처럼 됐어!'), 200);
+      setTimeout(() => {
+        hideBubble();
+        if (dessert.addonStep) startAddAddonScreen();
+        else startDecorateScreen();
+      }, 1800);
+    }
+  };
+
+  setIdleHint(() => showGuideFinger(btn));
+}
+
+// ============================================================
+// SCREEN: ADD CHOCOCHIP (cookie only)
+// ============================================================
+function startAddChocochipScreen() {
+  showScreen('screen-add-chocochip');
+  const btn = $('#add-chocochip-btn');
+  const pile = $('#chocochip-pile');
+  pile.textContent = '';
+  say('이제 달콤한 초코칩을 듬뿍 넣어줘! 톡!');
+
+  btn.onclick = () => {
+    Sounds.drop();
+    btn.classList.add('used');
+    const chipSrc = INGREDIENTS.choco_chip.img;
+    pile.innerHTML = chipSrc
+      ? `<img src="${chipSrc}" style="width:120px;height:120px;object-fit:contain;image-rendering:pixelated;" alt="초코칩" onerror="this.replaceWith(Object.assign(document.createElement('span'),{textContent:'🍫🍫🍫'}))" />`
+      : '🍫🍫🍫';
+    pile.style.animation = 'drop 0.5s ease-out';
+    btn.onclick = null;
+    setTimeout(() => {
+      hideBubble();
+      startBakeScreen();
+    }, 1000);
+  };
+
+  setIdleHint(() => showGuideFinger(btn));
+}
+
+// ============================================================
+// SCREEN: BAKE (auto)
+// ============================================================
+function startBakeScreen() {
+  showScreen('screen-bake');
+  const oven = $('#oven-img');
+  const wrap = $('#oven-wrap');
+  say('이제 오븐에 넣어 노릇노릇 구워보자! 오븐을 눌러봐~');
+
+  oven.onclick = () => {
+    Sounds.bake();
+    oven.onclick = null;
+    wrap.classList.add('cooking');
+    hideBubble();
+    setTimeout(() => {
+      wrap.classList.remove('cooking');
+      proceedAfterBake();
+    }, AUTO_DURATION_MS);
+  };
+
+  setIdleHint(() => showGuideFinger(oven));
+}
+
+// ============================================================
+// SCREEN: COOL (cheesecake — tap fridge then auto wait)
+// ============================================================
+function startCoolScreen() {
+  showScreen('screen-cool');
+  const fridge = $('#fridge-img');
+  const wrap = $('#fridge-wrap');
+  say('치즈케이크는 차갑게 식혀야 더 맛있어! 냉장고를 톡 눌러줘~');
+
+  fridge.onclick = () => {
+    Sounds.glide();
+    fridge.onclick = null;
+    wrap.classList.add('cooling');
+    hideBubble();
+    setTimeout(() => {
+      wrap.classList.remove('cooling');
+      const dessert = DESSERTS[state.currentDessert];
+      if (dessert.needCream) startCreamScreen();
+      else startDecorateScreen();
+    }, AUTO_DURATION_MS);
+  };
+
+  setIdleHint(() => showGuideFinger(fridge));
+}
+
+// ============================================================
+// SCREEN: CREAM (cake only, repeat tap)
+// ============================================================
+function startCreamScreen() {
+  showScreen('screen-cream');
+  const stack = $('#cream-stack');
+  const bag = $('#piping-bag');
+  const gauge = $('#cream-gauge');
+  const dessert = DESSERTS[state.currentDessert];
+  $('#cake-base').src = dessert.creamBaseImg || dessert.finalImg;
+  $('#cake-base').alt = dessert.name;
+  let count = 0;
+  gauge.style.width = '0%';
+  const verbWord = dessert.creamVerb || '크림';
+  say(`짤주머니로 ${verbWord}을(를) 예쁘게 짜줘! 5번 톡톡~`);
+
+  bag.onclick = () => {
+    count++;
+    Sounds.pop();
+    bag.style.transition = 'transform 0.15s';
+    bag.style.transform = `rotate(${-15 + count * 5}deg)`;
+    setTimeout(() => { bag.style.transform = 'rotate(0)'; }, 150);
+    gauge.style.width = (count / REPEAT_TAPS_REQUIRED) * 100 + '%';
+    if (count >= REPEAT_TAPS_REQUIRED) {
+      bag.onclick = null;
+      hideBubble();
+      setTimeout(() => {
+        if (dessert.addonStep) startAddAddonScreen();
+        else startDecorateScreen();
+      }, 500);
+    }
+  };
+
+  setIdleHint(() => showGuideFinger(bag));
+}
+
+// ============================================================
+// SCREEN: ADD ADDON (e.g. strawberries on cream)
+// ============================================================
+function startAddAddonScreen() {
+  showScreen('screen-add-addon');
+  const dessert = DESSERTS[state.currentDessert];
+  const addon = dessert.addonStep;
+  if (!addon) { startDecorateScreen(); return; }
+
+  // Base = cream-applied bread (creamBaseImg) so user sees their cream stay
+  $('#addon-base').src = dessert.creamBaseImg || dessert.finalImg;
+  $('#addon-base').alt = dessert.name;
+  $('#addon-icon-img').src = addon.img;
+
+  const canvas = $('#addon-canvas');
+  // Clear previous addons
+  canvas.querySelectorAll('.placed-addon').forEach(el => el.remove());
+
+  const gauge = $('#addon-gauge');
+  gauge.style.width = '0%';
+  let count = 0;
+  const required = addon.requiredCount || 5;
+
+  say(required === 1
+    ? `이제 빨갛고 예쁜 ${addon.label} 1개를 살짝 올려줘!`
+    : `${addon.label}을(를) ${required}개 차례차례 올려줘!`);
+
+  canvas.onclick = e => {
+    if (count >= required) return;
+    Sounds.tap();
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const item = document.createElement('img');
+    item.src = addon.img;
+    item.className = 'placed-addon';
+    item.style.left = x + 'px';
+    item.style.top = y + 'px';
+    canvas.appendChild(item);
+    count++;
+    gauge.style.width = (count / required) * 100 + '%';
+    if (count >= required) {
+      Sounds.pop();
+      canvas.onclick = null;
+      hideBubble();
+      setTimeout(() => startDecorateScreen(), 700);
+    }
+  };
+
+  setIdleHint(() => showGuideFinger(canvas));
+}
+
+// ============================================================
+// SCREEN: DECORATE (free placement)
+// ============================================================
+function startDecorateScreen() {
+  showScreen('screen-decorate');
+  const dessert = DESSERTS[state.currentDessert];
+  const canvas = $('#decorate-canvas');
+  const palette = $('#topping-palette');
+  state.placedToppings = [];
+  state.selectedTopping = null;
+
+  // Set base dessert image
+  $('#decorate-base').src = dessert.finalImg;
+
+  // Clear previous toppings
+  $$('#decorate-canvas .placed-topping').forEach(el => el.remove());
+
+  // Build palette
+  palette.innerHTML = '';
+  dessert.toppings.forEach(t => {
+    const b = document.createElement('button');
+    b.className = 'topping-btn';
+    b.textContent = TOPPING_EMOJI[t];
+    b.dataset.topping = t;
+    b.onclick = () => {
+      $$('.topping-btn').forEach(x => x.classList.remove('selected'));
+      b.classList.add('selected');
+      state.selectedTopping = t;
+      hideBubble();
+    };
+    palette.appendChild(b);
+  });
+
+  // Auto-select first topping
+  const firstBtn = palette.querySelector('.topping-btn');
+  if (firstBtn) {
+    firstBtn.classList.add('selected');
+    state.selectedTopping = dessert.toppings[0];
+  }
+
+  // Canvas tap = place topping
+  canvas.onclick = e => {
+    if (!state.selectedTopping) return;
+    Sounds.tap();
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    placeTopping(canvas, x, y, state.selectedTopping, true);
+  };
+
+  $('#undo-btn').onclick = () => {
+    const last = state.placedToppings.pop();
+    if (last && last.el) last.el.remove();
+  };
+
+  $('#finish-btn').onclick = () => {
+    // Gentle nudge: encourage at least one topping (game design — decoration is the core action)
+    if (state.placedToppings.length === 0) {
+      Sounds.error();
+      const palette = $('#topping-palette');
+      const firstTopping = palette && palette.querySelector('.topping-btn');
+      say('잠깐! 토핑을 하나라도 올려보자~ 더 예뻐질 거야!');
+      if (firstTopping) showGuideFinger(firstTopping);
+      setTimeout(hideBubble, 2800);
+      return;
+    }
+    canvas.onclick = null;
+    startCompleteScreen();
+  };
+
+  say(`마지막이야! 토핑을 고르고 ${dessert.name} 위를 톡톡 눌러서 마음대로 꾸며봐~`);
+
+  setIdleHint(() => {
+    if (state.placedToppings.length === 0) {
+      showGuideFinger($('#finish-btn'));
+    }
+  });
+}
+
+function placeTopping(canvas, x, y, type, recordRel) {
+  const el = document.createElement('div');
+  el.className = 'placed-topping';
+  el.textContent = TOPPING_EMOJI[type];
+  el.style.left = x + 'px';
+  el.style.top  = y + 'px';
+  canvas.appendChild(el);
+  // Record relative for replay
+  const rect = canvas.getBoundingClientRect();
+  state.placedToppings.push({
+    el,
+    relX: x / rect.width,
+    relY: y / rect.height,
+    type
+  });
+}
+
+// ============================================================
+// SCREEN: COMPLETE
+// ============================================================
+function startCompleteScreen() {
+  showScreen('screen-complete');
+  const dessert = DESSERTS[state.currentDessert];
+  const wrap = $('#final-canvas-wrap');
+  // Clear previous
+  $$('#final-canvas-wrap .placed-topping').forEach(el => el.remove());
+  $('#final-img').src = dessert.finalImg;
+  $('#final-img').style.display = 'block';
+
+  // Replay placed toppings (scaled to final canvas size)
+  setTimeout(() => {
+    const finalRect = wrap.getBoundingClientRect();
+    state.placedToppings.forEach(t => {
+      const el = document.createElement('div');
+      el.className = 'placed-topping';
+      el.textContent = TOPPING_EMOJI[t.type];
+      el.style.left = (t.relX * finalRect.width) + 'px';
+      el.style.top  = (t.relY * finalRect.height) + 'px';
+      el.style.fontSize = '28px';
+      wrap.appendChild(el);
+    });
+  }, 50);
+
+  // Reset stars
+  ['#star-1','#star-2','#star-3'].forEach(s => {
+    $(s).classList.remove('show');
+    $(s).style.opacity = '0.2';
+    $(s).style.filter = 'grayscale(0.7)';
+  });
+
+  // Star tier (1~3 by topping count)
+  const earnedStars = calculateStars(state.placedToppings.length);
+  recordPlay(state.currentDessert, earnedStars);
+
+  // Particles
+  const layer = $('#particle-layer');
+  layer.innerHTML = '';
+  spawnParticles(layer, 28);
+  Sounds.cheer();
+
+  // Stars sequential — only earned ones light up
+  for (let i = 1; i <= 3; i++) {
+    if (i <= earnedStars) {
+      const el = $(`#star-${i}`);
+      setTimeout(() => {
+        el.style.opacity = '';
+        el.style.filter = '';
+        el.classList.add('show');
+        Sounds.star();
+        if (i === earnedStars && i === 3) spawnParticles(layer, 16);
+      }, 400 + (i - 1) * 700);
+    }
+  }
+
+  // Praise (more enthusiastic for higher stars)
+  const praiseTier = earnedStars === 3
+    ? ['최고야! 너무 예뻐!', '와아~ 진짜 멋져!', '완벽해! 사랑해!', '대박! 천재야!']
+    : earnedStars === 2
+      ? ['예쁘게 만들었네!', '잘했어!', '맛있겠다!', '또 만들어줘!']
+      : ['고마워!', '귀엽다!', '잘했어!'];
+  $('#praise-text').textContent = praiseTier[Math.floor(Math.random() * praiseTier.length)];
+
+  // Buttons
+  $('#share-btn').onclick = shareDessert;
+  $('#again-same-btn').onclick = () => {
+    Sounds.pop();
+    state.selectedIngredients = [];
+    state.placedToppings = [];
+    startIngredientsScreen();
+  };
+  $('#again-other-btn').onclick = () => {
+    Sounds.pop();
+    state.currentDessert = null;
+    state.selectedIngredients = [];
+    state.placedToppings = [];
+    showScreen('screen-dessert-select');
+    setupDessertSelect();
+  };
+  $('#again-home-btn').onclick = goHome;
+}
+
+// ============================================================
+// SAVE / SHARE — Canvas composite of finished dessert
+// ============================================================
+// Load image via fetch + Blob URL. This prevents canvas tainting on iOS Safari
+// and some Android WebViews where img.src directly to a same-origin URL can
+// still cause toBlob/toDataURL to throw SecurityError.
+async function loadImage(src) {
+  return new Promise(resolve => {
+    let done = false;
+    const finish = (v) => { if (!done) { done = true; resolve(v); } };
+    const timer = setTimeout(() => finish(null), 8000);
+
+    fetch(src)
+      .then(r => {
+        if (!r.ok) throw new Error('fetch ' + r.status);
+        return r.blob();
+      })
+      .then(blob => {
+        const url = URL.createObjectURL(blob);
+        const img = new Image();
+        img.onload = () => {
+          clearTimeout(timer);
+          URL.revokeObjectURL(url);
+          finish(img.naturalWidth > 0 ? img : null);
+        };
+        img.onerror = () => {
+          clearTimeout(timer);
+          URL.revokeObjectURL(url);
+          finish(null);
+        };
+        img.src = url;
+      })
+      .catch(() => {
+        // Fallback: direct img load (won't taint same-origin in browsers
+        // that already work, just won't help iOS but at least may render).
+        const img = new Image();
+        img.onload = () => {
+          clearTimeout(timer);
+          finish(img.naturalWidth > 0 ? img : null);
+        };
+        img.onerror = () => { clearTimeout(timer); finish(null); };
+        img.src = src;
+      });
+  });
+}
+
+async function captureCompletedDessert() {
+  const dessert = DESSERTS[state.currentDessert];
+  const W = 600, H = 720;
+  const canvas = document.createElement('canvas');
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext('2d');
+
+  // Background gradient
+  const grad = ctx.createLinearGradient(0, 0, 0, H);
+  grad.addColorStop(0, '#FFF5F7');
+  grad.addColorStop(1, '#FFFAF0');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, W, H);
+
+  // Decorative dots border
+  ctx.fillStyle = 'rgba(255, 143, 171, 0.3)';
+  for (let i = 0; i < 30; i++) {
+    ctx.beginPath();
+    ctx.arc(Math.random() * W, Math.random() * H, 4 + Math.random() * 4, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // Title
+  ctx.font = 'bold 38px "Apple SD Gothic Neo", "Malgun Gothic", sans-serif';
+  ctx.fillStyle = '#E96A8A';
+  ctx.textAlign = 'center';
+  ctx.fillText(dessert.name, W/2, 80);
+
+  // Stars
+  const stars = calculateStars(state.placedToppings.length);
+  ctx.font = '46px sans-serif';
+  ctx.fillText('⭐'.repeat(stars), W/2, 145);
+
+  // Dessert image area
+  const imgX = (W - 360) / 2;
+  const imgY = 175;
+  const imgSize = 360;
+  const finalImgEl = await loadImage(dessert.finalImg);
+  if (finalImgEl) {
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(finalImgEl, imgX, imgY, imgSize, imgSize);
+  } else {
+    ctx.fillStyle = 'rgba(255, 143, 171, 0.18)';
+    ctx.fillRect(imgX, imgY, imgSize, imgSize);
+    ctx.fillStyle = '#E96A8A';
+    ctx.font = 'bold 140px sans-serif';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('🍰', W/2, imgY + imgSize/2);
+    ctx.textBaseline = 'alphabetic';
+  }
+
+  // Toppings overlay (emojis at relative positions)
+  ctx.font = '44px sans-serif';
+  ctx.textBaseline = 'middle';
+  state.placedToppings.forEach(t => {
+    const x = imgX + t.relX * imgSize;
+    const y = imgY + t.relY * imgSize;
+    ctx.fillText(TOPPING_EMOJI[t.type] || '✨', x, y);
+  });
+
+  // Guide character on bottom-left — preserve aspect ratio
+  const guideEl = await loadImage(state.guideSrc);
+  if (guideEl) {
+    const maxBox = 110;
+    const naturalAspect = guideEl.naturalWidth / guideEl.naturalHeight;
+    let drawW, drawH;
+    if (naturalAspect >= 1) {
+      drawW = maxBox;
+      drawH = maxBox / naturalAspect;
+    } else {
+      drawH = maxBox;
+      drawW = maxBox * naturalAspect;
+    }
+    // Anchor: align bottom-left so character feet sit at H-30
+    const baseX = 24;
+    const baseY = H - 30 - drawH;
+    ctx.drawImage(guideEl, baseX, baseY, drawW, drawH);
+  }
+
+  // "made with X" text next to character
+  ctx.textBaseline = 'alphabetic';
+  ctx.textAlign = 'left';
+  ctx.font = 'bold 22px "Apple SD Gothic Neo", sans-serif';
+  ctx.fillStyle = '#5C3A21';
+  ctx.fillText(`${state.guideName}과 함께`, 140, H - 95);
+  ctx.font = '600 18px "Apple SD Gothic Neo", sans-serif';
+  ctx.fillStyle = '#E96A8A';
+  ctx.fillText('맛있는 디저트 완성!', 140, H - 65);
+
+  // Watermark
+  ctx.font = 'bold 16px sans-serif';
+  ctx.fillStyle = '#E96A8A';
+  ctx.textAlign = 'center';
+  ctx.fillText('🌸 둥둥이들과 함께 만듦 🌸', W/2, H - 24);
+
+  return canvas;
+}
+
+async function shareDessert() {
+  Sounds.glide();
+  say('잠깐, 예쁜 사진 만드는 중이야...');
+  let canvas;
+  try {
+    canvas = await captureCompletedDessert();
+  } catch (e) {
+    say('어라? 사진을 만들 수 없었어. 다시 시도해볼래?');
+    setTimeout(hideBubble, 2500);
+    return;
+  }
+
+  const filename = `둥둥이-${DESSERTS[state.currentDessert].name}-${Date.now()}.png`;
+
+  // Try Web Share API (mobile native share sheet)
+  try {
+    const blob = await new Promise((resolve, reject) => {
+      canvas.toBlob(b => b ? resolve(b) : reject(new Error('toBlob failed')), 'image/png');
+    });
+    const file = new File([blob], filename, { type: 'image/png' });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({
+        title: '내가 만든 디저트!',
+        text: '둥둥이들과 함께 만든 디저트야!',
+        files: [file]
+      });
+      say('공유 완료! 멋지다!');
+      Sounds.cheer();
+      setTimeout(hideBubble, 2200);
+      return;
+    }
+  } catch (e) {
+    // user cancelled or share unsupported — fall through to download
+    if (e && e.name === 'AbortError') {
+      hideBubble();
+      return;
+    }
+  }
+
+  // Fallback: open as a viewable image so the user can long-press to save (mobile)
+  // or download directly (desktop).
+  try {
+    const dataURL = canvas.toDataURL('image/png');
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+    if (isMobile) {
+      // Open in new tab where the user can long-press to save
+      const w = window.open('', '_blank');
+      if (w && w.document) {
+        const dessertName = DESSERTS[state.currentDessert].name;
+        w.document.write(`<!DOCTYPE html>
+<html lang="ko"><head><meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>${dessertName}</title>
+<style>
+  body { margin:0; background:#FFF5F7; font-family:'Apple SD Gothic Neo',sans-serif; text-align:center; padding:16px; color:#5C3A21; }
+  h1 { color:#E96A8A; font-size:20px; margin:8px 0 4px; }
+  p { font-size:14px; color:#888; margin:4px 0 12px; }
+  img { max-width:100%; height:auto; border-radius:16px; box-shadow:0 4px 12px rgba(0,0,0,0.15); }
+</style></head><body>
+<h1>📸 ${dessertName}</h1>
+<p>이미지를 <b>꾹 눌러서</b> 사진앱에 저장하세요!</p>
+<img src="${dataURL}" alt="${dessertName}"/>
+</body></html>`);
+        w.document.close();
+        say('새 창에서 이미지를 길게 눌러 저장해봐~');
+      } else {
+        // Popup blocked — try direct download
+        const a = document.createElement('a');
+        a.href = dataURL;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        say('사진 다운로드를 시작했어!');
+      }
+    } else {
+      const a = document.createElement('a');
+      a.href = dataURL;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      say('사진을 저장했어! 갤러리를 확인해봐~');
+    }
+    Sounds.cheer();
+    setTimeout(hideBubble, 2800);
+  } catch (e) {
+    say('이미지 저장이 막혔어. 화면을 캡처해서 저장해줘!');
+    setTimeout(hideBubble, 3000);
+  }
+}
+
+// ============================================================
+// BACKGROUND (random kitchen background)
+// ============================================================
+const KITCHEN_BACKGROUNDS = [
+  'img_assets/Kitchen Interior Backgrounds/kitchen interior background 1.png',
+  'img_assets/Kitchen Interior Backgrounds/kitchen interior background 2.png',
+  'img_assets/Kitchen Interior Backgrounds/kitchen interior background 3.png',
+  'img_assets/Kitchen Interior Backgrounds/kitchen interior background 4.png'
+];
+function pickRandomBackground() {
+  const url = KITCHEN_BACKGROUNDS[Math.floor(Math.random() * KITCHEN_BACKGROUNDS.length)];
+  // encodeURI handles spaces in filenames
+  document.body.style.backgroundImage = `url("${encodeURI(url)}")`;
+}
+
+// ============================================================
+// INIT
+// ============================================================
+function init() {
+  pickRandomBackground();
+  refreshGuideUi();
+  setupStart();
+  // Reset idle on any tap
+  document.addEventListener('click', resetIdleTimer, true);
+  document.addEventListener('touchstart', resetIdleTimer, { passive: true, capture: true });
+  // Play guide greeting on first user gesture (autoplay policy unlock)
+  const onFirstGesture = () => {
+    document.removeEventListener('pointerdown', onFirstGesture, true);
+    document.removeEventListener('touchstart', onFirstGesture, true);
+    if (state.currentScreen === 'screen-start') playGuideGreeting();
+  };
+  document.addEventListener('pointerdown', onFirstGesture, true);
+  document.addEventListener('touchstart', onFirstGesture, true);
+}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+
+</body>
+</html>
