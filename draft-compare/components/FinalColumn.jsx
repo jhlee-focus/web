@@ -98,13 +98,50 @@ function EditableParagraph({ p, index, onRemove, onUpdateText }) {
   );
 }
 
-function FinalColumn({ paragraphs, onRemove, onReorder, onUpdateText, onAddNew, onClear }) {
+function FinalColumn({ paragraphs, onRemove, onReorder, onUpdateText, onAddNew, onClear, onReplaceAllText }) {
   const [dropIndicator, setDropIndicator] = useStateFC({ index: -1, position: null });
   const [isGroupedView, setIsGroupedView] = useStateFC(false);
   const [isClearConfirm, setIsClearConfirm] = useStateFC(false);
+  const [isGroupedEditing, setIsGroupedEditing] = useStateFC(false);
+  const [groupedDraft, setGroupedDraft] = useStateFC('');
   const imageInputRef = useRefFC(null);
+  const groupedTextareaRef = useRefFC(null);
   const I = window.Icon;
   const MR = window.MarkdownRenderer;
+
+  const autosizeGrouped = (el) => {
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = el.scrollHeight + 'px';
+  };
+
+  useEffectFC(() => {
+    if (isGroupedEditing && groupedTextareaRef.current) {
+      autosizeGrouped(groupedTextareaRef.current);
+      groupedTextareaRef.current.focus();
+    }
+  }, [isGroupedEditing]);
+
+  useEffectFC(() => {
+    if (isGroupedEditing) autosizeGrouped(groupedTextareaRef.current);
+  }, [groupedDraft, isGroupedEditing]);
+
+  const commitGroupedEdit = () => {
+    if (!isGroupedEditing) return;
+    if (onReplaceAllText) onReplaceAllText(groupedDraft);
+    setIsGroupedEditing(false);
+  };
+
+  const startGroupedEdit = () => {
+    if (!onReplaceAllText) return;
+    setGroupedDraft(paragraphs.map((p) => p.text).join('\n\n'));
+    setIsGroupedEditing(true);
+  };
+
+  const toggleGroupedView = () => {
+    if (isGroupedView && isGroupedEditing) commitGroupedEdit();
+    setIsGroupedView(!isGroupedView);
+  };
 
   useEffectFC(() => {
     if (paragraphs.length === 0) setIsClearConfirm(false);
@@ -199,7 +236,7 @@ function FinalColumn({ paragraphs, onRemove, onReorder, onUpdateText, onAddNew, 
           <span className="text-xs text-indigo-400 font-medium ml-1">{paragraphs.length}단락</span>
         </div>
         <div className="flex items-center gap-2">
-          <button type="button" onClick={() => setIsGroupedView(!isGroupedView)}
+          <button type="button" onClick={toggleGroupedView}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm active:scale-95 border ${
               isGroupedView ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-indigo-600 border-indigo-200 hover:bg-indigo-50'}`}>
             {isGroupedView ? <I.LayoutList size={14} /> : <I.FileText size={14} />}
@@ -229,10 +266,26 @@ function FinalColumn({ paragraphs, onRemove, onReorder, onUpdateText, onAddNew, 
       <div className="flex-1 overflow-y-auto p-4 lg:p-6 custom-scrollbar bg-slate-50/30">
         <div className="max-w-3xl mx-auto min-h-full pb-20">
           {isGroupedView ? (
-            <div className="bg-white p-8 lg:p-12 rounded-2xl border border-slate-200 shadow-sm">
-              <div className="text-slate-800 leading-relaxed text-sm lg:text-base">
-                {React.createElement(MR, { content: fullCombined || '*원고가 비어있습니다.*' })}
-              </div>
+            <div
+              onClick={() => { if (!isGroupedEditing) startGroupedEdit(); }}
+              className={`bg-white p-8 lg:p-12 rounded-2xl border shadow-sm transition-all ${
+                isGroupedEditing
+                  ? 'border-indigo-400 ring-2 ring-indigo-100'
+                  : 'border-slate-200 cursor-text hover:border-indigo-300'
+              }`}>
+              {isGroupedEditing ? (
+                <textarea
+                  ref={groupedTextareaRef}
+                  value={groupedDraft}
+                  onChange={(e) => setGroupedDraft(e.target.value)}
+                  onBlur={commitGroupedEdit}
+                  placeholder="원고를 직접 편집하세요. 빈 줄로 단락을 구분합니다."
+                  className="w-full text-slate-800 leading-relaxed text-sm lg:text-base bg-transparent border-none outline-none resize-none overflow-hidden p-0 font-sans whitespace-pre-wrap" />
+              ) : (
+                <div className="text-slate-800 leading-relaxed text-sm lg:text-base pointer-events-none">
+                  {React.createElement(MR, { content: fullCombined || '*원고가 비어있습니다. 클릭하여 편집을 시작하세요.*' })}
+                </div>
+              )}
             </div>
           ) : (
             <div className="space-y-4">

@@ -47,6 +47,7 @@ function App() {
   const [saveStatus, setSaveStatus] = useStateApp('saved'); // 'saved' | 'saving' | 'error'
   const [saveError, setSaveError] = useStateApp('');
   const [confirmDeactivateIdx, setConfirmDeactivateIdx] = useStateApp(-1);
+  const [copyState, setCopyState] = useStateApp('idle'); // 'idle' | 'copied' | 'error'
   const globalFileInputRef = useRefApp(null);
 
   useEffectApp(() => {
@@ -186,6 +187,40 @@ function App() {
     URL.revokeObjectURL(url);
   };
 
+  const copyResult = async () => {
+    const full = finalParagraphs.map((p) => p.text).join('\n\n');
+    let ok = false;
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(full);
+        ok = true;
+      }
+    } catch {}
+    if (!ok) {
+      const ta = document.createElement('textarea');
+      ta.value = full; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      try { ok = document.execCommand('copy'); } catch {}
+      document.body.removeChild(ta);
+    }
+    setCopyState(ok ? 'copied' : 'error');
+    setTimeout(() => setCopyState('idle'), 1500);
+  };
+
+  const replaceFinalFromFullText = useCallback((fullText) => {
+    const blocks = (fullText || '').split(/\n\s*\n+/).map((s) => s.trim()).filter(Boolean);
+    setFinalParagraphs((prev) => blocks.map((text, i) => {
+      const carry = prev[i];
+      return {
+        id: newId('final'),
+        text,
+        originalId: carry ? carry.originalId : undefined,
+        sourceDraftIndex: carry ? carry.sourceDraftIndex : undefined,
+        sourceParaIndex: carry ? carry.sourceParaIndex : undefined,
+      };
+    }));
+  }, []);
+
   const colorClasses = [
     'border-blue-200 bg-blue-50/30',
     'border-emerald-200 bg-emerald-50/30',
@@ -257,14 +292,29 @@ function App() {
           <input type="file" ref={globalFileInputRef} className="hidden" multiple accept=".txt,.md" onChange={handleGlobalFileUpload} />
           <button onClick={() => globalFileInputRef.current?.click()}
             className="flex items-center gap-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 px-4 py-2 rounded-lg text-sm font-semibold transition-all shadow-sm active:scale-95"
-            title="여러 파일을 한 번에 불러와 초안들에 배정합니다">
+            title="여러 .md/.txt 파일을 골라 초안 1·2·3 슬롯에 차례로 배정합니다">
             <span className="text-indigo-500"><I.FolderOpen size={16} /></span>
-            전체 파일 불러오기
+            여러 파일 불러오기
           </button>
           <div className="w-px h-6 bg-slate-200 mx-1"></div>
           <button onClick={exportText} disabled={finalParagraphs.length === 0}
             className="flex items-center gap-2 border border-slate-200 hover:bg-slate-50 text-slate-700 px-4 py-2 rounded-lg text-sm font-semibold transition-all active:scale-95 shadow-sm disabled:opacity-40 disabled:cursor-not-allowed">
             <I.Download size={16} /> 내보내기
+          </button>
+          <button onClick={copyResult} disabled={finalParagraphs.length === 0}
+            className={`flex items-center gap-2 border px-4 py-2 rounded-lg text-sm font-semibold transition-all active:scale-95 shadow-sm disabled:opacity-40 disabled:cursor-not-allowed ${
+              copyState === 'copied'
+                ? 'bg-emerald-100 text-emerald-700 border-emerald-200'
+                : copyState === 'error'
+                  ? 'bg-red-50 text-red-600 border-red-200'
+                  : 'border-slate-200 hover:bg-slate-50 text-slate-700'
+            }`}
+            title="최종 원고 전체를 클립보드로 복사">
+            {copyState === 'copied'
+              ? <><I.Check size={16} /> 복사됨</>
+              : copyState === 'error'
+                ? <><I.X size={16} /> 복사 실패</>
+                : <><I.Copy size={16} /> 결과 복사</>}
           </button>
         </div>
       </header>
@@ -321,6 +371,7 @@ function App() {
               onUpdateText={updateFinalParagraphText}
               onAddNew={addParagraphToFinal}
               onClear={clearFinal}
+              onReplaceAllText={replaceFinalFromFullText}
             />
           </div>
         </div>

@@ -28,6 +28,7 @@ const Icon = {
   Image: (p) => _icon(<><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></>, p),
   LayoutList: (p) => _icon(<><rect x="3" y="4" width="7" height="7"/><rect x="3" y="13" width="7" height="7"/><line x1="14" y1="5" x2="21" y2="5"/><line x1="14" y1="12" x2="21" y2="12"/><line x1="14" y1="19" x2="21" y2="19"/></>, p),
   Plus: (p) => _icon(<><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></>, p),
+  Copy: (p) => _icon(<><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></>, p),
 };
 
 window.Icon = Icon;
