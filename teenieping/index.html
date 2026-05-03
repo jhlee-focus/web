@@ -1470,6 +1470,7 @@ function applyGuide(name) {
   closeCharacterModal();
   say(`안녕! 나는 ${name}이야!`);
   setTimeout(hideBubble, 2500);
+  playGuideGreeting();
 }
 
 // ============================================================
@@ -1489,6 +1490,7 @@ function goHome() {
   state.placedToppings = [];
   pickRandomBackground();
   showScreen('screen-start');
+  playGuideGreeting();
 }
 
 // ============================================================
@@ -1554,6 +1556,28 @@ function renderCollection() {
   });
   $('#collection-summary').textContent =
     `${madeKeys}/${totalDesserts}개 발견 · 총 ${totalCount}개 만들었어!`;
+}
+
+// ============================================================
+// GUIDE GREETING (per-character audio file)
+// ============================================================
+const GUIDE_GREETINGS = {
+  '하츄핑': 'audio_assets/하츄핑/하츄핑 첫 인사.m4a'
+};
+let _greetingAudio = null;
+function playGuideGreeting() {
+  const src = GUIDE_GREETINGS[state.guideName];
+  if (!src) return;
+  if (!_greetingAudio || _greetingAudio.dataset.guide !== state.guideName) {
+    _greetingAudio = new Audio(encodeURI(src));
+    _greetingAudio.preload = 'auto';
+    _greetingAudio.dataset.guide = state.guideName;
+  }
+  try {
+    _greetingAudio.currentTime = 0;
+    const p = _greetingAudio.play();
+    if (p && p.catch) p.catch(() => {});
+  } catch (e) {}
 }
 
 // ============================================================
@@ -2595,6 +2619,14 @@ function init() {
   // Reset idle on any tap
   document.addEventListener('click', resetIdleTimer, true);
   document.addEventListener('touchstart', resetIdleTimer, { passive: true, capture: true });
+  // Play guide greeting on first user gesture (autoplay policy unlock)
+  const onFirstGesture = () => {
+    document.removeEventListener('pointerdown', onFirstGesture, true);
+    document.removeEventListener('touchstart', onFirstGesture, true);
+    if (state.currentScreen === 'screen-start') playGuideGreeting();
+  };
+  document.addEventListener('pointerdown', onFirstGesture, true);
+  document.addEventListener('touchstart', onFirstGesture, true);
 }
 
 document.addEventListener('DOMContentLoaded', init);
