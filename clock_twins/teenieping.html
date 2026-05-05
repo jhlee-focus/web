@@ -253,6 +253,26 @@
   }
   .dex-container::-webkit-scrollbar { width: 6px; }
   .dex-container::-webkit-scrollbar-thumb { background: rgba(171,71,188,0.3); border-radius: 3px; }
+  .dex-section { margin-bottom: 22px; }
+  .dex-section-title {
+    font-weight: 800;
+    color: #7b1fa2;
+    font-size: 18px;
+    letter-spacing: 0.04em;
+    padding: 8px 12px 6px;
+    border-bottom: 2px solid rgba(123,31,162,0.3);
+    margin-bottom: 10px;
+    background: rgba(255,255,255,0.85);
+    backdrop-filter: blur(6px);
+  }
+  .dex-section-title .count {
+    color: #6a1b9a;
+    font-weight: 600;
+    font-size: 13px;
+    margin-left: 8px;
+    opacity: 0.8;
+    letter-spacing: 0;
+  }
   .dex-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
@@ -329,7 +349,7 @@
   <button id="btnDex" class="mode-btn">도감 모드</button>
 </div>
 <div id="dexContainer" class="dex-container" style="display:none">
-  <div id="dexGrid" class="dex-grid"></div>
+  <div id="dexGrid"></div>
 </div>
 <!-- 도감 확대 오버레이 -->
 <div id="dexOverlay" class="dex-overlay" style="display:none">
@@ -399,30 +419,81 @@ function setMode(mode) {
   }
 }
 
+var GEN_LABELS = {
+  1: '1기 · 큐브 티니핑',
+  2: '2기 · 보석 티니핑',
+  3: '3기 · 열쇠 티니핑',
+  4: '4기 · 디저트 티니핑',
+  5: '5기 · 스타 티니핑',
+  6: '6기 · 프린세스&프린스 티니핑',
+  0: '특별 티니핑',
+};
+
+function tierPrefix(tier) {
+  if (tier === '로열' || tier === '레전드' || tier === '특별') return '[' + tier + '] ';
+  return '';
+}
+
 function buildDex() {
-  var grid = document.getElementById('dexGrid');
-  if (grid.children.length > 0) return; // already built
+  var dexGrid = document.getElementById('dexGrid');
+  if (dexGrid.dataset.built === '1') return;
+  dexGrid.innerHTML = '';
   var vw = window.innerWidth;
   var itemSize = Math.max(60, Math.min(120, vw / 8));
   var fontSize = Math.max(9, itemSize * 0.14);
-  grid.style.gridTemplateColumns = 'repeat(auto-fill, minmax(' + itemSize + 'px, 1fr))';
-  allCharacters.forEach(function(char) {
-    var item = document.createElement('div');
-    item.className = 'dex-item';
-    var img = document.createElement('img');
-    img.src = char.file;
-    img.alt = char.name;
-    img.draggable = false;
-    img.loading = 'lazy';
-    item.appendChild(img);
-    var name = document.createElement('div');
-    name.className = 'dex-name';
-    name.textContent = char.name;
-    name.style.fontSize = fontSize + 'px';
-    item.appendChild(name);
-    item.addEventListener('click', function() { showDexOverlay(char); });
-    grid.appendChild(item);
+
+  // 기수별 그룹화 (1~6기 먼저, 특별은 마지막)
+  var byGen = {};
+  allCharacters.forEach(function (char) {
+    var g = (char.gen == null) ? 0 : char.gen;
+    if (!byGen[g]) byGen[g] = [];
+    byGen[g].push(char);
   });
+  var orderedGens = Object.keys(byGen).map(Number).sort(function (a, b) {
+    if (a === 0) return 1;
+    if (b === 0) return -1;
+    return a - b;
+  });
+
+  orderedGens.forEach(function (gen) {
+    var list = byGen[gen].slice().sort(function (a, b) { return (a.no || 0) - (b.no || 0); });
+
+    var section = document.createElement('div');
+    section.className = 'dex-section';
+
+    var title = document.createElement('div');
+    title.className = 'dex-section-title';
+    title.innerHTML = (GEN_LABELS[gen] || (gen + '기')) +
+      ' <span class="count">(' + list.length + '마리)</span>';
+    section.appendChild(title);
+
+    var grid = document.createElement('div');
+    grid.className = 'dex-grid';
+    grid.style.gridTemplateColumns = 'repeat(auto-fill, minmax(' + itemSize + 'px, 1fr))';
+
+    list.forEach(function (char) {
+      var item = document.createElement('div');
+      item.className = 'dex-item';
+      var img = document.createElement('img');
+      img.src = char.file;
+      img.alt = char.name;
+      img.draggable = false;
+      img.loading = 'lazy';
+      item.appendChild(img);
+      var name = document.createElement('div');
+      name.className = 'dex-name';
+      name.textContent = tierPrefix(char.tier) + char.name;
+      name.style.fontSize = fontSize + 'px';
+      item.appendChild(name);
+      item.addEventListener('click', function () { showDexOverlay(char); });
+      grid.appendChild(item);
+    });
+
+    section.appendChild(grid);
+    dexGrid.appendChild(section);
+  });
+
+  dexGrid.dataset.built = '1';
 }
 
 function showDexOverlay(char) {
@@ -431,7 +502,7 @@ function showDexOverlay(char) {
   var overlayName = document.getElementById('dexOverlayName');
   overlayImg.src = char.file;
   overlayImg.alt = char.name;
-  overlayName.textContent = char.name;
+  overlayName.textContent = tierPrefix(char.tier) + char.name;
   overlayName.style.fontSize = Math.max(18, window.innerWidth * 0.035) + 'px';
   overlay.style.display = 'flex';
   overlay.onclick = function() { overlay.style.display = 'none'; };
@@ -655,8 +726,9 @@ window.addEventListener('resize', function() {
   clearTimeout(resizeTimer);
   resizeTimer = setTimeout(function() {
     if (currentMode === 'dex') {
-      // 도감 리빌드
-      document.getElementById('dexGrid').innerHTML = '';
+      var dg = document.getElementById('dexGrid');
+      dg.dataset.built = '';
+      dg.innerHTML = '';
       buildDex();
     } else {
       layout();
