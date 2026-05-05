@@ -429,7 +429,7 @@ function getRandomCharacters() {
     shuffled[j] = temp;
   }
   return shuffled.slice(0, 12).map(function(c, idx) {
-    return { hour: idx + 1, name: c.name, file: c.file };
+    return { hour: idx + 1, name: c.name, file: c.file, tier: c.tier };
   });
 }
 
@@ -683,6 +683,9 @@ function layout() {
     img.alt = char.name;
     img.draggable = false;
     marker.appendChild(img);
+
+    var markerBadge = makeTierBadge(char.tier, Math.max(8, markerSize * 0.16));
+    if (markerBadge) marker.appendChild(markerBadge);
 
     var nameLabel = document.createElement('div');
     nameLabel.className = 'char-name';
