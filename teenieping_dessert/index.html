@@ -191,9 +191,52 @@
   }
   #screen-start .start-character {
     width: 200px; height: 200px;
-    margin: 16px 0;
+    margin: 16px 0 4px;
     object-fit: contain;
     animation: bounce 2s ease-in-out infinite;
+  }
+  .start-character-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+  .start-character-name {
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--primary-dark);
+    background: white;
+    padding: 4px 14px;
+    border-radius: 14px;
+    box-shadow: var(--shadow);
+    margin-bottom: 12px;
+  }
+  /* Character bubble name label */
+  .guide-img-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    flex-shrink: 0;
+  }
+  .guide-img-name {
+    font-size: 11px;
+    font-weight: 800;
+    color: var(--primary-dark);
+    background: white;
+    padding: 1px 8px;
+    border-radius: 8px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+    white-space: nowrap;
+  }
+  /* Top-bar avatar name */
+  .guide-avatar #guide-avatar-name {
+    font-weight: 800;
+    color: var(--primary-dark);
+    max-width: 80px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   @keyframes bounce {
     0%, 100% { transform: translateY(0); }
@@ -819,6 +862,13 @@
     box-shadow: 0 12px 40px rgba(0,0,0,0.3);
     text-align: center;
   }
+  /* Wider modal when the on-screen keyboard is inside */
+  #modal-character .modal {
+    max-width: 560px;
+  }
+  .modal-backdrop {
+    overflow-y: auto;
+  }
   .modal h3 {
     font-size: 22px;
     color: var(--primary-dark);
@@ -835,6 +885,20 @@
     text-align: center;
     color: var(--text);
     outline: none;
+    transition: border-color 0.2s, background 0.2s;
+  }
+  .modal input[type="text"].error {
+    border-color: #E74C3C;
+    background: #FFEEEE;
+    color: #C0392B;
+  }
+  .modal .error-msg {
+    color: #E74C3C;
+    font-size: 14px;
+    font-weight: 700;
+    min-height: 18px;
+    margin-top: -4px;
+    margin-bottom: 4px;
   }
   .modal-buttons {
     display: flex;
@@ -845,6 +909,85 @@
     flex: 1;
     padding: 14px;
     font-size: 18px;
+  }
+  @keyframes shakeX {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-8px); }
+    40% { transform: translateX(8px); }
+    60% { transform: translateX(-6px); }
+    80% { transform: translateX(6px); }
+  }
+  .shake-x { animation: shakeX 0.45s ease; }
+
+  /* On-screen keyboard (in-app, Korean) */
+  .osk {
+    margin-top: 12px;
+    background: #F2F4F7;
+    border-radius: 16px;
+    padding: 10px;
+    user-select: none;
+  }
+  .osk-row {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 6px;
+  }
+  .osk-row:last-child { margin-bottom: 0; }
+  .osk-key {
+    flex: 1;
+    min-width: 0;
+    min-height: 56px;
+    padding: 0;
+    font-size: 24px;
+    font-weight: 700;
+    background: white;
+    color: var(--text);
+    border: 1px solid #CCC;
+    border-radius: 10px;
+    cursor: pointer;
+    box-shadow: 0 2px 0 #BBB;
+    font-family: inherit;
+  }
+  .osk-key:active {
+    transform: translateY(1px);
+    box-shadow: 0 1px 0 #BBB;
+    background: #FFE7EE;
+  }
+  .osk-key.wide { flex: 1.7; font-size: 16px; }
+  .osk-key.action { background: var(--primary); color: white; border-color: var(--primary-dark); font-size: 18px; }
+  .osk-key.action:active { background: var(--primary-dark); }
+  @media (max-width: 460px) {
+    .osk { padding: 8px; }
+    .osk-key { min-height: 48px; font-size: 20px; }
+    .osk-key.wide { font-size: 14px; }
+    .osk-key.action { font-size: 16px; }
+  }
+  .osk-toggle {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 4px;
+  }
+  .osk-toggle button {
+    min-width: auto;
+    min-height: auto;
+    padding: 4px 10px;
+    font-size: 12px;
+    border-radius: 8px;
+    background: var(--secondary);
+    color: var(--text);
+    box-shadow: none;
+  }
+
+  /* Ingredient wrong-state highlight */
+  .ingredient-btn.wrong {
+    border-color: #E74C3C !important;
+    background: #FFE8E6 !important;
+    box-shadow: 0 0 0 4px rgba(231, 76, 60, 0.35) !important;
+    animation: shakeX 0.45s ease;
+  }
+  .ingredient-btn.wrong .label {
+    color: #E74C3C !important;
+    font-weight: 800;
   }
 
   /* Guide finger */
@@ -925,23 +1068,29 @@
 
     <!-- Top bar (shared) -->
     <div class="top-bar">
-      <button class="guide-avatar" id="guide-avatar-btn">
+      <button class="guide-avatar" id="guide-avatar-btn" title="다른 친구로 바꾸기">
         <img id="guide-avatar-img" src="img_assets/teenieping_imgs/TP-001_하츄핑.webp" alt="안내" />
-        <span>바꾸기</span>
+        <span id="guide-avatar-name">하츄핑</span>
       </button>
       <button class="home-btn" id="home-btn" aria-label="홈">🏠</button>
     </div>
 
     <!-- Character bubble (shared, hidden by default) -->
     <div class="character-bubble" id="character-bubble" style="display: none;">
-      <img class="guide-img" id="guide-img" src="img_assets/teenieping_imgs/TP-001_하츄핑.webp" alt="" />
+      <div class="guide-img-wrap">
+        <img class="guide-img" id="guide-img" src="img_assets/teenieping_imgs/TP-001_하츄핑.webp" alt="" />
+        <div class="guide-img-name" id="guide-img-name">하츄핑</div>
+      </div>
       <div class="speech-bubble" id="speech-bubble">안녕!</div>
     </div>
 
     <!-- 1. Start screen -->
     <div class="screen active" id="screen-start">
       <h1>티니핑<br>디저트 가게</h1>
-      <img class="start-character" id="start-character-img" src="img_assets/teenieping_imgs/TP-001_하츄핑.webp" alt="캐릭터" />
+      <div class="start-character-wrap">
+        <img class="start-character" id="start-character-img" src="img_assets/teenieping_imgs/TP-001_하츄핑.webp" alt="캐릭터" />
+        <div class="start-character-name" id="start-character-name">하츄핑</div>
+      </div>
       <button class="big-btn" id="start-btn">시작하기</button>
       <button class="big-btn secondary" id="collection-btn" style="margin-top:12px;">📖 나의 도감</button>
     </div>
@@ -1113,7 +1262,12 @@
   <div class="modal">
     <h3>핑 친구 바꾸기</h3>
     <p style="font-size:14px; color:#888;">핑 이름을 입력해줘 (예: 하츄핑, 쪼꼬핑)</p>
-    <input type="text" id="character-input" inputmode="text" placeholder="하츄핑" autocomplete="off" />
+    <input type="text" id="character-input" placeholder="하츄핑" autocomplete="off" />
+    <div class="error-msg" id="character-error"></div>
+    <div class="osk-toggle">
+      <button type="button" id="osk-mode-btn">한글</button>
+    </div>
+    <div class="osk" id="osk"></div>
     <div class="modal-buttons">
       <button class="secondary" id="character-cancel">취소</button>
       <button id="character-confirm">확인</button>
@@ -1373,12 +1527,13 @@ const state = {
   currentDessert: null,
   selectedIngredients: [],
   placedToppings: [], // {x, y, emoji} on decorate canvas
-  guideName: '하츄핑',
-  guideSrc: TEENIEPINGS['하츄핑'],
+  guideName: (() => { const ks = Object.keys(TEENIEPINGS); return ks[Math.floor(Math.random() * ks.length)]; })(),
+  guideSrc: '', // set right after this object is created
   idleTimer: null,
   selectedTopping: null,
   decorateNudgeCount: 0
 };
+state.guideSrc = TEENIEPINGS[state.guideName];
 
 // ============================================================
 // HELPERS
@@ -1463,34 +1618,49 @@ function refreshGuideUi() {
   $('#guide-avatar-img').src = state.guideSrc;
   $('#guide-img').src = state.guideSrc;
   $('#start-character-img').src = state.guideSrc;
+  // Name labels (always visible under each guide image)
+  $('#guide-avatar-name').textContent = state.guideName;
+  $('#guide-img-name').textContent = state.guideName;
+  $('#start-character-name').textContent = state.guideName;
 }
 
 function openCharacterModal() {
   const modal = $('#modal-character');
   const input = $('#character-input');
   input.value = '';
+  $('#character-error').textContent = '';
+  input.classList.remove('error');
+  HangulIME.reset();
+  buildOSK();
   modal.classList.add('active');
-  setTimeout(() => input.focus(), 100);
 }
 function closeCharacterModal() {
   $('#modal-character').classList.remove('active');
 }
 function tryChangeGuide() {
-  const rawInput = $('#character-input').value;
+  const input = $('#character-input');
+  const errEl = $('#character-error');
+  const rawInput = input.value;
   // Strip all whitespace (incl. tabs, full-width spaces, internal spaces)
-  // so '하츄 핑', ' 하츄핑 ', '하 츄 핑' all match '하츄핑'.
   const key = rawInput.replace(/\s+/g, '');
-  if (!key) { closeCharacterModal(); return; }
+  if (!key) {
+    errEl.textContent = '핑 이름을 적어줘!';
+    input.classList.add('error');
+    input.classList.remove('shake-x');
+    void input.offsetWidth;
+    input.classList.add('shake-x');
+    Sounds.errorBuzz();
+    return;
+  }
+  // Strict: only the exact full name matches (e.g. '하츄핑' OK, '하츄' / '핑' NG)
   if (TEENIEPINGS[key]) { applyGuide(key); return; }
-  const withSuffix = key.endsWith('핑') ? key : key + '핑';
-  if (TEENIEPINGS[withSuffix]) { applyGuide(withSuffix); return; }
-  // partial match (substring) — also strip whitespace from registered names just in case
-  const found = Object.keys(TEENIEPINGS).find(n => n.includes(key));
-  if (found) { applyGuide(found); return; }
-  // not found
-  closeCharacterModal();
-  say(`'${rawInput.trim()}' 친구는 아직 못 찾았어! 하츄핑이랑 같이 놀자!`);
-  setTimeout(hideBubble, 2500);
+  // not found — keep modal open, shake input, allow editing
+  errEl.textContent = `'${rawInput.trim()}' 친구는 못 찾았어. 다시 입력해볼까?`;
+  input.classList.add('error');
+  input.classList.remove('shake-x');
+  void input.offsetWidth;
+  input.classList.add('shake-x');
+  Sounds.errorBuzz();
 }
 function applyGuide(name) {
   state.guideName = name;
@@ -1500,6 +1670,244 @@ function applyGuide(name) {
   say(`안녕! 나는 ${name}이야!`);
   setTimeout(hideBubble, 2500);
   playGuideGreeting();
+}
+
+// ============================================================
+// ON-SCREEN KEYBOARD (in-app, with Hangul IME)
+// ============================================================
+const HangulIME = (() => {
+  const CHO = ['ㄱ','ㄲ','ㄴ','ㄷ','ㄸ','ㄹ','ㅁ','ㅂ','ㅃ','ㅅ','ㅆ','ㅇ','ㅈ','ㅉ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ'];
+  const JUNG = ['ㅏ','ㅐ','ㅑ','ㅒ','ㅓ','ㅔ','ㅕ','ㅖ','ㅗ','ㅘ','ㅙ','ㅚ','ㅛ','ㅜ','ㅝ','ㅞ','ㅟ','ㅠ','ㅡ','ㅢ','ㅣ'];
+  const JONG = ['','ㄱ','ㄲ','ㄳ','ㄴ','ㄵ','ㄶ','ㄷ','ㄹ','ㄺ','ㄻ','ㄼ','ㄽ','ㄾ','ㄿ','ㅀ','ㅁ','ㅂ','ㅄ','ㅅ','ㅆ','ㅇ','ㅈ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ'];
+  const VOWEL_COMBOS = {
+    'ㅗㅏ':'ㅘ','ㅗㅐ':'ㅙ','ㅗㅣ':'ㅚ','ㅜㅓ':'ㅝ','ㅜㅔ':'ㅞ','ㅜㅣ':'ㅟ','ㅡㅣ':'ㅢ'
+  };
+  const JONG_COMBOS = {
+    'ㄱㅅ':'ㄳ','ㄴㅈ':'ㄵ','ㄴㅎ':'ㄶ','ㄹㄱ':'ㄺ','ㄹㅁ':'ㄻ','ㄹㅂ':'ㄼ','ㄹㅅ':'ㄽ','ㄹㅌ':'ㄾ','ㄹㅍ':'ㄿ','ㄹㅎ':'ㅀ','ㅂㅅ':'ㅄ'
+  };
+  const JONG_SPLIT = Object.fromEntries(Object.entries(JONG_COMBOS).map(([k,v]) => [v, [k[0], k[1]]]));
+
+  let buf = { cho: -1, jung: -1, jong: 0 }; // composing buffer
+
+  function isCho(j)  { return CHO.includes(j); }
+  function isJung(j) { return JUNG.includes(j); }
+
+  function compose() {
+    if (buf.cho < 0) return '';
+    if (buf.jung < 0) return CHO[buf.cho];
+    return String.fromCharCode(0xAC00 + buf.cho * 588 + buf.jung * 28 + buf.jong);
+  }
+
+  function commitTo(input) {
+    const piece = compose();
+    if (piece) input.value += piece;
+    buf = { cho: -1, jung: -1, jong: 0 };
+  }
+
+  function previewTo(input, baseValue) {
+    input.value = baseValue + compose();
+  }
+
+  let baseValue = '';
+
+  function reset() {
+    buf = { cho: -1, jung: -1, jong: 0 };
+    baseValue = '';
+  }
+
+  function input(jamo, inputEl) {
+    // Initialize base if buffer was empty
+    if (buf.cho < 0 && buf.jung < 0 && buf.jong === 0) {
+      baseValue = inputEl.value;
+    }
+
+    if (isCho(jamo)) {
+      // Adding a consonant
+      if (buf.cho < 0) {
+        buf.cho = CHO.indexOf(jamo);
+      } else if (buf.jung < 0) {
+        // Two consonants in a row → commit first, start new
+        baseValue += CHO[buf.cho];
+        buf = { cho: CHO.indexOf(jamo), jung: -1, jong: 0 };
+      } else if (buf.jong === 0) {
+        // Try as jongseong if this jamo can be a jong
+        const idx = JONG.indexOf(jamo);
+        if (idx > 0) {
+          buf.jong = idx;
+        } else {
+          commitTo({ value: baseValue + compose() });
+          baseValue += compose();
+          buf = { cho: CHO.indexOf(jamo), jung: -1, jong: 0 };
+        }
+      } else {
+        // Already has jong — try combine
+        const cur = JONG[buf.jong];
+        const combo = JONG_COMBOS[cur + jamo];
+        if (combo) {
+          buf.jong = JONG.indexOf(combo);
+        } else {
+          // Commit current syllable, start new with this consonant as cho
+          baseValue += compose();
+          buf = { cho: CHO.indexOf(jamo), jung: -1, jong: 0 };
+        }
+      }
+    } else if (isJung(jamo)) {
+      if (buf.cho < 0) {
+        // Standalone vowel (no leading consonant) — push as-is
+        baseValue += jamo;
+      } else if (buf.jung < 0) {
+        buf.jung = JUNG.indexOf(jamo);
+      } else if (buf.jong === 0) {
+        // Try vowel combination
+        const cur = JUNG[buf.jung];
+        const combo = VOWEL_COMBOS[cur + jamo];
+        if (combo) {
+          buf.jung = JUNG.indexOf(combo);
+        } else {
+          // Commit and start new syllable with no cho — vowel alone
+          baseValue += compose();
+          buf = { cho: -1, jung: -1, jong: 0 };
+          baseValue += jamo;
+        }
+      } else {
+        // Has jong → split: last jong becomes cho of new syllable
+        const jongChar = JONG[buf.jong];
+        const split = JONG_SPLIT[jongChar];
+        if (split) {
+          // double jongseong: keep first, second becomes cho of new
+          buf.jong = JONG.indexOf(split[0]);
+          baseValue += compose();
+          buf = { cho: CHO.indexOf(split[1]), jung: JUNG.indexOf(jamo), jong: 0 };
+        } else {
+          const moveCho = jongChar;
+          buf.jong = 0;
+          baseValue += compose();
+          buf = { cho: CHO.indexOf(moveCho), jung: JUNG.indexOf(jamo), jong: 0 };
+        }
+      }
+    } else {
+      // Non-jamo character (English letter, digit, etc.)
+      baseValue += compose();
+      buf = { cho: -1, jung: -1, jong: 0 };
+      baseValue += jamo;
+    }
+
+    inputEl.value = baseValue + compose();
+  }
+
+  function backspace(inputEl) {
+    if (buf.jong > 0) {
+      const cur = JONG[buf.jong];
+      const split = JONG_SPLIT[cur];
+      buf.jong = split ? JONG.indexOf(split[0]) : 0;
+    } else if (buf.jung >= 0) {
+      const cur = JUNG[buf.jung];
+      // split combined vowels
+      const reverseCombo = Object.entries(VOWEL_COMBOS).find(([k,v]) => v === cur);
+      if (reverseCombo) {
+        buf.jung = JUNG.indexOf(reverseCombo[0][0]);
+      } else {
+        buf.jung = -1;
+      }
+    } else if (buf.cho >= 0) {
+      buf.cho = -1;
+    } else if (baseValue.length > 0) {
+      baseValue = baseValue.slice(0, -1);
+    }
+    inputEl.value = baseValue + compose();
+  }
+
+  function commit(inputEl) {
+    baseValue += compose();
+    buf = { cho: -1, jung: -1, jong: 0 };
+    inputEl.value = baseValue;
+  }
+
+  function syncFromInput(inputEl) {
+    // External (physical kb / system IME / paste) wrote to the field —
+    // drop our composing buffer and adopt the field's current value as the new base.
+    buf = { cho: -1, jung: -1, jong: 0 };
+    baseValue = inputEl.value;
+  }
+
+  return { input, backspace, commit, reset, syncFromInput };
+})();
+
+const OSK_LAYOUTS = {
+  ko: [
+    ['ㅂ','ㅈ','ㄷ','ㄱ','ㅅ','ㅛ','ㅕ','ㅑ','ㅐ','ㅔ'],
+    ['ㅁ','ㄴ','ㅇ','ㄹ','ㅎ','ㅗ','ㅓ','ㅏ','ㅣ'],
+    ['SHIFT','ㅋ','ㅌ','ㅊ','ㅍ','ㅠ','ㅜ','ㅡ','BACK'],
+    ['MODE','SPACE','NEXT','CLEAR','OK']
+  ],
+  ko_shift: [
+    ['ㅃ','ㅉ','ㄸ','ㄲ','ㅆ','ㅛ','ㅕ','ㅑ','ㅒ','ㅖ'],
+    ['ㅁ','ㄴ','ㅇ','ㄹ','ㅎ','ㅗ','ㅓ','ㅏ','ㅣ'],
+    ['SHIFT','ㅋ','ㅌ','ㅊ','ㅍ','ㅠ','ㅜ','ㅡ','BACK'],
+    ['MODE','SPACE','NEXT','CLEAR','OK']
+  ],
+  en: [
+    ['q','w','e','r','t','y','u','i','o','p'],
+    ['a','s','d','f','g','h','j','k','l'],
+    ['z','x','c','v','b','n','m','BACK'],
+    ['MODE','SPACE','NEXT','CLEAR','OK']
+  ]
+};
+
+let oskMode = 'ko';
+let oskShift = false;
+
+function buildOSK() {
+  const root = $('#osk');
+  if (!root) return;
+  root.innerHTML = '';
+  const layoutKey = oskMode === 'ko' && oskShift ? 'ko_shift' : oskMode;
+  const layout = OSK_LAYOUTS[layoutKey];
+  layout.forEach(row => {
+    const rowEl = document.createElement('div');
+    rowEl.className = 'osk-row';
+    row.forEach(k => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'osk-key';
+      if (k === 'SPACE') { btn.classList.add('wide'); btn.textContent = '스페이스'; }
+      else if (k === 'BACK') { btn.classList.add('wide'); btn.textContent = '⌫'; }
+      else if (k === 'OK') { btn.classList.add('wide','action'); btn.textContent = '확인'; }
+      else if (k === 'MODE') { btn.classList.add('wide'); btn.textContent = oskMode === 'ko' ? '한/영' : 'KO/EN'; }
+      else if (k === 'CLEAR') { btn.classList.add('wide'); btn.textContent = '지우기'; }
+      else if (k === 'SHIFT') { btn.classList.add('wide'); btn.textContent = oskShift ? '⇧ ON' : '⇧'; }
+      else if (k === 'NEXT') { btn.classList.add('wide'); btn.textContent = '다음 ▶'; btn.title = '입력중인 글자 끝내기'; }
+      else { btn.textContent = k; }
+      btn.addEventListener('click', e => {
+        e.preventDefault();
+        handleOSKKey(k);
+      });
+      rowEl.appendChild(btn);
+    });
+    root.appendChild(rowEl);
+  });
+}
+
+function handleOSKKey(k) {
+  const input = $('#character-input');
+  // Clear error state on any input
+  $('#character-error').textContent = '';
+  input.classList.remove('error');
+
+  if (k === 'SPACE') { HangulIME.commit(input); input.value += ' '; HangulIME.syncFromInput(input); return; }
+  if (k === 'BACK')  { HangulIME.backspace(input); return; }
+  if (k === 'CLEAR') { HangulIME.reset(); input.value = ''; return; }
+  if (k === 'OK')    { HangulIME.commit(input); tryChangeGuide(); return; }
+  if (k === 'MODE')  { oskMode = oskMode === 'ko' ? 'en' : 'ko'; oskShift = false; HangulIME.commit(input); buildOSK(); return; }
+  if (k === 'SHIFT') { oskShift = !oskShift; buildOSK(); return; }
+  if (k === 'NEXT')  { HangulIME.commit(input); return; }
+
+  if (oskMode === 'ko') {
+    HangulIME.input(k, input);
+  } else {
+    HangulIME.commit(input);
+    input.value += k;
+  }
 }
 
 // ============================================================
@@ -1551,8 +1959,31 @@ function setupStart() {
 
   $('#character-cancel').addEventListener('click', closeCharacterModal);
   $('#character-confirm').addEventListener('click', tryChangeGuide);
-  $('#character-input').addEventListener('keydown', e => {
-    if (e.key === 'Enter') tryChangeGuide();
+  // Physical keyboard / system IME / paste — accept everything
+  const charInput = $('#character-input');
+  charInput.addEventListener('focus', () => {
+    $('#character-error').textContent = '';
+    charInput.classList.remove('error');
+  });
+  // Any external input event (typing, paste, system IME) → drop OSK buffer & sync
+  charInput.addEventListener('input', () => {
+    HangulIME.syncFromInput(charInput);
+    $('#character-error').textContent = '';
+    charInput.classList.remove('error');
+  });
+  charInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      HangulIME.syncFromInput(charInput);
+      tryChangeGuide();
+    }
+  });
+  $('#osk-mode-btn').addEventListener('click', () => {
+    oskMode = oskMode === 'ko' ? 'en' : 'ko';
+    oskShift = false;
+    HangulIME.commit($('#character-input'));
+    buildOSK();
+    $('#osk-mode-btn').textContent = oskMode === 'ko' ? '한글' : 'EN';
   });
 
   $('#home-cancel').addEventListener('click', closeHomeModal);
@@ -1656,6 +2087,11 @@ const Sounds = {
     });
   },
   error: () => playTone({ freq: 180, duration: 0.18, type: 'sawtooth', volume: 0.12 }),
+  errorBuzz: () => {
+    // Friendly two-note descending "삐익~" — clear but not scary for kids
+    playTone({ freq: 520, duration: 0.14, type: 'square', volume: 0.18, slide: 320 });
+    setTimeout(() => playTone({ freq: 300, duration: 0.20, type: 'square', volume: 0.16, slide: 180 }), 130);
+  },
   glide: () => {
     const ctx = getAudioCtx();
     if (!ctx) return;
@@ -1803,21 +2239,28 @@ function onIngredientTap(ingKey, btn) {
   const dessert = DESSERTS[state.currentDessert];
   const expected = dessert.ingredients[state.selectedIngredients.length];
   if (ingKey !== expected) {
-    Sounds.error();
-    shake(btn);
-    say('이건 다음에 써보자!');
-    setTimeout(() => {
-      // Restore the "pick next" prompt so the helper stays visible
-      const expectedName = INGREDIENTS[expected].name;
-      const stillFirst = state.selectedIngredients.length === 0;
-      say(stillFirst
-        ? `${dessert.name}를 만들어보자! 먼저 ${expectedName}부터 골라줘!`
-        : `${expectedName}을(를) 골라줘!`);
-    }, 1500);
+    Sounds.errorBuzz();
+    // Persistent red highlight on the wrong button (until user picks correctly)
+    document.querySelectorAll('.ingredient-btn.wrong').forEach(b => b.classList.remove('wrong'));
+    // Re-trigger the shake animation
+    void btn.offsetWidth;
+    btn.classList.add('wrong');
+    const wrongName = INGREDIENTS[ingKey].name;
+    const expectedName = INGREDIENTS[expected].name;
+    say(`앗! ${wrongName}이(가) 아니야~ 다시 골라볼래? ${expectedName}을(를) 찾아봐!`);
+    // Glow the correct one to help
+    const palette = $('#ingredient-palette');
+    const correctBtn = palette.querySelector(`[data-ing="${expected}"]`);
+    if (correctBtn) {
+      correctBtn.classList.add('glow');
+      showGuideFinger(correctBtn);
+    }
     return;
   }
   // correct
   Sounds.drop();
+  // Clear any wrong-state highlights
+  document.querySelectorAll('.ingredient-btn.wrong').forEach(b => b.classList.remove('wrong'));
   state.selectedIngredients.push(ingKey);
   btn.classList.add('used');
   btn.classList.remove('glow');
