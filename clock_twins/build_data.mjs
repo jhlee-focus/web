@@ -53,7 +53,10 @@ for (const genDir of readdirSync(POK_DIR)) {
 }
 pokAll.sort((a, b) => a.dex - b.dex);
 
-const POK_BASIC_DEX = [25, 150, 151, 249, 250, 384, 445, 658, 716, 791, 888, 1007];
+// 큐레이션: 극장판 "뮤츠의 역습 EVOLUTION" 주역 포켓몬
+// hour 1=뮤츠, 2=뮤, 3=피카츄, 4=리자몽, 5=거북왕, 6=이상해꽃,
+// 7=잠만보, 8=라프라스, 9=팬텀, 10=후딘, 11=니드킹, 12=스라크
+const POK_BASIC_DEX = [150, 151, 25, 6, 9, 3, 143, 131, 94, 65, 34, 123];
 const basicPokemon = POK_BASIC_DEX.map((d, i) => {
   const c = pokAll.find(x => x.dex === d);
   if (!c) throw new Error('missing dex ' + d);
