@@ -292,8 +292,49 @@
     transform: scale(1.15);
     background: rgba(206,147,216,0.15);
   }
-  .dex-item img {
+  .dex-img-wrap {
+    position: relative;
     width: 100%;
+    aspect-ratio: 1;
+  }
+  .dex-img-wrap img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.15));
+  }
+  .tier-badge {
+    position: absolute;
+    right: 2%;
+    bottom: 2%;
+    font-weight: 800;
+    color: #fff;
+    padding: 2px 7px;
+    border-radius: 999px;
+    line-height: 1.1;
+    letter-spacing: 0.04em;
+    text-shadow: 0 1px 1px rgba(0,0,0,0.25);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.25), inset 0 0 0 1.5px rgba(255,255,255,0.55);
+    pointer-events: none;
+    white-space: nowrap;
+  }
+  .tier-badge.tier-royal   { background: linear-gradient(135deg, #ffd54f, #ff8f00); }
+  .tier-badge.tier-legend  { background: linear-gradient(135deg, #ce93d8, #6a1b9a); }
+  .tier-badge.tier-special { background: linear-gradient(135deg, #f48fb1, #c2185b); }
+  /* 도감 확대 오버레이용 큰 뱃지 */
+  .dex-overlay .tier-badge {
+    right: 8%;
+    bottom: 8%;
+    padding: 4px 12px;
+    font-size: 18px;
+    border-radius: 999px;
+  }
+  .dex-overlay-imgwrap {
+    position: relative;
+    display: inline-block;
+  }
+  /* 기존 호환을 위해 .dex-item img 셀렉터 유지 */
+  .dex-item img {
     aspect-ratio: 1;
     object-fit: contain;
     filter: drop-shadow(0 2px 4px rgba(0,0,0,0.15));
@@ -353,7 +394,9 @@
 </div>
 <!-- 도감 확대 오버레이 -->
 <div id="dexOverlay" class="dex-overlay" style="display:none">
-  <img id="dexOverlayImg" src="" alt="">
+  <div id="dexOverlayImgWrap" class="dex-overlay-imgwrap">
+    <img id="dexOverlayImg" src="" alt="">
+  </div>
   <div id="dexOverlayName" class="dex-overlay-name"></div>
 </div>
 <div class="clock-wrapper" id="clockWrapper">
@@ -429,9 +472,15 @@ var GEN_LABELS = {
   0: '특별 티니핑',
 };
 
-function tierPrefix(tier) {
-  if (tier === '로열' || tier === '레전드' || tier === '특별') return '[' + tier + '] ';
-  return '';
+var TIER_CLASS = { '로열': 'tier-royal', '레전드': 'tier-legend', '특별': 'tier-special' };
+
+function makeTierBadge(tier, fontSize) {
+  if (!TIER_CLASS[tier]) return null;
+  var b = document.createElement('div');
+  b.className = 'tier-badge ' + TIER_CLASS[tier];
+  b.textContent = tier;
+  if (fontSize) b.style.fontSize = fontSize + 'px';
+  return b;
 }
 
 function buildDex() {
@@ -474,15 +523,22 @@ function buildDex() {
     list.forEach(function (char) {
       var item = document.createElement('div');
       item.className = 'dex-item';
+
+      var imgWrap = document.createElement('div');
+      imgWrap.className = 'dex-img-wrap';
       var img = document.createElement('img');
       img.src = char.file;
       img.alt = char.name;
       img.draggable = false;
       img.loading = 'lazy';
-      item.appendChild(img);
+      imgWrap.appendChild(img);
+      var badge = makeTierBadge(char.tier, Math.max(8, itemSize * 0.11));
+      if (badge) imgWrap.appendChild(badge);
+      item.appendChild(imgWrap);
+
       var name = document.createElement('div');
       name.className = 'dex-name';
-      name.textContent = tierPrefix(char.tier) + char.name;
+      name.textContent = char.name;
       name.style.fontSize = fontSize + 'px';
       item.appendChild(name);
       item.addEventListener('click', function () { showDexOverlay(char); });
@@ -500,9 +556,15 @@ function showDexOverlay(char) {
   var overlay = document.getElementById('dexOverlay');
   var overlayImg = document.getElementById('dexOverlayImg');
   var overlayName = document.getElementById('dexOverlayName');
+  var overlayWrap = document.getElementById('dexOverlayImgWrap');
   overlayImg.src = char.file;
   overlayImg.alt = char.name;
-  overlayName.textContent = tierPrefix(char.tier) + char.name;
+  // 기존 뱃지 제거 후 새로 추가
+  var oldBadge = overlayWrap.querySelector('.tier-badge');
+  if (oldBadge) oldBadge.remove();
+  var bigBadge = makeTierBadge(char.tier);
+  if (bigBadge) overlayWrap.appendChild(bigBadge);
+  overlayName.textContent = char.name;
   overlayName.style.fontSize = Math.max(18, window.innerWidth * 0.035) + 'px';
   overlay.style.display = 'flex';
   overlay.onclick = function() { overlay.style.display = 'none'; };
