@@ -56,7 +56,7 @@ const TEENIE_BASIC_NAMES = [
 const basicTeenieping = TEENIE_BASIC_NAMES.map((n, i) => {
   const c = teenieAll.find(x => x.name === n);
   if (!c) throw new Error('missing teenieping ' + n);
-  return { hour: i + 1, name: c.name, file: c.file };
+  return { hour: i + 1, name: c.name, file: c.file, tier: c.tier };
 });
 
 // 런타임에는 no를 그대로 노출(도감 정렬·식별용으로 유용).
