@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>포켓몬 시계</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; overflow: hidden; }
+  body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #ffebee 0%, #fff9c4 30%, #e3f2fd 60%, #f3e5f5 100%);
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  }
+  h1 {
+    color: #0d47a1;
+    text-shadow: 0 1px 3px rgba(13,71,161,0.15);
+    letter-spacing: 0.15em;
+    /* font-size set by JS */
+  }
+  .clock-wrapper {
+    position: relative;
+    /* width/height set by JS */
+  }
+  .clock-face {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #ffffff 0%, #e3f2fd 40%, #bbdefb 100%);
+    box-shadow:
+      0 0 0 calc(var(--s) * 0.013) rgba(211,47,47,0.45),
+      0 0 0 calc(var(--s) * 0.026) rgba(13,71,161,0.18),
+      0 calc(var(--s) * 0.013) calc(var(--s) * 0.053) rgba(0,0,0,0.12),
+      inset 0 0 calc(var(--s) * 0.1) rgba(13,71,161,0.15);
+  }
+  .hour-marker {
+    position: absolute;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.3s ease;
+    cursor: pointer;
+    /* width/height set by JS */
+  }
+  .hour-marker:hover {
+    transform: translate(-50%, -50%) scale(1.35);
+    z-index: 20;
+    filter: drop-shadow(0 4px 12px rgba(211,47,47,0.45));
+  }
+  .hour-marker img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    filter: drop-shadow(0 2px 6px rgba(0,0,0,0.25));
+  }
+  .hour-marker .char-name {
+    position: absolute;
+    bottom: -1.6em;
+    left: 50%;
+    transform: translateX(-50%);
+    font-weight: 700;
+    color: #0d47a1;
+    white-space: nowrap;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    text-shadow: 0 0 2px white, 0 0 4px white, 0 0 7px white, 0 0 10px white, 0 0 14px white, 0 0 18px white, 0 0 22px white, 0 1px 2px rgba(0,0,0,0.08);
+    pointer-events: none;
+    /* font-size set by JS */
+  }
+  .hour-marker:hover .char-name { opacity: 1; }
+  .hour-number {
+    position: absolute;
+    font-weight: 800;
+    color: rgba(13,71,161,0.65);
+    transform: translate(-50%, -50%);
+    z-index: 5;
+    pointer-events: none;
+    /* font-size set by JS */
+  }
+  .hand {
+    position: absolute;
+    bottom: 50%;
+    left: 50%;
+    transform-origin: bottom center;
+    z-index: 30;
+    will-change: transform;
+  }
+  .hand-hour {
+    height: 22%;
+    background: linear-gradient(to top, #d32f2f, #ef9a9a);
+    box-shadow: 0 0 8px rgba(211,47,47,0.4);
+    /* width, margin-left, border-radius set by JS */
+  }
+  .hand-minute {
+    height: 30%;
+    background: linear-gradient(to top, #1565c0, #64b5f6);
+    box-shadow: 0 0 6px rgba(21,101,192,0.3);
+  }
+  .hand-second {
+    height: 35%;
+    background: linear-gradient(to top, #f9a825, #fff59d);
+    box-shadow: 0 0 4px rgba(249,168,37,0.4);
+  }
+  .center-dot {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    border-radius: 50%;
+    background: radial-gradient(circle, #ffcdd2, #d32f2f);
+    box-shadow: 0 0 10px rgba(211,47,47,0.5);
+    z-index: 40;
+    /* size set by JS */
+  }
+  .digital-time {
+    font-weight: 700;
+    color: #0d47a1;
+    letter-spacing: 0.2em;
+    background: rgba(255,255,255,0.6);
+    border-radius: 999px;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    /* font-size, padding, margin set by JS */
+  }
+  .digital-row {
+    position: relative;
+    display: inline-block;
+  }
+  .credit {
+    position: absolute;
+    left: calc(100% + 0.5em);
+    top: 50%;
+    transform: translateY(-50%);
+    color: #0d47a1;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    pointer-events: none;
+    white-space: nowrap;
+  }
+  .sparkle {
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.9);
+    animation: sparkle 3s infinite ease-in-out;
+    z-index: 2;
+    pointer-events: none;
+  }
+  @keyframes sparkle {
+    0%, 100% { opacity: 0; transform: scale(0); }
+    50% { opacity: 1; transform: scale(1); }
+  }
+  .floating-heart {
+    position: fixed;
+    opacity: 0.18;
+    animation: floatUp linear infinite;
+    pointer-events: none;
+    z-index: 0;
+  }
+  @keyframes floatUp {
+    0% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
+    10% { opacity: 0.18; }
+    90% { opacity: 0.18; }
+    100% { transform: translateY(-10vh) rotate(360deg); opacity: 0; }
+  }
+  .hour-marker.active img {
+    filter: drop-shadow(0 0 8px rgba(211,47,47,0.7)) drop-shadow(0 2px 6px rgba(0,0,0,0.25));
+  }
+  /* 포켓볼 펄스 효과 */
+  .heart-pulse {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    z-index: -1;
+  }
+  .heart-pulse svg {
+    animation: heartBeat 1.8s infinite ease-in-out;
+  }
+  @keyframes heartBeat {
+    0%   { transform: scale(0.5); opacity: 0.7; }
+    50%  { transform: scale(1.5); opacity: 0; }
+    100% { transform: scale(0.5); opacity: 0; }
+  }
+  .tick {
+    position: absolute;
+    background: rgba(13,71,161,0.22);
+    transform-origin: center var(--radius);
+    border-radius: 1px;
+    z-index: 1;
+  }
+
+  .mode-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    z-index: 50;
+  }
+  .mode-btn {
+    border: 2px solid rgba(13,71,161,0.3);
+    background: rgba(255,255,255,0.6);
+    color: #0d47a1;
+    font-weight: 700;
+    border-radius: 999px;
+    cursor: pointer;
+    backdrop-filter: blur(10px);
+    transition: all 0.3s ease;
+    outline: none;
+    /* size set by JS */
+  }
+  .mode-btn:hover {
+    background: rgba(144,202,249,0.4);
+  }
+  .mode-btn.mode-active {
+    background: linear-gradient(135deg, #64b5f6, #1976d2);
+    color: white;
+    border-color: transparent;
+    box-shadow: 0 2px 10px rgba(25,118,210,0.4);
+  }
+  .refresh-btn {
+    border: 2px solid rgba(13,71,161,0.3);
+    background: rgba(255,255,255,0.6);
+    border-radius: 50%;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(10px);
+    transition: all 0.3s ease, transform 0.5s ease;
+    outline: none;
+    /* size set by JS */
+  }
+  .refresh-btn:hover {
+    background: rgba(144,202,249,0.4);
+    transform: rotate(180deg);
+  }
+  .refresh-btn:active {
+    transform: rotate(360deg);
+  }
+  /* 도감 모드 */
+  .dex-wrap {
+    width: 92vw;
+    max-width: 1100px;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+  .gen-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: center;
+    padding: 4px 0 6px;
+  }
+  .gen-tab {
+    border: 2px solid rgba(13,71,161,0.3);
+    background: rgba(255,255,255,0.6);
+    color: #0d47a1;
+    font-weight: 700;
+    font-size: 13px;
+    border-radius: 999px;
+    padding: 6px 14px;
+    cursor: pointer;
+    backdrop-filter: blur(10px);
+    transition: all 0.25s ease;
+    outline: none;
+    white-space: nowrap;
+  }
+  .gen-tab:hover { background: rgba(144,202,249,0.4); }
+  .gen-tab.active {
+    background: linear-gradient(135deg, #ef5350, #d32f2f);
+    color: white;
+    border-color: transparent;
+    box-shadow: 0 2px 8px rgba(211,47,47,0.4);
+  }
+  .gen-tab .tab-count {
+    margin-left: 6px;
+    font-weight: 600;
+    opacity: 0.85;
+    font-size: 11px;
+  }
+  .dex-container {
+    width: 100%;
+    max-height: calc(100vh - 180px);
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 8px;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(25,118,210,0.4) transparent;
+  }
+  .dex-container::-webkit-scrollbar { width: 6px; }
+  .dex-container::-webkit-scrollbar-thumb { background: rgba(25,118,210,0.4); border-radius: 3px; }
+  .dex-section-title {
+    font-weight: 800;
+    color: #d32f2f;
+    font-size: 18px;
+    padding: 8px 12px 6px;
+    border-bottom: 2px solid rgba(211,47,47,0.35);
+    margin: 0 0 12px;
+    background: rgba(255,255,255,0.85);
+    backdrop-filter: blur(6px);
+    letter-spacing: 0.06em;
+  }
+  .dex-section-title .count {
+    color: #0d47a1;
+    font-weight: 600;
+    font-size: 13px;
+    margin-left: 8px;
+    letter-spacing: 0;
+  }
+  .dex-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    gap: 10px;
+    justify-items: center;
+  }
+  .dex-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    padding: 4px;
+    border-radius: 12px;
+  }
+  .dex-item:hover {
+    transform: scale(1.15);
+    background: rgba(144,202,249,0.2);
+  }
+  .dex-item img {
+    width: 100%;
+    aspect-ratio: 1;
+    object-fit: contain;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.15));
+  }
+  .dex-item .dex-name {
+    font-weight: 700;
+    color: #0d47a1;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+    margin-top: 2px;
+  }
+  .dex-item .dex-num {
+    font-weight: 600;
+    color: rgba(13,71,161,0.6);
+    text-align: center;
+    margin-top: 1px;
+  }
+  /* 도감 확대 오버레이 */
+  .dex-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(6px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    cursor: pointer;
+    animation: fadeIn 0.2s ease;
+  }
+  .dex-overlay img {
+    max-width: 60vmin;
+    max-height: 60vmin;
+    object-fit: contain;
+    filter: drop-shadow(0 4px 20px rgba(0,0,0,0.4));
+    animation: popIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .dex-overlay-name {
+    color: white;
+    font-weight: 800;
+    margin-top: 16px;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.5);
+    animation: popIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes popIn { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+</style>
+</head>
+<body>
+<h1 id="title">⚡ 포켓몬 시계 ⚡</h1>
+
+<div class="mode-controls" id="modeControls">
+  <button id="btnBasic" class="mode-btn mode-active">기본 모드</button>
+  <button id="btnFull" class="mode-btn">전체 모드</button>
+  <button id="btnDex" class="mode-btn">도감 모드</button>
+</div>
+<div id="dexWrap" class="dex-wrap" style="display:none">
+  <div id="genTabs" class="gen-tabs"></div>
+  <div id="dexContainer" class="dex-container"></div>
+</div>
+<!-- 도감 확대 오버레이 -->
+<div id="dexOverlay" class="dex-overlay" style="display:none">
+  <img id="dexOverlayImg" src="" alt="">
+  <div id="dexOverlayName" class="dex-overlay-name"></div>
+</div>
+<div class="clock-wrapper" id="clockWrapper">
+  <div class="clock-face" id="clockFace">
+    <div class="hand hand-hour" id="hourHand"></div>
+    <div class="hand hand-minute" id="minuteHand"></div>
+    <div class="hand hand-second" id="secondHand"></div>
+    <div class="center-dot"></div>
+  </div>
+</div>
+<div class="digital-row" id="digitalRow">
+  <div class="digital-time" id="digitalTime">00:00:00</div>
+  <div class="credit" id="creditText"><strong>포켓몬 마스터</strong><span style="font-weight:400">와 함께 만듦</span></div>
+</div>
+<script src="pokemon_data.js"></script>
+<script>
+var basicCharacters = basicPokemon;
+// allCharacters: 전체 1,025마리 메타데이터는 처음에는 비어 있고,
+// 사용자가 '전체 모드' 또는 '도감 모드'로 들어갈 때 세대별로 동적 로드.
+var allCharacters = [];
+window.__pokemonGen = window.__pokemonGen || {};
+
+// --- 세대별 데이터 동적 로더 (한 번 로드되면 캐시) ---
+var genLoaders = {}; // gen -> Promise
+function loadGen(gen) {
+  if (genLoaders[gen]) return genLoaders[gen];
+  genLoaders[gen] = new Promise(function (resolve, reject) {
+    if (window.__pokemonGen[gen]) { resolve(window.__pokemonGen[gen]); return; }
+    var s = document.createElement('script');
+    s.src = 'pokemon_gen' + gen + '.js';
+    s.async = true;
+    s.onload = function () { resolve(window.__pokemonGen[gen] || []); };
+    s.onerror = function () { reject(new Error('failed to load gen ' + gen)); };
+    document.head.appendChild(s);
+  });
+  return genLoaders[gen];
+}
+function loadAllGens() {
+  return Promise.all(pokemonGenIndex.map(function (g) { return loadGen(g.gen); }))
+    .then(function (lists) {
+      // 합치고 캐시 (중복 호출 방지: allCharacters 채우는 건 한 번만)
+      if (allCharacters.length === 0) {
+        var merged = [];
+        lists.forEach(function (l) { merged = merged.concat(l); });
+        merged.sort(function (a, b) { return a.dex - b.dex; });
+        allCharacters = merged;
+      }
+      return allCharacters;
+    });
+}
+
+// --- 모드 관리 ---
+var currentMode = 'basic'; // 'basic' or 'full' or 'dex'
+var characters = basicCharacters.slice(); // active characters
+
+function getRandomCharacters() {
+  var shuffled = allCharacters.slice();
+  for (var i = shuffled.length - 1; i > 0; i--) {
+    var j = Math.floor(Math.random() * (i + 1));
+    var temp = shuffled[i];
+    shuffled[i] = shuffled[j];
+    shuffled[j] = temp;
+  }
+  return shuffled.slice(0, 12).map(function(c, idx) {
+    return { hour: idx + 1, name: c.name, file: c.file };
+  });
+}
+
+var selectedGen = null;
+
+function setMode(mode) {
+  currentMode = mode;
+  var btnBasic = document.getElementById('btnBasic');
+  var btnFull = document.getElementById('btnFull');
+  var btnDex = document.getElementById('btnDex');
+  var dexWrap = document.getElementById('dexWrap');
+  var clockWrapper = document.getElementById('clockWrapper');
+  var digitalRow = document.getElementById('digitalRow');
+  btnBasic.classList.toggle('mode-active', mode === 'basic');
+  btnFull.classList.toggle('mode-active', mode === 'full');
+  btnDex.classList.toggle('mode-active', mode === 'dex');
+
+  if (mode === 'dex') {
+    clockWrapper.style.display = 'none';
+    digitalRow.style.display = 'none';
+    dexWrap.style.display = 'flex';
+    buildGenTabs();
+    var initGen = selectedGen != null ? selectedGen : pokemonGenIndex[0].gen;
+    selectGen(initGen);
+  } else if (mode === 'basic') {
+    clockWrapper.style.display = 'block';
+    digitalRow.style.display = 'inline-block';
+    dexWrap.style.display = 'none';
+    characters = basicCharacters.slice();
+    layout();
+  } else if (mode === 'full') {
+    // 전체 모드: 1,025마리에서 무작위 12 — 모든 세대 메타 필요
+    clockWrapper.style.display = 'block';
+    digitalRow.style.display = 'inline-block';
+    dexWrap.style.display = 'none';
+    loadAllGens().then(function () {
+      if (currentMode !== 'full') return;
+      characters = getRandomCharacters();
+      layout();
+    });
+  }
+}
+
+function buildGenTabs() {
+  var tabs = document.getElementById('genTabs');
+  if (tabs.dataset.built === '1') return;
+  tabs.innerHTML = '';
+  pokemonGenIndex.forEach(function (g) {
+    var btn = document.createElement('button');
+    btn.className = 'gen-tab';
+    btn.dataset.gen = g.gen;
+    btn.innerHTML = g.gen + '세대 <span class="tab-count">' + g.count + '</span>';
+    btn.addEventListener('click', function () { selectGen(g.gen); });
+    tabs.appendChild(btn);
+  });
+  tabs.dataset.built = '1';
+}
+
+function selectGen(gen) {
+  selectedGen = gen;
+  document.querySelectorAll('.gen-tab').forEach(function (b) {
+    b.classList.toggle('active', parseInt(b.dataset.gen, 10) === gen);
+  });
+
+  var container = document.getElementById('dexContainer');
+  container.innerHTML = '<div class="dex-section-title">' + gen + '세대 불러오는 중…</div>';
+  loadGen(gen).then(function (list) {
+    if (selectedGen !== gen) return; // 사용자가 다른 탭 누른 사이 도착
+    renderGen(gen, list);
+  });
+}
+
+function renderGen(gen, list) {
+  var container = document.getElementById('dexContainer');
+  container.innerHTML = '';
+  container.scrollTop = 0;
+  var vw = window.innerWidth;
+  var itemSize = Math.max(60, Math.min(120, vw / 8));
+  var fontSize = Math.max(9, itemSize * 0.14);
+  var numFontSize = Math.max(8, itemSize * 0.12);
+
+  var title = document.createElement('div');
+  title.className = 'dex-section-title';
+  title.innerHTML = gen + '세대 <span class="count">(' + list.length + '마리)</span>';
+  container.appendChild(title);
+
+  var grid = document.createElement('div');
+  grid.className = 'dex-grid';
+  grid.style.gridTemplateColumns = 'repeat(auto-fill, minmax(' + itemSize + 'px, 1fr))';
+
+  list.forEach(function (char) {
+    var item = document.createElement('div');
+    item.className = 'dex-item';
+
+    var img = document.createElement('img');
+    img.src = char.file;
+    img.alt = char.name;
+    img.draggable = false;
+    img.loading = 'lazy';
+    item.appendChild(img);
+
+    var name = document.createElement('div');
+    name.className = 'dex-name';
+    name.textContent = char.name;
+    name.style.fontSize = fontSize + 'px';
+    item.appendChild(name);
+
+    var num = document.createElement('div');
+    num.className = 'dex-num';
+    num.textContent = '#' + String(char.dex).padStart(4, '0');
+    num.style.fontSize = numFontSize + 'px';
+    item.appendChild(num);
+
+    item.addEventListener('click', function () { showDexOverlay(char); });
+    grid.appendChild(item);
+  });
+
+  container.appendChild(grid);
+}
+
+function showDexOverlay(char) {
+  var overlay = document.getElementById('dexOverlay');
+  var overlayImg = document.getElementById('dexOverlayImg');
+  var overlayName = document.getElementById('dexOverlayName');
+  overlayImg.src = char.file;
+  overlayImg.alt = char.name;
+  var dexLabel = char.dex ? ' (#' + String(char.dex).padStart(4, '0') + ')' : '';
+  overlayName.textContent = char.name + dexLabel;
+  overlayName.style.fontSize = Math.max(18, window.innerWidth * 0.035) + 'px';
+  overlay.style.display = 'flex';
+  overlay.onclick = function() { overlay.style.display = 'none'; };
+}
+
+
+
+// characters loaded below
+var clockWrapper = document.getElementById('clockWrapper');
+var clockFace = document.getElementById('clockFace');
+var titleEl = document.getElementById('title');
+var digitalEl = document.getElementById('digitalTime');
+
+// ── 비례 스케일링: 모든 크기를 시계 크기(S)에 비례하여 계산 ──
+function layout() {
+  // 시계 크기: 뷰포트의 짧은 쪽 기준, 제목+디지털 시간 여백 확보
+  var vw = window.innerWidth;
+  var vh = window.innerHeight;
+  var titleSpace = vh * 0.1;  // 상하 여백 (제목 + 디지털시간)
+  var S = Math.min(vw * 0.92, (vh - titleSpace) * 0.88);
+  var R = S / 2; // 반지름
+
+  // CSS 변수로 S 전달 (box-shadow 등에서 사용)
+  clockFace.style.setProperty('--s', S + 'px');
+
+  // 시계 wrapper 크기
+  clockWrapper.style.width = S + 'px';
+  clockWrapper.style.height = S + 'px';
+
+  // 제목 크기
+  titleEl.style.fontSize = (S * 0.05) + 'px';
+  titleEl.style.marginBottom = (S * 0.01) + 'px';
+
+  // 모드 버튼 크기
+  var modeControls = document.getElementById('modeControls');
+  var btnFontSize = S * 0.025;
+  var btnPadV = S * 0.008;
+  var btnPadH = S * 0.025;
+  modeControls.style.marginBottom = (S * 0.012) + 'px';
+  document.querySelectorAll('.mode-btn').forEach(function(btn) {
+    btn.style.fontSize = btnFontSize + 'px';
+    btn.style.padding = btnPadV + 'px ' + btnPadH + 'px';
+  });
+  // 디지털 시간 + 크레딧 행
+  var digitalRow = document.getElementById('digitalRow');
+  digitalEl.style.fontSize = (S * 0.045) + 'px';
+  digitalEl.style.padding = (S * 0.012) + 'px ' + (S * 0.04) + 'px';
+  digitalRow.style.marginTop = (S * 0.025) + 'px';
+  document.getElementById('creditText').style.fontSize = (S * 0.022) + 'px';
+
+  // 시계 바늘 두께
+  var hourHand = document.getElementById('hourHand');
+  var minuteHand = document.getElementById('minuteHand');
+  var secondHand = document.getElementById('secondHand');
+  var hw = Math.max(2, S * 0.014);
+  hourHand.style.width = hw + 'px';
+  hourHand.style.marginLeft = (-hw/2) + 'px';
+  hourHand.style.borderRadius = (hw/2) + 'px';
+  var mw = Math.max(1.5, S * 0.009);
+  minuteHand.style.width = mw + 'px';
+  minuteHand.style.marginLeft = (-mw/2) + 'px';
+  minuteHand.style.borderRadius = (mw/2) + 'px';
+  var sw = Math.max(1, S * 0.004);
+  secondHand.style.width = sw + 'px';
+  secondHand.style.marginLeft = (-sw/2) + 'px';
+  secondHand.style.borderRadius = (sw/2) + 'px';
+
+  // 중심 점
+  var dot = document.querySelector('.center-dot');
+  var dotSize = S * 0.03;
+  dot.style.width = dotSize + 'px';
+  dot.style.height = dotSize + 'px';
+  dot.style.margin = (-dotSize/2) + 'px 0 0 ' + (-dotSize/2) + 'px';
+
+  // ── 눈금 ──
+  document.querySelectorAll('.tick').forEach(function(el) { el.remove(); });
+  var tickW = Math.max(1, S * 0.003);
+  var tickH = S * 0.015;
+  for (var i = 0; i < 60; i++) {
+    if (i % 5 === 0) continue;
+    var tick = document.createElement('div');
+    tick.className = 'tick';
+    tick.style.setProperty('--radius', R + 'px');
+    tick.style.width = tickW + 'px';
+    tick.style.height = tickH + 'px';
+    tick.style.left = '50%';
+    tick.style.top = (S * 0.01) + 'px';
+    tick.style.marginLeft = (-tickW/2) + 'px';
+    tick.style.transform = 'rotate(' + (i * 6) + 'deg)';
+    clockFace.appendChild(tick);
+  }
+
+  // ── 캐릭터 마커 + 숫자 ──
+  document.querySelectorAll('.hour-marker, .hour-number').forEach(function(el) { el.remove(); });
+  var markerSize = S * 0.13;    // 캐릭터 이미지 크기
+  var markerDist = R * 0.78;    // 중심으로부터 거리
+  var numberDist = R * 0.54;    // 숫자 거리
+  var numFontSize = S * 0.038;  // 숫자 폰트
+  var nameFontSize = S * 0.02;  // 캐릭터 이름 폰트
+
+  characters.forEach(function(char) {
+    var hour = char.hour;
+    var angle = (hour * 30 - 90) * (Math.PI / 180);
+
+    // 캐릭터 마커
+    var marker = document.createElement('div');
+    marker.className = 'hour-marker';
+    marker.dataset.hour = hour;
+    marker.style.width = markerSize + 'px';
+    marker.style.height = markerSize + 'px';
+    marker.style.left = (R + markerDist * Math.cos(angle)) + 'px';
+    marker.style.top = (R + markerDist * Math.sin(angle)) + 'px';
+
+    var img = document.createElement('img');
+    img.src = char.file;
+    img.alt = char.name;
+    img.draggable = false;
+    marker.appendChild(img);
+
+    var nameLabel = document.createElement('div');
+    nameLabel.className = 'char-name';
+    nameLabel.textContent = char.name;
+    nameLabel.style.fontSize = nameFontSize + 'px';
+    marker.appendChild(nameLabel);
+
+    marker.title = hour + '시 - ' + char.name;
+    clockFace.appendChild(marker);
+
+    // 숫자 라벨
+    var numEl = document.createElement('div');
+    numEl.className = 'hour-number';
+    numEl.style.fontSize = numFontSize + 'px';
+    numEl.style.left = (R + numberDist * Math.cos(angle)) + 'px';
+    numEl.style.top = (R + numberDist * Math.sin(angle)) + 'px';
+    numEl.textContent = hour;
+    clockFace.appendChild(numEl);
+  });
+
+  // ── 반짝이 ──
+  document.querySelectorAll('.sparkle').forEach(function(el) { el.remove(); });
+  for (var j = 0; j < 20; j++) {
+    var sparkle = document.createElement('div');
+    sparkle.className = 'sparkle';
+    sparkle.style.left = (Math.random() * S) + 'px';
+    sparkle.style.top = (Math.random() * S) + 'px';
+    sparkle.style.animationDelay = (Math.random() * 3) + 's';
+    var sz = (S * 0.004 + Math.random() * S * 0.008) + 'px';
+    sparkle.style.width = sz;
+    sparkle.style.height = sz;
+    clockFace.appendChild(sparkle);
+  }
+}
+
+// ── 배경 떠다니는 이모지 (포켓볼 톤) ──
+function addFloatingHearts() {
+  document.querySelectorAll('.floating-heart').forEach(function(el) { el.remove(); });
+  var symbols = ['⚡','🔴','⚪','✨','⭐','🟡'];
+  for (var i = 0; i < 15; i++) {
+    var heart = document.createElement('div');
+    heart.className = 'floating-heart';
+    heart.textContent = symbols[Math.floor(Math.random() * symbols.length)];
+    heart.style.left = (Math.random() * 100) + 'vw';
+    heart.style.fontSize = (0.8 + Math.random() * 1.4) + 'rem';
+    heart.style.animationDuration = (8 + Math.random() * 12) + 's';
+    heart.style.animationDelay = (Math.random() * 10) + 's';
+    document.body.appendChild(heart);
+  }
+}
+
+// ── 시계 바늘 업데이트 ──
+function updateClock() {
+  var now = new Date();
+  var h = now.getHours() % 12;
+  var m = now.getMinutes();
+  var s = now.getSeconds();
+  var ms = now.getMilliseconds();
+  var secondDeg = (s + ms / 1000) * 6;
+  var minuteDeg = (m + s / 60) * 6;
+  var hourDeg = (h + m / 60 + s / 3600) * 30;
+  document.getElementById('secondHand').style.transform = 'rotate(' + secondDeg + 'deg)';
+  document.getElementById('minuteHand').style.transform = 'rotate(' + minuteDeg + 'deg)';
+  document.getElementById('hourHand').style.transform = 'rotate(' + hourDeg + 'deg)';
+  var hh = String(now.getHours()).padStart(2, '0');
+  var mm = String(m).padStart(2, '0');
+  var ss = String(s).padStart(2, '0');
+  document.getElementById('digitalTime').textContent = hh + ':' + mm + ':' + ss;
+  var currentHour = h === 0 ? 12 : h;
+  document.querySelectorAll('.hour-marker').forEach(function(marker) {
+    var isActive = parseInt(marker.dataset.hour) === currentHour;
+    var heartEl = marker.querySelector('.heart-pulse');
+    if (isActive) {
+      marker.classList.add('active');
+      if (!heartEl) {
+        heartEl = document.createElement('div');
+        heartEl.className = 'heart-pulse';
+        var size = marker.offsetWidth * 1.4;
+        // 포켓볼 모양 펄스 (위 빨강, 아래 흰색, 가운데 검은 띠 + 가운데 원)
+        heartEl.innerHTML = '<svg width="' + size + '" height="' + size + '" viewBox="0 0 100 100">'
+          + '<defs><clipPath id="pb"><circle cx="50" cy="50" r="48"/></clipPath></defs>'
+          + '<g clip-path="url(#pb)" opacity="0.55">'
+          + '<rect x="0" y="0" width="100" height="50" fill="#d32f2f"/>'
+          + '<rect x="0" y="50" width="100" height="50" fill="#ffffff"/>'
+          + '<rect x="0" y="44" width="100" height="12" fill="#212121"/>'
+          + '<circle cx="50" cy="50" r="12" fill="#ffffff" stroke="#212121" stroke-width="3"/>'
+          + '</g></svg>';
+        marker.appendChild(heartEl);
+      }
+    } else {
+      marker.classList.remove('active');
+      if (heartEl) heartEl.remove();
+    }
+  });
+  requestAnimationFrame(updateClock);
+}
+
+// ── 초기화 ──
+window.addEventListener('load', function() {
+  document.getElementById('btnBasic').addEventListener('click', function() { setMode('basic'); });
+  document.getElementById('btnFull').addEventListener('click', function() { setMode('full'); });
+  document.getElementById('btnDex').addEventListener('click', function() { setMode('dex'); });
+  setMode('basic');
+  addFloatingHearts();
+  updateClock();
+});
+var resizeTimer;
+window.addEventListener('resize', function() {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(function() {
+    if (currentMode === 'dex') {
+      if (selectedGen != null && window.__pokemonGen[selectedGen]) {
+        renderGen(selectedGen, window.__pokemonGen[selectedGen]);
+      }
+    } else {
+      layout();
+    }
+  }, 80);
+});
+
+</script>
+</body>
+</html>

@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>티니핑 시계</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; overflow: hidden; }
+  body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #fce4ec 0%, #e8eaf6 30%, #e0f7fa 60%, #fff3e0 100%);
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  }
+  h1 {
+    color: #7b1fa2;
+    text-shadow: 0 1px 3px rgba(123,31,162,0.15);
+    letter-spacing: 0.15em;
+    /* font-size set by JS */
+  }
+  .clock-wrapper {
+    position: relative;
+    /* width/height set by JS */
+  }
+  .clock-face {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #ffffff 0%, #f3e5f5 40%, #e1bee7 100%);
+    box-shadow:
+      0 0 0 calc(var(--s) * 0.013) rgba(206,147,216,0.4),
+      0 0 0 calc(var(--s) * 0.026) rgba(186,104,200,0.15),
+      0 calc(var(--s) * 0.013) calc(var(--s) * 0.053) rgba(0,0,0,0.12),
+      inset 0 0 calc(var(--s) * 0.1) rgba(206,147,216,0.15);
+  }
+  .hour-marker {
+    position: absolute;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.3s ease;
+    cursor: pointer;
+    /* width/height set by JS */
+  }
+  .hour-marker:hover {
+    transform: translate(-50%, -50%) scale(1.35);
+    z-index: 20;
+    filter: drop-shadow(0 4px 12px rgba(233,30,99,0.4));
+  }
+  .hour-marker img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    filter: drop-shadow(0 2px 6px rgba(0,0,0,0.25));
+  }
+  .hour-marker .char-name {
+    position: absolute;
+    bottom: -1.6em;
+    left: 50%;
+    transform: translateX(-50%);
+    font-weight: 700;
+    color: #7b1fa2;
+    white-space: nowrap;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    text-shadow: 0 0 2px white, 0 0 4px white, 0 0 7px white, 0 0 10px white, 0 0 14px white, 0 0 18px white, 0 0 22px white, 0 1px 2px rgba(0,0,0,0.08);
+    pointer-events: none;
+    /* font-size set by JS */
+  }
+  .hour-marker:hover .char-name { opacity: 1; }
+  .hour-number {
+    position: absolute;
+    font-weight: 800;
+    color: rgba(123,31,162,0.6);
+    transform: translate(-50%, -50%);
+    z-index: 5;
+    pointer-events: none;
+    /* font-size set by JS */
+  }
+  .hand {
+    position: absolute;
+    bottom: 50%;
+    left: 50%;
+    transform-origin: bottom center;
+    z-index: 30;
+    will-change: transform;
+  }
+  .hand-hour {
+    height: 22%;
+    background: linear-gradient(to top, #7b1fa2, #ce93d8);
+    box-shadow: 0 0 8px rgba(123,31,162,0.4);
+    /* width, margin-left, border-radius set by JS */
+  }
+  .hand-minute {
+    height: 30%;
+    background: linear-gradient(to top, #1565c0, #64b5f6);
+    box-shadow: 0 0 6px rgba(21,101,192,0.3);
+  }
+  .hand-second {
+    height: 35%;
+    background: linear-gradient(to top, #e91e63, #f48fb1);
+    box-shadow: 0 0 4px rgba(233,30,99,0.3);
+  }
+  .center-dot {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    border-radius: 50%;
+    background: radial-gradient(circle, #f8bbd0, #e91e63);
+    box-shadow: 0 0 10px rgba(233,30,99,0.5);
+    z-index: 40;
+    /* size set by JS */
+  }
+  .digital-time {
+    font-weight: 700;
+    color: #6a1b9a;
+    letter-spacing: 0.2em;
+    background: rgba(255,255,255,0.6);
+    border-radius: 999px;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    /* font-size, padding, margin set by JS */
+  }
+  .digital-row {
+    position: relative;
+    display: inline-block;
+  }
+  .credit {
+    position: absolute;
+    left: calc(100% + 0.5em);
+    top: 50%;
+    transform: translateY(-50%);
+    color: #7b1fa2;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    pointer-events: none;
+    white-space: nowrap;
+  }
+  .sparkle {
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.9);
+    animation: sparkle 3s infinite ease-in-out;
+    z-index: 2;
+    pointer-events: none;
+  }
+  @keyframes sparkle {
+    0%, 100% { opacity: 0; transform: scale(0); }
+    50% { opacity: 1; transform: scale(1); }
+  }
+  .floating-heart {
+    position: fixed;
+    opacity: 0.15;
+    animation: floatUp linear infinite;
+    pointer-events: none;
+    z-index: 0;
+  }
+  @keyframes floatUp {
+    0% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
+    10% { opacity: 0.15; }
+    90% { opacity: 0.15; }
+    100% { transform: translateY(-10vh) rotate(360deg); opacity: 0; }
+  }
+  .hour-marker.active img {
+    filter: drop-shadow(0 0 8px rgba(233,30,99,0.6)) drop-shadow(0 2px 6px rgba(0,0,0,0.25));
+  }
+  /* 하트 펄스 효과 */
+  .heart-pulse {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    z-index: -1;
+  }
+  .heart-pulse svg {
+    animation: heartBeat 1.8s infinite ease-in-out;
+  }
+  @keyframes heartBeat {
+    0%   { transform: scale(0.5); opacity: 0.7; }
+    50%  { transform: scale(1.5); opacity: 0; }
+    100% { transform: scale(0.5); opacity: 0; }
+  }
+  .tick {
+    position: absolute;
+    background: rgba(123,31,162,0.2);
+    transform-origin: center var(--radius);
+    border-radius: 1px;
+    z-index: 1;
+  }
+
+  .mode-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    z-index: 50;
+  }
+  .mode-btn {
+    border: 2px solid rgba(123,31,162,0.3);
+    background: rgba(255,255,255,0.6);
+    color: #7b1fa2;
+    font-weight: 700;
+    border-radius: 999px;
+    cursor: pointer;
+    backdrop-filter: blur(10px);
+    transition: all 0.3s ease;
+    outline: none;
+    /* size set by JS */
+  }
+  .mode-btn:hover {
+    background: rgba(206,147,216,0.3);
+  }
+  .mode-btn.mode-active {
+    background: linear-gradient(135deg, #ce93d8, #ab47bc);
+    color: white;
+    border-color: transparent;
+    box-shadow: 0 2px 10px rgba(171,71,188,0.4);
+  }
+  .refresh-btn {
+    border: 2px solid rgba(123,31,162,0.3);
+    background: rgba(255,255,255,0.6);
+    border-radius: 50%;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(10px);
+    transition: all 0.3s ease, transform 0.5s ease;
+    outline: none;
+    /* size set by JS */
+  }
+  .refresh-btn:hover {
+    background: rgba(206,147,216,0.3);
+    transform: rotate(180deg);
+  }
+  .refresh-btn:active {
+    transform: rotate(360deg);
+  }
+  /* 도감 모드 */
+  .dex-container {
+    width: 92vw;
+    max-height: calc(100vh - 100px);
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 8px;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(171,71,188,0.3) transparent;
+  }
+  .dex-container::-webkit-scrollbar { width: 6px; }
+  .dex-container::-webkit-scrollbar-thumb { background: rgba(171,71,188,0.3); border-radius: 3px; }
+  .dex-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    gap: 10px;
+    justify-items: center;
+  }
+  .dex-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    padding: 4px;
+    border-radius: 12px;
+  }
+  .dex-item:hover {
+    transform: scale(1.15);
+    background: rgba(206,147,216,0.15);
+  }
+  .dex-item img {
+    width: 100%;
+    aspect-ratio: 1;
+    object-fit: contain;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.15));
+  }
+  .dex-item .dex-name {
+    font-weight: 700;
+    color: #7b1fa2;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+    margin-top: 2px;
+  }
+  /* 도감 확대 오버레이 */
+  .dex-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(6px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    cursor: pointer;
+    animation: fadeIn 0.2s ease;
+  }
+  .dex-overlay img {
+    max-width: 60vmin;
+    max-height: 60vmin;
+    object-fit: contain;
+    filter: drop-shadow(0 4px 20px rgba(0,0,0,0.4));
+    animation: popIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .dex-overlay-name {
+    color: white;
+    font-weight: 800;
+    margin-top: 16px;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.5);
+    animation: popIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes popIn { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+</style>
+</head>
+<body>
+<h1 id="title">✨ 티니핑 시계 ✨</h1>
+
+<div class="mode-controls" id="modeControls">
+  <button id="btnBasic" class="mode-btn mode-active">기본 모드</button>
+  <button id="btnFull" class="mode-btn">전체 모드</button>
+  <button id="btnDex" class="mode-btn">도감 모드</button>
+</div>
+<div id="dexContainer" class="dex-container" style="display:none">
+  <div id="dexGrid" class="dex-grid"></div>
+</div>
+<!-- 도감 확대 오버레이 -->
+<div id="dexOverlay" class="dex-overlay" style="display:none">
+  <img id="dexOverlayImg" src="" alt="">
+  <div id="dexOverlayName" class="dex-overlay-name"></div>
+</div>
+<div class="clock-wrapper" id="clockWrapper">
+  <div class="clock-face" id="clockFace">
+    <div class="hand hand-hour" id="hourHand"></div>
+    <div class="hand hand-minute" id="minuteHand"></div>
+    <div class="hand hand-second" id="secondHand"></div>
+    <div class="center-dot"></div>
+  </div>
+</div>
+<div class="digital-row" id="digitalRow">
+  <div class="digital-time" id="digitalTime">00:00:00</div>
+  <div class="credit" id="creditText"><strong>둥둥이들</strong><span style="font-weight:400">과 함께 만듦</span></div>
+</div>
+<script src="teenieping_data.js"></script>
+<script>
+var basicCharacters = basicTeenieping;
+var allCharacters = allTeenieping;
+
+// --- 모드 관리 ---
+var currentMode = 'basic'; // 'basic' or 'full'
+var characters = basicCharacters.slice(); // active characters
+
+function getRandomCharacters() {
+  var shuffled = allCharacters.slice();
+  for (var i = shuffled.length - 1; i > 0; i--) {
+    var j = Math.floor(Math.random() * (i + 1));
+    var temp = shuffled[i];
+    shuffled[i] = shuffled[j];
+    shuffled[j] = temp;
+  }
+  return shuffled.slice(0, 12).map(function(c, idx) {
+    return { hour: idx + 1, name: c.name, file: c.file };
+  });
+}
+
+function setMode(mode) {
+  currentMode = mode;
+  var btnBasic = document.getElementById('btnBasic');
+  var btnFull = document.getElementById('btnFull');
+  var btnDex = document.getElementById('btnDex');
+  var dexContainer = document.getElementById('dexContainer');
+  var clockWrapper = document.getElementById('clockWrapper');
+  var digitalRow = document.getElementById('digitalRow');
+  btnBasic.classList.toggle('mode-active', mode === 'basic');
+  btnFull.classList.toggle('mode-active', mode === 'full');
+  btnDex.classList.toggle('mode-active', mode === 'dex');
+  if (mode === 'dex') {
+    clockWrapper.style.display = 'none';
+    digitalRow.style.display = 'none';
+    dexContainer.style.display = 'block';
+    buildDex();
+  } else {
+    clockWrapper.style.display = 'block';
+    digitalRow.style.display = 'inline-block';
+    dexContainer.style.display = 'none';
+    if (mode === 'basic') {
+      characters = basicCharacters.slice();
+    } else {
+      characters = getRandomCharacters();
+    }
+    layout();
+  }
+}
+
+function buildDex() {
+  var grid = document.getElementById('dexGrid');
+  if (grid.children.length > 0) return; // already built
+  var vw = window.innerWidth;
+  var itemSize = Math.max(60, Math.min(120, vw / 8));
+  var fontSize = Math.max(9, itemSize * 0.14);
+  grid.style.gridTemplateColumns = 'repeat(auto-fill, minmax(' + itemSize + 'px, 1fr))';
+  allCharacters.forEach(function(char) {
+    var item = document.createElement('div');
+    item.className = 'dex-item';
+    var img = document.createElement('img');
+    img.src = char.file;
+    img.alt = char.name;
+    img.draggable = false;
+    img.loading = 'lazy';
+    item.appendChild(img);
+    var name = document.createElement('div');
+    name.className = 'dex-name';
+    name.textContent = char.name;
+    name.style.fontSize = fontSize + 'px';
+    item.appendChild(name);
+    item.addEventListener('click', function() { showDexOverlay(char); });
+    grid.appendChild(item);
+  });
+}
+
+function showDexOverlay(char) {
+  var overlay = document.getElementById('dexOverlay');
+  var overlayImg = document.getElementById('dexOverlayImg');
+  var overlayName = document.getElementById('dexOverlayName');
+  overlayImg.src = char.file;
+  overlayImg.alt = char.name;
+  overlayName.textContent = char.name;
+  overlayName.style.fontSize = Math.max(18, window.innerWidth * 0.035) + 'px';
+  overlay.style.display = 'flex';
+  overlay.onclick = function() { overlay.style.display = 'none'; };
+}
+
+
+
+// characters loaded below
+var clockWrapper = document.getElementById('clockWrapper');
+var clockFace = document.getElementById('clockFace');
+var titleEl = document.getElementById('title');
+var digitalEl = document.getElementById('digitalTime');
+
+// ── 비례 스케일링: 모든 크기를 시계 크기(S)에 비례하여 계산 ──
+function layout() {
+  // 시계 크기: 뷰포트의 짧은 쪽 기준, 제목+디지털 시간 여백 확보
+  var vw = window.innerWidth;
+  var vh = window.innerHeight;
+  var titleSpace = vh * 0.1;  // 상하 여백 (제목 + 디지털시간)
+  var S = Math.min(vw * 0.92, (vh - titleSpace) * 0.88);
+  var R = S / 2; // 반지름
+
+  // CSS 변수로 S 전달 (box-shadow 등에서 사용)
+  clockFace.style.setProperty('--s', S + 'px');
+
+  // 시계 wrapper 크기
+  clockWrapper.style.width = S + 'px';
+  clockWrapper.style.height = S + 'px';
+
+  // 제목 크기
+  titleEl.style.fontSize = (S * 0.05) + 'px';
+  titleEl.style.marginBottom = (S * 0.01) + 'px';
+
+  // 모드 버튼 크기
+  var modeControls = document.getElementById('modeControls');
+  var btnFontSize = S * 0.025;
+  var btnPadV = S * 0.008;
+  var btnPadH = S * 0.025;
+  modeControls.style.marginBottom = (S * 0.012) + 'px';
+  document.querySelectorAll('.mode-btn').forEach(function(btn) {
+    btn.style.fontSize = btnFontSize + 'px';
+    btn.style.padding = btnPadV + 'px ' + btnPadH + 'px';
+  });
+  // 디지털 시간 + 크레딧 행
+  var digitalRow = document.getElementById('digitalRow');
+  digitalEl.style.fontSize = (S * 0.045) + 'px';
+  digitalEl.style.padding = (S * 0.012) + 'px ' + (S * 0.04) + 'px';
+  digitalRow.style.marginTop = (S * 0.025) + 'px';
+  document.getElementById('creditText').style.fontSize = (S * 0.022) + 'px';
+
+  // 시계 바늘 두께
+  var hourHand = document.getElementById('hourHand');
+  var minuteHand = document.getElementById('minuteHand');
+  var secondHand = document.getElementById('secondHand');
+  var hw = Math.max(2, S * 0.014);
+  hourHand.style.width = hw + 'px';
+  hourHand.style.marginLeft = (-hw/2) + 'px';
+  hourHand.style.borderRadius = (hw/2) + 'px';
+  var mw = Math.max(1.5, S * 0.009);
+  minuteHand.style.width = mw + 'px';
+  minuteHand.style.marginLeft = (-mw/2) + 'px';
+  minuteHand.style.borderRadius = (mw/2) + 'px';
+  var sw = Math.max(1, S * 0.004);
+  secondHand.style.width = sw + 'px';
+  secondHand.style.marginLeft = (-sw/2) + 'px';
+  secondHand.style.borderRadius = (sw/2) + 'px';
+
+  // 중심 점
+  var dot = document.querySelector('.center-dot');
+  var dotSize = S * 0.03;
+  dot.style.width = dotSize + 'px';
+  dot.style.height = dotSize + 'px';
+  dot.style.margin = (-dotSize/2) + 'px 0 0 ' + (-dotSize/2) + 'px';
+
+  // ── 눈금 ──
+  document.querySelectorAll('.tick').forEach(function(el) { el.remove(); });
+  var tickW = Math.max(1, S * 0.003);
+  var tickH = S * 0.015;
+  for (var i = 0; i < 60; i++) {
+    if (i % 5 === 0) continue;
+    var tick = document.createElement('div');
+    tick.className = 'tick';
+    tick.style.setProperty('--radius', R + 'px');
+    tick.style.width = tickW + 'px';
+    tick.style.height = tickH + 'px';
+    tick.style.left = '50%';
+    tick.style.top = (S * 0.01) + 'px';
+    tick.style.marginLeft = (-tickW/2) + 'px';
+    tick.style.transform = 'rotate(' + (i * 6) + 'deg)';
+    clockFace.appendChild(tick);
+  }
+
+  // ── 캐릭터 마커 + 숫자 ──
+  document.querySelectorAll('.hour-marker, .hour-number').forEach(function(el) { el.remove(); });
+  var markerSize = S * 0.13;    // 캐릭터 이미지 크기
+  var markerDist = R * 0.78;    // 중심으로부터 거리
+  var numberDist = R * 0.54;    // 숫자 거리
+  var numFontSize = S * 0.038;  // 숫자 폰트
+  var nameFontSize = S * 0.02;  // 캐릭터 이름 폰트
+
+  characters.forEach(function(char) {
+    var hour = char.hour;
+    var angle = (hour * 30 - 90) * (Math.PI / 180);
+
+    // 캐릭터 마커
+    var marker = document.createElement('div');
+    marker.className = 'hour-marker';
+    marker.dataset.hour = hour;
+    marker.style.width = markerSize + 'px';
+    marker.style.height = markerSize + 'px';
+    marker.style.left = (R + markerDist * Math.cos(angle)) + 'px';
+    marker.style.top = (R + markerDist * Math.sin(angle)) + 'px';
+
+    var img = document.createElement('img');
+    img.src = char.file;
+    img.alt = char.name;
+    img.draggable = false;
+    marker.appendChild(img);
+
+    var nameLabel = document.createElement('div');
+    nameLabel.className = 'char-name';
+    nameLabel.textContent = char.name;
+    nameLabel.style.fontSize = nameFontSize + 'px';
+    marker.appendChild(nameLabel);
+
+    marker.title = hour + '시 - ' + char.name;
+    clockFace.appendChild(marker);
+
+    // 숫자 라벨
+    var numEl = document.createElement('div');
+    numEl.className = 'hour-number';
+    numEl.style.fontSize = numFontSize + 'px';
+    numEl.style.left = (R + numberDist * Math.cos(angle)) + 'px';
+    numEl.style.top = (R + numberDist * Math.sin(angle)) + 'px';
+    numEl.textContent = hour;
+    clockFace.appendChild(numEl);
+  });
+
+  // ── 반짝이 ──
+  document.querySelectorAll('.sparkle').forEach(function(el) { el.remove(); });
+  for (var j = 0; j < 20; j++) {
+    var sparkle = document.createElement('div');
+    sparkle.className = 'sparkle';
+    sparkle.style.left = (Math.random() * S) + 'px';
+    sparkle.style.top = (Math.random() * S) + 'px';
+    sparkle.style.animationDelay = (Math.random() * 3) + 's';
+    var sz = (S * 0.004 + Math.random() * S * 0.008) + 'px';
+    sparkle.style.width = sz;
+    sparkle.style.height = sz;
+    clockFace.appendChild(sparkle);
+  }
+}
+
+// ── 배경 하트 ──
+function addFloatingHearts() {
+  document.querySelectorAll('.floating-heart').forEach(function(el) { el.remove(); });
+  var hearts = ['💖','💗','💕','✨','🌸','⭐','💜'];
+  for (var i = 0; i < 15; i++) {
+    var heart = document.createElement('div');
+    heart.className = 'floating-heart';
+    heart.textContent = hearts[Math.floor(Math.random() * hearts.length)];
+    heart.style.left = (Math.random() * 100) + 'vw';
+    heart.style.fontSize = (0.6 + Math.random() * 1.2) + 'rem';
+    heart.style.animationDuration = (8 + Math.random() * 12) + 's';
+    heart.style.animationDelay = (Math.random() * 10) + 's';
+    document.body.appendChild(heart);
+  }
+}
+
+// ── 시계 바늘 업데이트 ──
+function updateClock() {
+  var now = new Date();
+  var h = now.getHours() % 12;
+  var m = now.getMinutes();
+  var s = now.getSeconds();
+  var ms = now.getMilliseconds();
+  var secondDeg = (s + ms / 1000) * 6;
+  var minuteDeg = (m + s / 60) * 6;
+  var hourDeg = (h + m / 60 + s / 3600) * 30;
+  document.getElementById('secondHand').style.transform = 'rotate(' + secondDeg + 'deg)';
+  document.getElementById('minuteHand').style.transform = 'rotate(' + minuteDeg + 'deg)';
+  document.getElementById('hourHand').style.transform = 'rotate(' + hourDeg + 'deg)';
+  var hh = String(now.getHours()).padStart(2, '0');
+  var mm = String(m).padStart(2, '0');
+  var ss = String(s).padStart(2, '0');
+  document.getElementById('digitalTime').textContent = hh + ':' + mm + ':' + ss;
+  var currentHour = h === 0 ? 12 : h;
+  document.querySelectorAll('.hour-marker').forEach(function(marker) {
+    var isActive = parseInt(marker.dataset.hour) === currentHour;
+    var heartEl = marker.querySelector('.heart-pulse');
+    if (isActive) {
+      marker.classList.add('active');
+      if (!heartEl) {
+        heartEl = document.createElement('div');
+        heartEl.className = 'heart-pulse';
+        var size = marker.offsetWidth * 1.4;
+        heartEl.innerHTML = '<svg width="' + size + '" height="' + size + '" viewBox="0 0 100 100">'
+          + '<path d="M50 88 C25 65, 0 45, 0 28 C0 12, 12 0, 25 0 C35 0, 45 8, 50 18 C55 8, 65 0, 75 0 C88 0, 100 12, 100 28 C100 45, 75 65, 50 88Z" '
+          + 'fill="rgba(233,30,99,0.5)"/></svg>';
+        marker.appendChild(heartEl);
+      }
+    } else {
+      marker.classList.remove('active');
+      if (heartEl) heartEl.remove();
+    }
+  });
+  requestAnimationFrame(updateClock);
+}
+
+// ── 초기화 ──
+window.addEventListener('load', function() {
+  document.getElementById('btnBasic').addEventListener('click', function() { setMode('basic'); });
+  document.getElementById('btnFull').addEventListener('click', function() { setMode('full'); });
+  document.getElementById('btnDex').addEventListener('click', function() { setMode('dex'); });
+  setMode('basic');
+  addFloatingHearts();
+  updateClock();
+});
+var resizeTimer;
+window.addEventListener('resize', function() {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(function() {
+    if (currentMode === 'dex') {
+      // 도감 리빌드
+      document.getElementById('dexGrid').innerHTML = '';
+      buildDex();
+    } else {
+      layout();
+    }
+  }, 80);
+});
+
+</script>
+</body>
+</html>
