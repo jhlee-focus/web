@@ -1330,6 +1330,19 @@ TEENIEPING_FILES.forEach(([name, code]) => {
   TEENIEPINGS[name] = `img_assets/teenieping_imgs/${code}_${name}.webp`;
 });
 
+// '커핑'/'머핑' → '커핑&머핑', '노라핑'/'노리핑' → '노라핑&노리핑'
+function findTeeniepingKey(input) {
+  const q = (input || '').replace(/\s+/g, '');
+  if (!q) return null;
+  if (TEENIEPINGS[q]) return q;
+  for (const name of Object.keys(TEENIEPINGS)) {
+    if (name.includes('&') && name.split('&').includes(q)) {
+      return name;
+    }
+  }
+  return null;
+}
+
 const INGREDIENTS = {
   flour:  { name: '밀가루', emoji: '🌾', img: 'img_assets/ingredients_pixel/Carb_pixel/flour_01.png' },
   sugar:  { name: '설탕',   emoji: '🍬', img: 'img_assets/ingredients_pixel/Carb_pixel/sugar_01.png' },
@@ -1653,8 +1666,9 @@ function tryChangeGuide() {
     Sounds.errorBuzz();
     return;
   }
-  // Strict: only the exact full name matches (e.g. '하츄핑' OK, '하츄' / '핑' NG)
-  if (TEENIEPINGS[key]) { applyGuide(key); return; }
+  // Pair-aware: '하츄핑' OK; '커핑'/'머핑' → '커핑&머핑'; '노라핑'/'노리핑' → '노라핑&노리핑'
+  const resolved = findTeeniepingKey(key);
+  if (resolved) { applyGuide(resolved); return; }
   // not found — keep modal open, shake input, allow editing
   errEl.textContent = `'${rawInput.trim()}' 친구는 못 찾았어. 다시 입력해볼까?`;
   input.classList.add('error');
@@ -1668,7 +1682,8 @@ function applyGuide(name) {
   state.guideSrc = TEENIEPINGS[name];
   refreshGuideUi();
   closeCharacterModal();
-  say(`안녕! 나는 ${name}이야!`);
+  const subj = name.includes('&') ? '우리는' : '나는';
+  say(`안녕! ${subj} ${name}이야!`);
   setTimeout(hideBubble, 2500);
   playGuideGreeting();
 }

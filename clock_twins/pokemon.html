@@ -384,6 +384,73 @@
   }
   @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
   @keyframes popIn { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  /* 도감 검색 */
+  .dex-search-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 6px 4px 6px;
+    background: rgba(255,255,255,0.55);
+    backdrop-filter: blur(10px);
+    border-radius: 12px;
+  }
+  .dex-search-input {
+    flex: 1;
+    padding: 10px 14px;
+    font-size: 15px;
+    font-weight: 600;
+    color: #0d47a1;
+    background: rgba(255,255,255,0.85);
+    border: 2px solid rgba(13,71,161,0.25);
+    border-radius: 999px;
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+  .dex-search-input::placeholder { color: rgba(13,71,161,0.45); font-weight: 500; }
+  .dex-search-input:focus {
+    border-color: #1565c0;
+    box-shadow: 0 0 0 4px rgba(100,181,246,0.3);
+  }
+  .dex-search-input.error {
+    border-color: #d32f2f;
+    box-shadow: 0 0 0 4px rgba(211,47,47,0.25);
+  }
+  .dex-search-clear {
+    border: 2px solid rgba(13,71,161,0.25);
+    background: rgba(255,255,255,0.85);
+    color: #0d47a1;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    font-size: 18px;
+    font-weight: 800;
+    line-height: 1;
+    cursor: pointer;
+    transition: background 0.2s ease;
+  }
+  .dex-search-clear:hover { background: rgba(144,202,249,0.4); }
+  .dex-search-msg {
+    color: #c62828;
+    font-weight: 700;
+    font-size: 13px;
+    margin-left: 4px;
+    min-height: 1em;
+  }
+  @keyframes dexShake {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-6px); }
+    40% { transform: translateX(6px); }
+    60% { transform: translateX(-4px); }
+    80% { transform: translateX(4px); }
+  }
+  .dex-search-input.shake-x { animation: dexShake 0.4s ease; }
+  @keyframes dexFoundFlashPok {
+    0%   { box-shadow: 0 0 0 0 rgba(211,47,47,0.55); background: rgba(144,202,249,0.35); }
+    50%  { box-shadow: 0 0 0 12px rgba(211,47,47,0.0);  background: rgba(144,202,249,0.55); }
+    100% { box-shadow: 0 0 0 0 rgba(211,47,47,0.0);  background: rgba(144,202,249,0.0); }
+  }
+  .dex-item.dex-found-flash { animation: dexFoundFlashPok 1.2s ease; }
 </style>
 </head>
 <body>
@@ -396,6 +463,12 @@
 </div>
 <div id="dexWrap" class="dex-wrap" style="display:none">
   <div id="genTabs" class="gen-tabs"></div>
+  <div class="dex-search-row">
+    <input type="text" id="dexSearchInput" class="dex-search-input"
+           placeholder="이름으로 찾기 (예: 피카츄, 뮤츠)" autocomplete="off" />
+    <button type="button" id="dexSearchClear" class="dex-search-clear" aria-label="지우기">×</button>
+  </div>
+  <div class="dex-search-msg" id="dexSearchMsg"></div>
   <div id="dexContainer" class="dex-container"></div>
 </div>
 <!-- 도감 확대 오버레이 -->
@@ -422,6 +495,40 @@ var basicCharacters = basicPokemon;
 // 사용자가 '전체 모드' 또는 '도감 모드'로 들어갈 때 세대별로 동적 로드.
 var allCharacters = [];
 window.__pokemonGen = window.__pokemonGen || {};
+
+// --- 검색 매칭 (정확 이름 일치) ---
+function findPokemonMatch(query) {
+  var q = (query || '').replace(/\s+/g, '');
+  if (!q) return null;
+  // allCharacters에 모든 세대 메타가 합쳐져 있으면 그것을 우선
+  if (allCharacters && allCharacters.length) {
+    for (var i = 0; i < allCharacters.length; i++) {
+      if (allCharacters[i].name === q) return allCharacters[i];
+    }
+  }
+  // fallback: 캐시된 세대 인덱스 직접 훑기
+  for (var k in window.__pokemonGen) {
+    var list = window.__pokemonGen[k];
+    if (!list) continue;
+    for (var j = 0; j < list.length; j++) {
+      if (list[j].name === q) return list[j];
+    }
+  }
+  return null;
+}
+function findPokemonGen(char) {
+  if (!char) return null;
+  for (var k in window.__pokemonGen) {
+    var list = window.__pokemonGen[k];
+    if (!list) continue;
+    if (list.indexOf(char) !== -1) return parseInt(k, 10);
+    // dex 번호 비교 (allCharacters 경로로 들어왔을 때 객체 동일성 보장이 안 됨)
+    for (var j = 0; j < list.length; j++) {
+      if (list[j].dex === char.dex && list[j].name === char.name) return parseInt(k, 10);
+    }
+  }
+  return null;
+}
 
 // --- 세대별 데이터 동적 로더 (한 번 로드되면 캐시) ---
 var genLoaders = {}; // gen -> Promise
@@ -494,6 +601,7 @@ function setMode(mode) {
     clockWrapper.style.display = 'block';
     digitalRow.style.display = 'inline-block';
     dexWrap.style.display = 'none';
+    resetDexSearchUI();
     characters = basicCharacters.slice();
     layout();
   } else if (mode === 'full') {
@@ -501,12 +609,19 @@ function setMode(mode) {
     clockWrapper.style.display = 'block';
     digitalRow.style.display = 'inline-block';
     dexWrap.style.display = 'none';
+    resetDexSearchUI();
     loadAllGens().then(function () {
       if (currentMode !== 'full') return;
       characters = getRandomCharacters();
       layout();
     });
   }
+}
+function resetDexSearchUI() {
+  var inp = document.getElementById('dexSearchInput');
+  var msg = document.getElementById('dexSearchMsg');
+  if (inp) { inp.value = ''; inp.classList.remove('error', 'shake-x'); }
+  if (msg) { msg.textContent = ''; }
 }
 
 function buildGenTabs() {
@@ -559,6 +674,7 @@ function renderGen(gen, list) {
   list.forEach(function (char) {
     var item = document.createElement('div');
     item.className = 'dex-item';
+    item.dataset.dex = char.dex;
 
     var img = document.createElement('img');
     img.src = char.file;
@@ -597,6 +713,90 @@ function showDexOverlay(char) {
   overlayName.style.fontSize = Math.max(18, window.innerWidth * 0.035) + 'px';
   overlay.style.display = 'flex';
   overlay.onclick = function() { overlay.style.display = 'none'; };
+}
+
+// 검색 결과 표시 헬퍼
+function flashDexSearchError(msg) {
+  var inp = document.getElementById('dexSearchInput');
+  var msgEl = document.getElementById('dexSearchMsg');
+  if (msgEl) msgEl.textContent = msg || '';
+  if (!inp) return;
+  inp.classList.add('error');
+  inp.classList.remove('shake-x');
+  void inp.offsetWidth;
+  inp.classList.add('shake-x');
+}
+function clearDexSearchError() {
+  var inp = document.getElementById('dexSearchInput');
+  var msgEl = document.getElementById('dexSearchMsg');
+  if (inp) { inp.classList.remove('error', 'shake-x'); }
+  if (msgEl) msgEl.textContent = '';
+}
+
+// 컨테이너 기준 정확 스크롤 + lazy 이미지 즉시 로드 + 약간의 시간차 후 오버레이
+function dexPreciseJump(container, item, onArrive) {
+  if (container) {
+    container.querySelectorAll('img[loading="lazy"]').forEach(function(img) {
+      img.loading = 'eager';
+    });
+  }
+  requestAnimationFrame(function() {
+    requestAnimationFrame(function() {
+      var itemRect = item.getBoundingClientRect();
+      var contRect = container.getBoundingClientRect();
+      var target = container.scrollTop + (itemRect.top - contRect.top)
+                   - (container.clientHeight / 2) + (itemRect.height / 2);
+      target = Math.max(0, Math.min(target, container.scrollHeight - container.clientHeight));
+      if (typeof container.scrollTo === 'function') {
+        container.scrollTo({ top: target, behavior: 'smooth' });
+      } else {
+        container.scrollTop = target;
+      }
+      item.classList.remove('dex-found-flash');
+      void item.offsetWidth;
+      item.classList.add('dex-found-flash');
+      if (onArrive) setTimeout(onArrive, 700);
+    });
+  });
+}
+
+// 전세대 사전 로드 → 매칭 → 해당 세대 탭 전환 → 렌더 후 스크롤+오버레이
+function gotoPokemon(query) {
+  var q = (query || '').replace(/\s+/g, '');
+  if (!q) { flashDexSearchError('이름을 입력해줘'); return; }
+  if (currentMode !== 'dex') setMode('dex');
+  loadAllGens().then(function () {
+    var found = findPokemonMatch(q);
+    if (!found) { flashDexSearchError('그런 포켓몬은 없어'); return; }
+    clearDexSearchError();
+    var gen = findPokemonGen(found);
+    if (gen == null) { flashDexSearchError('세대 정보 없음'); return; }
+
+    var container = document.getElementById('dexContainer');
+    var doJump = function () {
+      var item = document.querySelector('#dexContainer .dex-item[data-dex="' + found.dex + '"]');
+      if (!item) {
+        // 렌더가 아직 안 끝났으면 한 프레임 더 기다리기
+        requestAnimationFrame(function () {
+          var item2 = document.querySelector('#dexContainer .dex-item[data-dex="' + found.dex + '"]');
+          if (!item2) return;
+          dexPreciseJump(container, item2, function() { showDexOverlay(found); });
+        });
+        return;
+      }
+      dexPreciseJump(container, item, function() { showDexOverlay(found); });
+    };
+
+    if (selectedGen === gen) {
+      requestAnimationFrame(doJump);
+    } else {
+      selectGen(gen);
+      // selectGen 내부의 loadGen → renderGen 체인이 끝난 다음 점프
+      loadGen(gen).then(function () { requestAnimationFrame(doJump); });
+    }
+  }).catch(function () {
+    flashDexSearchError('데이터 로드 실패');
+  });
 }
 
 
@@ -814,6 +1014,26 @@ window.addEventListener('load', function() {
   document.getElementById('btnBasic').addEventListener('click', function() { setMode('basic'); });
   document.getElementById('btnFull').addEventListener('click', function() { setMode('full'); });
   document.getElementById('btnDex').addEventListener('click', function() { setMode('dex'); });
+  // 도감 검색
+  var dexInp = document.getElementById('dexSearchInput');
+  var dexClr = document.getElementById('dexSearchClear');
+  if (dexInp) {
+    dexInp.addEventListener('input', clearDexSearchError);
+    dexInp.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' || e.keyCode === 13) {
+        e.preventDefault();
+        gotoPokemon(dexInp.value);
+      }
+    });
+  }
+  if (dexClr) {
+    dexClr.addEventListener('click', function() {
+      if (!dexInp) return;
+      dexInp.value = '';
+      clearDexSearchError();
+      dexInp.focus();
+    });
+  }
   setMode('basic');
   addFloatingHearts();
   updateClock();

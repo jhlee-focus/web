@@ -379,6 +379,76 @@
   }
   @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
   @keyframes popIn { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  /* 도감 검색 */
+  .dex-search-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 6px 4px 10px;
+    position: sticky;
+    top: 0;
+    background: rgba(255,255,255,0.55);
+    backdrop-filter: blur(10px);
+    border-radius: 12px;
+    z-index: 5;
+  }
+  .dex-search-input {
+    flex: 1;
+    padding: 10px 14px;
+    font-size: 15px;
+    font-weight: 600;
+    color: #6a1b9a;
+    background: rgba(255,255,255,0.85);
+    border: 2px solid rgba(123,31,162,0.25);
+    border-radius: 999px;
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+  .dex-search-input::placeholder { color: rgba(123,31,162,0.45); font-weight: 500; }
+  .dex-search-input:focus {
+    border-color: #ab47bc;
+    box-shadow: 0 0 0 4px rgba(206,147,216,0.25);
+  }
+  .dex-search-input.error {
+    border-color: #e91e63;
+    box-shadow: 0 0 0 4px rgba(233,30,99,0.25);
+  }
+  .dex-search-clear {
+    border: 2px solid rgba(123,31,162,0.25);
+    background: rgba(255,255,255,0.85);
+    color: #7b1fa2;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    font-size: 18px;
+    font-weight: 800;
+    line-height: 1;
+    cursor: pointer;
+    transition: background 0.2s ease;
+  }
+  .dex-search-clear:hover { background: rgba(206,147,216,0.3); }
+  .dex-search-msg {
+    color: #c2185b;
+    font-weight: 700;
+    font-size: 13px;
+    margin-left: 4px;
+    min-height: 1em;
+  }
+  @keyframes dexShake {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-6px); }
+    40% { transform: translateX(6px); }
+    60% { transform: translateX(-4px); }
+    80% { transform: translateX(4px); }
+  }
+  .dex-search-input.shake-x { animation: dexShake 0.4s ease; }
+  @keyframes dexFoundFlash {
+    0%   { box-shadow: 0 0 0 0 rgba(233,30,99,0.55); background: rgba(206,147,216,0.35); }
+    50%  { box-shadow: 0 0 0 12px rgba(233,30,99,0.0);  background: rgba(206,147,216,0.55); }
+    100% { box-shadow: 0 0 0 0 rgba(233,30,99,0.0);  background: rgba(206,147,216,0.0); }
+  }
+  .dex-item.dex-found-flash { animation: dexFoundFlash 1.2s ease; }
 </style>
 </head>
 <body>
@@ -390,6 +460,12 @@
   <button id="btnDex" class="mode-btn">도감 모드</button>
 </div>
 <div id="dexContainer" class="dex-container" style="display:none">
+  <div class="dex-search-row">
+    <input type="text" id="dexSearchInput" class="dex-search-input"
+           placeholder="이름으로 찾기 (예: 커핑, 노리핑, 하츄핑)" autocomplete="off" />
+    <button type="button" id="dexSearchClear" class="dex-search-clear" aria-label="지우기">×</button>
+  </div>
+  <div class="dex-search-msg" id="dexSearchMsg"></div>
   <div id="dexGrid"></div>
 </div>
 <!-- 도감 확대 오버레이 -->
@@ -415,6 +491,28 @@
 <script>
 var basicCharacters = basicTeenieping;
 var allCharacters = allTeenieping;
+
+// --- 검색 매칭 (페어 한쪽 입력만으로도 페어 전체 매칭) ---
+function matchesTeeniepingQuery(name, q) {
+  if (!q) return false;
+  if (name === q) return true;
+  if (name.indexOf('&') !== -1 && name.split('&').indexOf(q) !== -1) return true;
+  return false;
+}
+function findTeeniepingMatch(query) {
+  var q = (query || '').replace(/\s+/g, '');
+  if (!q) return null;
+  for (var i = 0; i < allCharacters.length; i++) {
+    if (matchesTeeniepingQuery(allCharacters[i].name, q)) return allCharacters[i];
+  }
+  return null;
+}
+function cssEscape(s) {
+  if (window.CSS && typeof window.CSS.escape === 'function') return window.CSS.escape(s);
+  return String(s).replace(/[^a-zA-Z0-9_\- -￿]/g, function(c) {
+    return '\\' + c;
+  });
+}
 
 // --- 모드 관리 ---
 var currentMode = 'basic'; // 'basic' or 'full'
@@ -453,6 +551,11 @@ function setMode(mode) {
     clockWrapper.style.display = 'block';
     digitalRow.style.display = 'inline-block';
     dexContainer.style.display = 'none';
+    // 도감을 떠날 때 검색 상태 초기화
+    var sInp = document.getElementById('dexSearchInput');
+    var sMsg = document.getElementById('dexSearchMsg');
+    if (sInp) { sInp.value = ''; sInp.classList.remove('error', 'shake-x'); }
+    if (sMsg) { sMsg.textContent = ''; }
     if (mode === 'basic') {
       characters = basicCharacters.slice();
     } else {
@@ -523,6 +626,7 @@ function buildDex() {
     list.forEach(function (char) {
       var item = document.createElement('div');
       item.className = 'dex-item';
+      item.dataset.name = char.name;
 
       var imgWrap = document.createElement('div');
       imgWrap.className = 'dex-img-wrap';
@@ -568,6 +672,62 @@ function showDexOverlay(char) {
   overlayName.style.fontSize = Math.max(18, window.innerWidth * 0.035) + 'px';
   overlay.style.display = 'flex';
   overlay.onclick = function() { overlay.style.display = 'none'; };
+}
+
+// 검색어로 도감 내 캐릭터 셀로 스크롤 + 자동 클릭(오버레이)
+function flashDexSearchError(msg) {
+  var inp = document.getElementById('dexSearchInput');
+  var msgEl = document.getElementById('dexSearchMsg');
+  if (msgEl) msgEl.textContent = msg || '';
+  if (!inp) return;
+  inp.classList.add('error');
+  inp.classList.remove('shake-x');
+  void inp.offsetWidth;
+  inp.classList.add('shake-x');
+}
+function clearDexSearchError() {
+  var inp = document.getElementById('dexSearchInput');
+  var msgEl = document.getElementById('dexSearchMsg');
+  if (inp) { inp.classList.remove('error', 'shake-x'); }
+  if (msgEl) msgEl.textContent = '';
+}
+// 컨테이너 기준 정확 스크롤 + lazy 이미지 즉시 로드 + 약간의 시간차 후 오버레이
+function dexPreciseJump(container, item, onArrive) {
+  // lazy 이미지를 모두 eager로 전환 → 레이아웃 높이 안정화
+  if (container) {
+    container.querySelectorAll('img[loading="lazy"]').forEach(function(img) {
+      img.loading = 'eager';
+    });
+  }
+  requestAnimationFrame(function() {
+    requestAnimationFrame(function() {
+      var itemRect = item.getBoundingClientRect();
+      var contRect = container.getBoundingClientRect();
+      var target = container.scrollTop + (itemRect.top - contRect.top)
+                   - (container.clientHeight / 2) + (itemRect.height / 2);
+      target = Math.max(0, Math.min(target, container.scrollHeight - container.clientHeight));
+      if (typeof container.scrollTo === 'function') {
+        container.scrollTo({ top: target, behavior: 'smooth' });
+      } else {
+        container.scrollTop = target;
+      }
+      item.classList.remove('dex-found-flash');
+      void item.offsetWidth;
+      item.classList.add('dex-found-flash');
+      if (onArrive) setTimeout(onArrive, 700);
+    });
+  });
+}
+
+function gotoTeenieping(query) {
+  var found = findTeeniepingMatch(query);
+  if (!found) { flashDexSearchError('그런 친구는 없어'); return; }
+  clearDexSearchError();
+  if (currentMode !== 'dex') setMode('dex');
+  var container = document.getElementById('dexContainer');
+  var item = document.querySelector('#dexGrid .dex-item[data-name="' + cssEscape(found.name) + '"]');
+  if (!item) { flashDexSearchError('도감을 다시 열어줘'); return; }
+  dexPreciseJump(container, item, function() { showDexOverlay(found); });
 }
 
 
@@ -782,6 +942,26 @@ window.addEventListener('load', function() {
   document.getElementById('btnBasic').addEventListener('click', function() { setMode('basic'); });
   document.getElementById('btnFull').addEventListener('click', function() { setMode('full'); });
   document.getElementById('btnDex').addEventListener('click', function() { setMode('dex'); });
+  // 도감 검색
+  var dexInp = document.getElementById('dexSearchInput');
+  var dexClr = document.getElementById('dexSearchClear');
+  if (dexInp) {
+    dexInp.addEventListener('input', clearDexSearchError);
+    dexInp.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' || e.keyCode === 13) {
+        e.preventDefault();
+        gotoTeenieping(dexInp.value);
+      }
+    });
+  }
+  if (dexClr) {
+    dexClr.addEventListener('click', function() {
+      if (!dexInp) return;
+      dexInp.value = '';
+      clearDexSearchError();
+      dexInp.focus();
+    });
+  }
   setMode('basic');
   addFloatingHearts();
   updateClock();
