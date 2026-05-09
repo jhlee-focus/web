@@ -424,6 +424,24 @@
     text-shadow: 0 2px 8px rgba(0,0,0,0.5);
     animation: popIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
   }
+  .type-chips {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin-top: 12px;
+    animation: popIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .type-chip {
+    padding: 6px 18px;
+    border-radius: 999px;
+    font-weight: 800;
+    color: #fff;
+    font-size: clamp(13px, 2.2vmin, 18px);
+    letter-spacing: 0.06em;
+    text-shadow: 0 1px 1px rgba(0,0,0,0.3);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3), inset 0 0 0 1.5px rgba(255,255,255,0.45);
+    white-space: nowrap;
+  }
   @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
   @keyframes popIn { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
   /* 도감 검색 */
@@ -568,6 +586,7 @@
   <div class="credit" id="creditText"><strong>포켓몬 마스터</strong><span style="font-weight:400">와 함께 만듦</span></div>
 </div>
 <script src="osk.js"></script>
+<script src="pokemon_types.js"></script>
 <script src="pokemon_data.js"></script>
 <script>
 var basicCharacters = basicPokemon;
@@ -618,6 +637,30 @@ function makeTierBadge(tier, fontSize) {
   b.textContent = tier;
   if (fontSize) b.style.fontSize = fontSize + 'px';
   return b;
+}
+
+// --- 포켓몬 타입 색상 (표준 18종) ---
+var TYPE_COLOR = {
+  '노말':'#A8A77A','불꽃':'#EE8130','물':'#6390F0','전기':'#F7D02C',
+  '풀':'#7AC74C','얼음':'#96D9D6','격투':'#C22E28','독':'#A33EA1',
+  '땅':'#E2BF65','비행':'#A98FF3','에스퍼':'#F95587','벌레':'#A6B91A',
+  '바위':'#B6A136','고스트':'#735797','드래곤':'#6F35FC','악':'#705746',
+  '강철':'#B7B7CE','페어리':'#D685AD'
+};
+function buildTypeChips(dex) {
+  if (dex == null || !window.__pokemonTypes) return null;
+  var types = window.__pokemonTypes[dex];
+  if (!types || !types.length) return null;
+  var wrap = document.createElement('div');
+  wrap.className = 'type-chips';
+  types.forEach(function(t) {
+    var chip = document.createElement('span');
+    chip.className = 'type-chip';
+    chip.textContent = t;
+    chip.style.background = TYPE_COLOR[t] || '#888';
+    wrap.appendChild(chip);
+  });
+  return wrap;
 }
 
 // --- 검색 매칭 (정확 이름 일치) ---
@@ -849,6 +892,12 @@ function showDexOverlay(char) {
   var dexLabel = char.dex ? ' (#' + String(char.dex).padStart(4, '0') + ')' : '';
   overlayName.textContent = char.name + dexLabel;
   overlayName.style.fontSize = Math.max(18, window.innerWidth * 0.035) + 'px';
+  // 타입 chip — 기존 chips 제거 후 새로 추가
+  var oldChips = overlay.querySelector('.type-chips');
+  if (oldChips) oldChips.remove();
+  var dexForType = (char.dex != null) ? char.dex : dexFromFile(char.file);
+  var chips = buildTypeChips(dexForType);
+  if (chips) overlay.appendChild(chips);
   overlay.style.display = 'flex';
   overlay.onclick = function() { overlay.style.display = 'none'; };
 }
