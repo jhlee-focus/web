@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>티니핑 시계</title>
+<link rel="stylesheet" href="osk.css">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body { width: 100%; height: 100%; overflow: hidden; }
@@ -449,6 +450,19 @@
     100% { box-shadow: 0 0 0 0 rgba(233,30,99,0.0);  background: rgba(206,147,216,0.0); }
   }
   .dex-item.dex-found-flash { animation: dexFoundFlash 1.2s ease; }
+  /* OSK 페이지 특화: 검색바 아래 sticky 위치 + 보라/분홍 색 변수 */
+  .dex-container {
+    --osk-primary: #ab47bc;
+    --osk-primary-dark: #6a1b9a;
+    --osk-active-bg: #f3e5f5;
+    --osk-text: #4a148c;
+  }
+  #dexOsk {
+    position: sticky;
+    top: 60px;
+    z-index: 4;
+    margin-bottom: 6px;
+  }
 </style>
 </head>
 <body>
@@ -463,8 +477,10 @@
   <div class="dex-search-row">
     <input type="text" id="dexSearchInput" class="dex-search-input"
            placeholder="이름으로 찾기 (예: 커핑, 노리핑, 하츄핑)" autocomplete="off" />
+    <button type="button" id="dexOskToggle" class="dex-osk-toggle" aria-label="화상키보드">⌨️</button>
     <button type="button" id="dexSearchClear" class="dex-search-clear" aria-label="지우기">×</button>
   </div>
+  <div id="dexOsk" class="osk" hidden></div>
   <div class="dex-search-msg" id="dexSearchMsg"></div>
   <div id="dexGrid"></div>
 </div>
@@ -487,6 +503,7 @@
   <div class="digital-time" id="digitalTime">00:00:00</div>
   <div class="credit" id="creditText"><strong>둥둥이들</strong><span style="font-weight:400">과 함께 만듦</span></div>
 </div>
+<script src="osk.js"></script>
 <script src="teenieping_data.js"></script>
 <script>
 var basicCharacters = basicTeenieping;
@@ -960,6 +977,29 @@ window.addEventListener('load', function() {
       dexInp.value = '';
       clearDexSearchError();
       dexInp.focus();
+    });
+  }
+  // 화상키보드 (디저트 게임의 OSK를 도감 검색에서도 사용)
+  var dexOskEl = document.getElementById('dexOsk');
+  var dexOskBtn = document.getElementById('dexOskToggle');
+  if (window.OnScreenKeyboard && dexInp && dexOskEl && dexOskBtn) {
+    var oskInstance = null;
+    dexOskBtn.addEventListener('click', function() {
+      if (!oskInstance) {
+        oskInstance = window.OnScreenKeyboard.attach({
+          input: dexInp,
+          oskRoot: dexOskEl,
+          onCommit: function(val) {
+            dexOskEl.hidden = true;
+            dexOskBtn.classList.remove('active');
+            gotoTeenieping(val);
+          },
+          onChange: clearDexSearchError
+        });
+      }
+      dexOskEl.hidden = !dexOskEl.hidden;
+      dexOskBtn.classList.toggle('active', !dexOskEl.hidden);
+      if (!dexOskEl.hidden) dexInp.focus();
     });
   }
   setMode('basic');

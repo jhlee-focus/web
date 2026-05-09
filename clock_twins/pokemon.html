@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>포켓몬 시계</title>
+<link rel="stylesheet" href="osk.css">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body { width: 100%; height: 100%; overflow: hidden; }
@@ -332,11 +333,52 @@
     transform: scale(1.15);
     background: rgba(144,202,249,0.2);
   }
+  .dex-img-wrap {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1;
+  }
+  .dex-img-wrap img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.15));
+  }
+  /* legacy 셀렉터 호환 (사용처 없으면 무영향) */
   .dex-item img {
     width: 100%;
     aspect-ratio: 1;
     object-fit: contain;
     filter: drop-shadow(0 2px 4px rgba(0,0,0,0.15));
+  }
+  .tier-badge {
+    position: absolute;
+    right: 2%;
+    bottom: 2%;
+    font-weight: 800;
+    color: #fff;
+    padding: 2px 7px;
+    border-radius: 999px;
+    line-height: 1.1;
+    letter-spacing: 0.04em;
+    text-shadow: 0 1px 1px rgba(0,0,0,0.25);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.25), inset 0 0 0 1.5px rgba(255,255,255,0.55);
+    pointer-events: none;
+    white-space: nowrap;
+  }
+  .tier-badge.tier-legend   { background: linear-gradient(135deg, #ffca28, #f57f17); }
+  .tier-badge.tier-mythical { background: linear-gradient(135deg, #f06292, #880e4f); }
+  /* 도감 확대 오버레이용 큰 뱃지 */
+  .dex-overlay .tier-badge {
+    right: 8%;
+    bottom: 8%;
+    padding: 4px 12px;
+    font-size: 18px;
+    border-radius: 999px;
+  }
+  .dex-overlay-imgwrap {
+    position: relative;
+    display: inline-block;
   }
   .dex-item .dex-name {
     font-weight: 700;
@@ -451,6 +493,17 @@
     100% { box-shadow: 0 0 0 0 rgba(211,47,47,0.0);  background: rgba(144,202,249,0.0); }
   }
   .dex-item.dex-found-flash { animation: dexFoundFlashPok 1.2s ease; }
+  /* OSK 페이지 특화: 빨강/파랑 톤 */
+  .dex-wrap {
+    --osk-primary: #ef5350;
+    --osk-primary-dark: #c62828;
+    --osk-active-bg: #ffebee;
+    --osk-text: #0d47a1;
+  }
+  #dexOsk {
+    margin-top: 4px;
+    margin-bottom: 4px;
+  }
 </style>
 </head>
 <body>
@@ -466,14 +519,18 @@
   <div class="dex-search-row">
     <input type="text" id="dexSearchInput" class="dex-search-input"
            placeholder="이름으로 찾기 (예: 피카츄, 뮤츠)" autocomplete="off" />
+    <button type="button" id="dexOskToggle" class="dex-osk-toggle" aria-label="화상키보드">⌨️</button>
     <button type="button" id="dexSearchClear" class="dex-search-clear" aria-label="지우기">×</button>
   </div>
+  <div id="dexOsk" class="osk" hidden></div>
   <div class="dex-search-msg" id="dexSearchMsg"></div>
   <div id="dexContainer" class="dex-container"></div>
 </div>
 <!-- 도감 확대 오버레이 -->
 <div id="dexOverlay" class="dex-overlay" style="display:none">
-  <img id="dexOverlayImg" src="" alt="">
+  <div id="dexOverlayImgWrap" class="dex-overlay-imgwrap">
+    <img id="dexOverlayImg" src="" alt="">
+  </div>
   <div id="dexOverlayName" class="dex-overlay-name"></div>
 </div>
 <div class="clock-wrapper" id="clockWrapper">
@@ -488,6 +545,7 @@
   <div class="digital-time" id="digitalTime">00:00:00</div>
   <div class="credit" id="creditText"><strong>포켓몬 마스터</strong><span style="font-weight:400">와 함께 만듦</span></div>
 </div>
+<script src="osk.js"></script>
 <script src="pokemon_data.js"></script>
 <script>
 var basicCharacters = basicPokemon;
@@ -495,6 +553,38 @@ var basicCharacters = basicPokemon;
 // 사용자가 '전체 모드' 또는 '도감 모드'로 들어갈 때 세대별로 동적 로드.
 var allCharacters = [];
 window.__pokemonGen = window.__pokemonGen || {};
+
+// --- 전설/환상 포켓몬 등급 (전국도감 기준, 엑셀 출처) ---
+var LEGEND_DEX = new Set([
+  144,145,146,150,
+  243,244,245,249,250,
+  377,378,379,380,381,382,383,384,
+  480,481,482,483,484,485,486,487,488,
+  638,639,640,641,642,643,644,645,646,
+  716,717,718,
+  772,773,785,786,787,788,789,790,791,792,800,
+  888,889,890,891,892,894,895,896,897,898,905,
+  1001,1002,1003,1004,1007,1008,1014,1015,1016,1017,1024
+]);
+var MYTHICAL_DEX = new Set([
+  151,251,385,386,489,490,491,492,493,494,
+  647,648,649,719,720,721,
+  801,802,807,808,809,893,1025
+]);
+function getPokemonTier(dex) {
+  if (LEGEND_DEX.has(dex)) return '전설';
+  if (MYTHICAL_DEX.has(dex)) return '환상';
+  return null;
+}
+var TIER_CLASS = { '전설': 'tier-legend', '환상': 'tier-mythical' };
+function makeTierBadge(tier, fontSize) {
+  if (!TIER_CLASS[tier]) return null;
+  var b = document.createElement('div');
+  b.className = 'tier-badge ' + TIER_CLASS[tier];
+  b.textContent = tier;
+  if (fontSize) b.style.fontSize = fontSize + 'px';
+  return b;
+}
 
 // --- 검색 매칭 (정확 이름 일치) ---
 function findPokemonMatch(query) {
@@ -676,12 +766,18 @@ function renderGen(gen, list) {
     item.className = 'dex-item';
     item.dataset.dex = char.dex;
 
+    var imgWrap = document.createElement('div');
+    imgWrap.className = 'dex-img-wrap';
     var img = document.createElement('img');
     img.src = char.file;
     img.alt = char.name;
     img.draggable = false;
     img.loading = 'lazy';
-    item.appendChild(img);
+    imgWrap.appendChild(img);
+    var tier = getPokemonTier(char.dex);
+    var badge = makeTierBadge(tier, Math.max(8, itemSize * 0.11));
+    if (badge) imgWrap.appendChild(badge);
+    item.appendChild(imgWrap);
 
     var name = document.createElement('div');
     name.className = 'dex-name';
@@ -706,8 +802,16 @@ function showDexOverlay(char) {
   var overlay = document.getElementById('dexOverlay');
   var overlayImg = document.getElementById('dexOverlayImg');
   var overlayName = document.getElementById('dexOverlayName');
+  var overlayWrap = document.getElementById('dexOverlayImgWrap');
   overlayImg.src = char.file;
   overlayImg.alt = char.name;
+  // 기존 뱃지 제거 후 새로 추가
+  if (overlayWrap) {
+    var oldBadge = overlayWrap.querySelector('.tier-badge');
+    if (oldBadge) oldBadge.remove();
+    var bigBadge = makeTierBadge(getPokemonTier(char.dex));
+    if (bigBadge) overlayWrap.appendChild(bigBadge);
+  }
   var dexLabel = char.dex ? ' (#' + String(char.dex).padStart(4, '0') + ')' : '';
   overlayName.textContent = char.name + dexLabel;
   overlayName.style.fontSize = Math.max(18, window.innerWidth * 0.035) + 'px';
@@ -1032,6 +1136,29 @@ window.addEventListener('load', function() {
       dexInp.value = '';
       clearDexSearchError();
       dexInp.focus();
+    });
+  }
+  // 화상키보드 (디저트 게임의 OSK를 도감 검색에서도 사용)
+  var dexOskEl = document.getElementById('dexOsk');
+  var dexOskBtn = document.getElementById('dexOskToggle');
+  if (window.OnScreenKeyboard && dexInp && dexOskEl && dexOskBtn) {
+    var oskInstance = null;
+    dexOskBtn.addEventListener('click', function() {
+      if (!oskInstance) {
+        oskInstance = window.OnScreenKeyboard.attach({
+          input: dexInp,
+          oskRoot: dexOskEl,
+          onCommit: function(val) {
+            dexOskEl.hidden = true;
+            dexOskBtn.classList.remove('active');
+            gotoPokemon(val);
+          },
+          onChange: clearDexSearchError
+        });
+      }
+      dexOskEl.hidden = !dexOskEl.hidden;
+      dexOskBtn.classList.toggle('active', !dexOskEl.hidden);
+      if (!dexOskEl.hidden) dexInp.focus();
     });
   }
   setMode('basic');
