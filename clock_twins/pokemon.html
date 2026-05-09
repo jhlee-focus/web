@@ -598,6 +598,18 @@ function getPokemonTier(dex) {
   if (MYTHICAL_DEX.has(dex)) return '환상';
   return null;
 }
+// basic/full 모드의 char 객체는 dex 필드가 없을 수 있으므로 file 경로(예:
+// '...포켓몬이미지_0150_뮤츠.webp')에서 도감번호를 안전하게 추출한다.
+function dexFromFile(file) {
+  if (!file) return null;
+  var m = /(\d{4})/.exec(file);
+  return m ? parseInt(m[1], 10) : null;
+}
+function getPokemonTierFromChar(char) {
+  if (!char) return null;
+  var dex = (char.dex != null) ? char.dex : dexFromFile(char.file);
+  return dex == null ? null : getPokemonTier(dex);
+}
 var TIER_CLASS = { '전설': 'tier-legend', '환상': 'tier-mythical' };
 function makeTierBadge(tier, fontSize) {
   if (!TIER_CLASS[tier]) return null;
@@ -684,7 +696,7 @@ function getRandomCharacters() {
     shuffled[j] = temp;
   }
   return shuffled.slice(0, 12).map(function(c, idx) {
-    return { hour: idx + 1, name: c.name, file: c.file };
+    return { hour: idx + 1, name: c.name, file: c.file, dex: c.dex };
   });
 }
 
@@ -1038,6 +1050,11 @@ function layout() {
     img.alt = char.name;
     img.draggable = false;
     marker.appendChild(img);
+
+    // 전설/환상 뱃지 (도감 모드와 동일 스타일)
+    var tier = getPokemonTierFromChar(char);
+    var markerBadge = makeTierBadge(tier, Math.max(8, markerSize * 0.16));
+    if (markerBadge) marker.appendChild(markerBadge);
 
     var nameLabel = document.createElement('div');
     nameLabel.className = 'char-name';
