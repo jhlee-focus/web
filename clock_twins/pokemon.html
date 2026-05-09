@@ -442,6 +442,70 @@
     box-shadow: 0 2px 6px rgba(0,0,0,0.3), inset 0 0 0 1.5px rgba(255,255,255,0.45);
     white-space: nowrap;
   }
+  /* 진화 트리 */
+  .evolution-tree {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 14px;
+    max-width: 92vw;
+    overflow-x: auto;
+    padding: 4px;
+    animation: popIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .evolution-line {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    justify-content: center;
+    flex-wrap: nowrap;
+    width: max-content;
+    margin: 0 auto;
+  }
+  .evolution-cell {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    flex-shrink: 0;
+  }
+  .evolution-cell img {
+    width: clamp(48px, 9vmin, 72px);
+    height: clamp(48px, 9vmin, 72px);
+    object-fit: contain;
+    image-rendering: pixelated;
+    background: rgba(255,255,255,0.92);
+    border-radius: 12px;
+    padding: 4px;
+    filter: drop-shadow(0 2px 6px rgba(0,0,0,0.4));
+    border: 2px solid transparent;
+  }
+  .evolution-cell.current img {
+    border-color: #ffd54f;
+    box-shadow: 0 0 0 4px rgba(255,213,79,0.35);
+  }
+  .evolution-cell .evo-name {
+    color: #fff;
+    font-weight: 700;
+    font-size: clamp(11px, 1.6vmin, 13px);
+    white-space: nowrap;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.7);
+    max-width: 100px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .evolution-arrow {
+    color: rgba(255,255,255,0.85);
+    font-size: clamp(14px, 2.2vmin, 18px);
+    font-weight: 800;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.7);
+    flex-shrink: 0;
+  }
+  .evolution-fanout-tail {
+    display: flex;
+    gap: 6px;
+    flex-wrap: nowrap;
+  }
   @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
   @keyframes popIn { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
   /* 도감 검색 */
@@ -587,6 +651,7 @@
 </div>
 <script src="osk.js"></script>
 <script src="pokemon_types.js"></script>
+<script src="pokemon_evolutions.js"></script>
 <script src="pokemon_data.js"></script>
 <script>
 var basicCharacters = basicPokemon;
@@ -660,6 +725,64 @@ function buildTypeChips(dex) {
     chip.style.background = TYPE_COLOR[t] || '#888';
     wrap.appendChild(chip);
   });
+  return wrap;
+}
+
+// --- 진화 트리 ---
+function pad4(n) { var s = '' + n; while (s.length < 4) s = '0' + s; return s; }
+function makeEvoCell(node, currentDex) {
+  var dex = node[0], name = node[1];
+  var cell = document.createElement('div');
+  cell.className = 'evolution-cell';
+  if (dex === currentDex) cell.classList.add('current');
+  var img = document.createElement('img');
+  img.src = 'img_pokemon/도트/포켓몬도트_' + pad4(dex) + '_' + name + '.webp';
+  img.alt = name;
+  img.draggable = false;
+  cell.appendChild(img);
+  var label = document.createElement('div');
+  label.className = 'evo-name';
+  label.textContent = name;
+  cell.appendChild(label);
+  return cell;
+}
+function buildEvolutionTree(dex) {
+  if (dex == null || !window.__pokemonEvolutions) return null;
+  var entry = window.__pokemonEvolutions[dex];
+  if (!entry) return null;
+  var wrap = document.createElement('div');
+  wrap.className = 'evolution-tree';
+  if (entry.variant === 'fanout') {
+    // 이브이 — 한 줄에 root + 모든 분기 도트
+    var line = document.createElement('div');
+    line.className = 'evolution-line';
+    line.appendChild(makeEvoCell(entry.root, dex));
+    var arrow = document.createElement('span');
+    arrow.className = 'evolution-arrow';
+    arrow.textContent = '→';
+    line.appendChild(arrow);
+    var tail = document.createElement('div');
+    tail.className = 'evolution-fanout-tail';
+    entry.tails.forEach(function(t) { tail.appendChild(makeEvoCell(t, dex)); });
+    line.appendChild(tail);
+    wrap.appendChild(line);
+  } else {
+    // 일반 chain (분기는 여러 줄)
+    entry.lines.forEach(function(chain) {
+      var line = document.createElement('div');
+      line.className = 'evolution-line';
+      chain.forEach(function(node, idx) {
+        if (idx > 0) {
+          var arrow = document.createElement('span');
+          arrow.className = 'evolution-arrow';
+          arrow.textContent = '→';
+          line.appendChild(arrow);
+        }
+        line.appendChild(makeEvoCell(node, dex));
+      });
+      wrap.appendChild(line);
+    });
+  }
   return wrap;
 }
 
@@ -898,6 +1021,11 @@ function showDexOverlay(char) {
   var dexForType = (char.dex != null) ? char.dex : dexFromFile(char.file);
   var chips = buildTypeChips(dexForType);
   if (chips) overlay.appendChild(chips);
+  // 진화 트리 — 기존 트리 제거 후 새로 추가 (진화 없으면 표시 안 함)
+  var oldEvo = overlay.querySelector('.evolution-tree');
+  if (oldEvo) oldEvo.remove();
+  var evoTree = buildEvolutionTree(dexForType);
+  if (evoTree) overlay.appendChild(evoTree);
   overlay.style.display = 'flex';
   overlay.onclick = function() { overlay.style.display = 'none'; };
 }
