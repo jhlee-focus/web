@@ -450,6 +450,27 @@
     100% { box-shadow: 0 0 0 0 rgba(233,30,99,0.0);  background: rgba(206,147,216,0.0); }
   }
   .dex-item.dex-found-flash { animation: dexFoundFlash 1.2s ease; }
+  /* 홈 버튼 (좌상단 fixed) */
+  .home-link {
+    position: fixed;
+    top: 10px;
+    left: 10px;
+    z-index: 100;
+    padding: 8px 14px;
+    border: 2px solid rgba(123,31,162,0.35);
+    background: rgba(255,255,255,0.75);
+    color: #7b1fa2;
+    font-weight: 700;
+    font-size: 14px;
+    border-radius: 999px;
+    text-decoration: none;
+    backdrop-filter: blur(10px);
+    cursor: pointer;
+    box-shadow: 0 2px 10px rgba(123,31,162,0.12);
+    transition: background 0.2s ease, transform 0.15s ease;
+  }
+  .home-link:hover { background: rgba(206,147,216,0.35); }
+  .home-link:active { transform: scale(0.96); }
   /* OSK 페이지 특화: 검색바 아래 sticky 위치 + 보라/분홍 색 변수 */
   .dex-container {
     --osk-primary: #ab47bc;
@@ -466,6 +487,7 @@
 </style>
 </head>
 <body>
+<a href="index.html" class="home-link" aria-label="시계 메뉴로 돌아가기">🏠 홈으로</a>
 <h1 id="title">✨ 티니핑 시계 ✨</h1>
 
 <div class="mode-controls" id="modeControls">

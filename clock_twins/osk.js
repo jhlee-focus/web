@@ -208,6 +208,11 @@
         input.value += k;
       }
       onChange(input.value);
+      // 한 번 켠 SHIFT는 자모 한 글자 입력 후 자동 해제 (한국어 OSK 일반 동작)
+      if (oskShift) {
+        oskShift = false;
+        buildOSK();
+      }
     }
 
     // 외부(물리 키보드/시스템 IME/붙여넣기)에서 input이 바뀌면 IME 버퍼 동기화.
