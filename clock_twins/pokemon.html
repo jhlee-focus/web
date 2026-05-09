@@ -8,6 +8,10 @@
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body { width: 100%; height: 100%; overflow: hidden; }
+  /* iOS notch / 모바일 브라우저 UI 대응 — 위/아래 화면 잘림 방지용 안전 여백 */
+  body {
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
   body {
     display: flex;
     flex-direction: column;
@@ -287,7 +291,7 @@
   }
   .dex-container {
     width: 100%;
-    max-height: calc(100vh - 180px);
+    max-height: calc(100dvh - 210px);
     overflow-y: auto;
     overflow-x: hidden;
     padding: 8px;
@@ -588,8 +592,8 @@
   /* 홈 버튼 (좌상단 fixed) */
   .home-link {
     position: fixed;
-    top: 10px;
-    left: 10px;
+    top: max(10px, calc(env(safe-area-inset-top, 0px) + 6px));
+    left: max(10px, calc(env(safe-area-inset-left, 0px) + 6px));
     z-index: 100;
     padding: 8px 14px;
     border: 2px solid rgba(13,71,161,0.35);
@@ -1145,8 +1149,8 @@ function layout() {
   // 시계 크기: 뷰포트의 짧은 쪽 기준, 제목+디지털 시간 여백 확보
   var vw = window.innerWidth;
   var vh = window.innerHeight;
-  var titleSpace = vh * 0.1;  // 상하 여백 (제목 + 디지털시간)
-  var S = Math.min(vw * 0.92, (vh - titleSpace) * 0.88);
+  var titleSpace = vh * 0.12;  // 상하 여백 (제목 + 디지털시간 + 안전 buffer)
+  var S = Math.min(vw * 0.9, (vh - titleSpace) * 0.82);
   var R = S / 2; // 반지름
 
   // CSS 변수로 S 전달 (box-shadow 등에서 사용)
