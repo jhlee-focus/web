@@ -396,7 +396,8 @@
     background: rgba(255,255,255,0.55);
     backdrop-filter: blur(10px);
     border-radius: 12px;
-    z-index: 5;
+    /* '홈으로'(z-index 100)와 겹칠 때 검색창이 위에 오도록 */
+    z-index: 110;
   }
   .dex-search-input {
     flex: 1;
@@ -485,7 +486,8 @@
   #dexOsk {
     position: sticky;
     top: 60px;
-    z-index: 4;
+    /* 검색바 바로 아래 같은 stacking 영역 — '홈으로'보다 위 */
+    z-index: 109;
     margin-bottom: 6px;
   }
 </style>
