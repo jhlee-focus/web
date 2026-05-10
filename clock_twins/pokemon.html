@@ -4,9 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>포켓몬 시계</title>
+<link rel="stylesheet" href="osk.css">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body { width: 100%; height: 100%; overflow: hidden; }
+  /* iOS notch / 모바일 브라우저 UI 대응 — 위/아래 화면 잘림 방지용 안전 여백 */
+  body {
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
   body {
     display: flex;
     flex-direction: column;
@@ -286,7 +291,7 @@
   }
   .dex-container {
     width: 100%;
-    max-height: calc(100vh - 180px);
+    max-height: calc(100dvh - 210px);
     overflow-y: auto;
     overflow-x: hidden;
     padding: 8px;
@@ -332,11 +337,52 @@
     transform: scale(1.15);
     background: rgba(144,202,249,0.2);
   }
+  .dex-img-wrap {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1;
+  }
+  .dex-img-wrap img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.15));
+  }
+  /* legacy 셀렉터 호환 (사용처 없으면 무영향) */
   .dex-item img {
     width: 100%;
     aspect-ratio: 1;
     object-fit: contain;
     filter: drop-shadow(0 2px 4px rgba(0,0,0,0.15));
+  }
+  .tier-badge {
+    position: absolute;
+    right: 2%;
+    bottom: 2%;
+    font-weight: 800;
+    color: #fff;
+    padding: 2px 7px;
+    border-radius: 999px;
+    line-height: 1.1;
+    letter-spacing: 0.04em;
+    text-shadow: 0 1px 1px rgba(0,0,0,0.25);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.25), inset 0 0 0 1.5px rgba(255,255,255,0.55);
+    pointer-events: none;
+    white-space: nowrap;
+  }
+  .tier-badge.tier-legend   { background: linear-gradient(135deg, #ffca28, #f57f17); }
+  .tier-badge.tier-mythical { background: linear-gradient(135deg, #f06292, #880e4f); }
+  /* 도감 확대 오버레이용 큰 뱃지 */
+  .dex-overlay .tier-badge {
+    right: 8%;
+    bottom: 8%;
+    padding: 4px 12px;
+    font-size: 18px;
+    border-radius: 999px;
+  }
+  .dex-overlay-imgwrap {
+    position: relative;
+    display: inline-block;
   }
   .dex-item .dex-name {
     font-weight: 700;
@@ -363,14 +409,18 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
+    /* 짧은 콘텐츠는 가운데, 진화 트리까지 길어지면 위에서 시작하고 스크롤 가능 */
+    justify-content: safe center;
+    padding: 4vh 16px 8vh;
+    overflow-y: auto;
     z-index: 1000;
     cursor: pointer;
     animation: fadeIn 0.2s ease;
   }
+  .dex-overlay-imgwrap { flex-shrink: 0; }
   .dex-overlay img {
-    max-width: 60vmin;
-    max-height: 60vmin;
+    max-width: 28vmin;
+    max-height: 28vmin;
     object-fit: contain;
     filter: drop-shadow(0 4px 20px rgba(0,0,0,0.4));
     animation: popIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
@@ -382,11 +432,199 @@
     text-shadow: 0 2px 8px rgba(0,0,0,0.5);
     animation: popIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
   }
+  .type-chips {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin-top: 12px;
+    animation: popIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .type-chip {
+    padding: 6px 18px;
+    border-radius: 999px;
+    font-weight: 800;
+    color: #fff;
+    font-size: clamp(13px, 2.2vmin, 18px);
+    letter-spacing: 0.06em;
+    text-shadow: 0 1px 1px rgba(0,0,0,0.3);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3), inset 0 0 0 1.5px rgba(255,255,255,0.45);
+    white-space: nowrap;
+  }
+  /* 진화 트리 */
+  .evolution-tree {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 14px;
+    max-width: 92vw;
+    overflow-x: auto;
+    padding: 4px;
+    animation: popIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .evolution-line {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    justify-content: center;
+    flex-wrap: nowrap;
+    width: max-content;
+    margin: 0 auto;
+  }
+  .evolution-cell {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    flex-shrink: 0;
+    cursor: pointer;
+    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .evolution-cell:hover { transform: translateY(-3px) scale(1.06); }
+  .evolution-cell:active { transform: translateY(-1px) scale(1.02); }
+  .evolution-cell.current { cursor: default; }
+  .evolution-cell.current:hover { transform: none; }
+  .evolution-cell img {
+    width: clamp(64px, 12vmin, 100px);
+    height: clamp(64px, 12vmin, 100px);
+    object-fit: contain;
+    image-rendering: pixelated;
+    background: rgba(255,255,255,0.92);
+    border-radius: 14px;
+    padding: 5px;
+    filter: drop-shadow(0 2px 6px rgba(0,0,0,0.4));
+    border: 2px solid transparent;
+  }
+  .evolution-cell.current img {
+    border-color: #ffd54f;
+    box-shadow: 0 0 0 4px rgba(255,213,79,0.35);
+  }
+  .evolution-cell .evo-name {
+    color: #fff;
+    font-weight: 700;
+    font-size: clamp(13px, 2vmin, 16px);
+    white-space: nowrap;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.7);
+    max-width: 130px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .evolution-arrow {
+    color: rgba(255,255,255,0.85);
+    font-size: clamp(18px, 2.8vmin, 24px);
+    font-weight: 800;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.7);
+    flex-shrink: 0;
+  }
+  .evolution-fanout-tail {
+    display: flex;
+    gap: 6px;
+    flex-wrap: nowrap;
+  }
   @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
   @keyframes popIn { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  /* 도감 검색 */
+  .dex-search-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 6px 4px 6px;
+    background: rgba(255,255,255,0.55);
+    backdrop-filter: blur(10px);
+    border-radius: 12px;
+  }
+  .dex-search-input {
+    flex: 1;
+    padding: 10px 14px;
+    font-size: 15px;
+    font-weight: 600;
+    color: #0d47a1;
+    background: rgba(255,255,255,0.85);
+    border: 2px solid rgba(13,71,161,0.25);
+    border-radius: 999px;
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+  .dex-search-input::placeholder { color: rgba(13,71,161,0.45); font-weight: 500; }
+  .dex-search-input:focus {
+    border-color: #1565c0;
+    box-shadow: 0 0 0 4px rgba(100,181,246,0.3);
+  }
+  .dex-search-input.error {
+    border-color: #d32f2f;
+    box-shadow: 0 0 0 4px rgba(211,47,47,0.25);
+  }
+  .dex-search-clear {
+    border: 2px solid rgba(13,71,161,0.25);
+    background: rgba(255,255,255,0.85);
+    color: #0d47a1;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    font-size: 18px;
+    font-weight: 800;
+    line-height: 1;
+    cursor: pointer;
+    transition: background 0.2s ease;
+  }
+  .dex-search-clear:hover { background: rgba(144,202,249,0.4); }
+  .dex-search-msg {
+    color: #c62828;
+    font-weight: 700;
+    font-size: 13px;
+    margin-left: 4px;
+    min-height: 1em;
+  }
+  @keyframes dexShake {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-6px); }
+    40% { transform: translateX(6px); }
+    60% { transform: translateX(-4px); }
+    80% { transform: translateX(4px); }
+  }
+  .dex-search-input.shake-x { animation: dexShake 0.4s ease; }
+  @keyframes dexFoundFlashPok {
+    0%   { box-shadow: 0 0 0 0 rgba(211,47,47,0.55); background: rgba(144,202,249,0.35); }
+    50%  { box-shadow: 0 0 0 12px rgba(211,47,47,0.0);  background: rgba(144,202,249,0.55); }
+    100% { box-shadow: 0 0 0 0 rgba(211,47,47,0.0);  background: rgba(144,202,249,0.0); }
+  }
+  .dex-item.dex-found-flash { animation: dexFoundFlashPok 1.2s ease; }
+  /* 홈 버튼 (좌상단 fixed) */
+  .home-link {
+    position: fixed;
+    top: max(10px, calc(env(safe-area-inset-top, 0px) + 6px));
+    left: max(10px, calc(env(safe-area-inset-left, 0px) + 6px));
+    z-index: 100;
+    padding: 8px 14px;
+    border: 2px solid rgba(13,71,161,0.35);
+    background: rgba(255,255,255,0.75);
+    color: #0d47a1;
+    font-weight: 700;
+    font-size: 14px;
+    border-radius: 999px;
+    text-decoration: none;
+    backdrop-filter: blur(10px);
+    cursor: pointer;
+    box-shadow: 0 2px 10px rgba(13,71,161,0.12);
+    transition: background 0.2s ease, transform 0.15s ease;
+  }
+  .home-link:hover { background: rgba(144,202,249,0.4); }
+  .home-link:active { transform: scale(0.96); }
+  /* OSK 페이지 특화: 빨강/파랑 톤 */
+  .dex-wrap {
+    --osk-primary: #ef5350;
+    --osk-primary-dark: #c62828;
+    --osk-active-bg: #ffebee;
+    --osk-text: #0d47a1;
+  }
+  #dexOsk {
+    margin-top: 4px;
+    margin-bottom: 4px;
+  }
 </style>
 </head>
 <body>
+<a href="index.html" class="home-link" aria-label="시계 메뉴로 돌아가기">🏠 홈으로</a>
 <h1 id="title">⚡ 포켓몬 시계 ⚡</h1>
 
 <div class="mode-controls" id="modeControls">
@@ -396,11 +634,21 @@
 </div>
 <div id="dexWrap" class="dex-wrap" style="display:none">
   <div id="genTabs" class="gen-tabs"></div>
+  <div class="dex-search-row">
+    <input type="text" id="dexSearchInput" class="dex-search-input"
+           placeholder="이름으로 찾기 (예: 피카츄, 뮤츠)" autocomplete="off" />
+    <button type="button" id="dexOskToggle" class="dex-osk-toggle" aria-label="화상키보드">⌨️</button>
+    <button type="button" id="dexSearchClear" class="dex-search-clear" aria-label="지우기">×</button>
+  </div>
+  <div id="dexOsk" class="osk" hidden></div>
+  <div class="dex-search-msg" id="dexSearchMsg"></div>
   <div id="dexContainer" class="dex-container"></div>
 </div>
 <!-- 도감 확대 오버레이 -->
 <div id="dexOverlay" class="dex-overlay" style="display:none">
-  <img id="dexOverlayImg" src="" alt="">
+  <div id="dexOverlayImgWrap" class="dex-overlay-imgwrap">
+    <img id="dexOverlayImg" src="" alt="">
+  </div>
   <div id="dexOverlayName" class="dex-overlay-name"></div>
 </div>
 <div class="clock-wrapper" id="clockWrapper">
@@ -413,8 +661,11 @@
 </div>
 <div class="digital-row" id="digitalRow">
   <div class="digital-time" id="digitalTime">00:00:00</div>
-  <div class="credit" id="creditText"><strong>포켓몬 마스터</strong><span style="font-weight:400">와 함께 만듦</span></div>
+  <div class="credit" id="creditText"><strong>둥둥이들</strong><span style="font-weight:400">과 함께 만듦</span></div>
 </div>
+<script src="osk.js"></script>
+<script src="pokemon_types.js"></script>
+<script src="pokemon_evolutions.js"></script>
 <script src="pokemon_data.js"></script>
 <script>
 var basicCharacters = basicPokemon;
@@ -422,6 +673,234 @@ var basicCharacters = basicPokemon;
 // 사용자가 '전체 모드' 또는 '도감 모드'로 들어갈 때 세대별로 동적 로드.
 var allCharacters = [];
 window.__pokemonGen = window.__pokemonGen || {};
+
+// --- 전설/환상 포켓몬 등급 (전국도감 기준, 엑셀 출처) ---
+var LEGEND_DEX = new Set([
+  144,145,146,150,
+  243,244,245,249,250,
+  377,378,379,380,381,382,383,384,
+  480,481,482,483,484,485,486,487,488,
+  638,639,640,641,642,643,644,645,646,
+  716,717,718,
+  772,773,785,786,787,788,789,790,791,792,800,
+  888,889,890,891,892,894,895,896,897,898,905,
+  1001,1002,1003,1004,1007,1008,1014,1015,1016,1017,1024
+]);
+var MYTHICAL_DEX = new Set([
+  151,251,385,386,489,490,491,492,493,494,
+  647,648,649,719,720,721,
+  801,802,807,808,809,893,1025
+]);
+function getPokemonTier(dex) {
+  if (LEGEND_DEX.has(dex)) return '전설';
+  if (MYTHICAL_DEX.has(dex)) return '환상';
+  return null;
+}
+// basic/full 모드의 char 객체는 dex 필드가 없을 수 있으므로 file 경로(예:
+// '...포켓몬이미지_0150_뮤츠.webp')에서 도감번호를 안전하게 추출한다.
+function dexFromFile(file) {
+  if (!file) return null;
+  var m = /(\d{4})/.exec(file);
+  return m ? parseInt(m[1], 10) : null;
+}
+function getPokemonTierFromChar(char) {
+  if (!char) return null;
+  var dex = (char.dex != null) ? char.dex : dexFromFile(char.file);
+  return dex == null ? null : getPokemonTier(dex);
+}
+var TIER_CLASS = { '전설': 'tier-legend', '환상': 'tier-mythical' };
+function makeTierBadge(tier, fontSize) {
+  if (!TIER_CLASS[tier]) return null;
+  var b = document.createElement('div');
+  b.className = 'tier-badge ' + TIER_CLASS[tier];
+  b.textContent = tier;
+  if (fontSize) b.style.fontSize = fontSize + 'px';
+  return b;
+}
+
+// --- 포켓몬 타입 색상 (표준 18종) ---
+var TYPE_COLOR = {
+  '노말':'#A8A77A','불꽃':'#EE8130','물':'#6390F0','전기':'#F7D02C',
+  '풀':'#7AC74C','얼음':'#96D9D6','격투':'#C22E28','독':'#A33EA1',
+  '땅':'#E2BF65','비행':'#A98FF3','에스퍼':'#F95587','벌레':'#A6B91A',
+  '바위':'#B6A136','고스트':'#735797','드래곤':'#6F35FC','악':'#705746',
+  '강철':'#B7B7CE','페어리':'#D685AD'
+};
+function buildTypeChips(dex) {
+  if (dex == null || !window.__pokemonTypes) return null;
+  var types = window.__pokemonTypes[dex];
+  if (!types || !types.length) return null;
+  var wrap = document.createElement('div');
+  wrap.className = 'type-chips';
+  types.forEach(function(t) {
+    var chip = document.createElement('span');
+    chip.className = 'type-chip';
+    chip.textContent = t;
+    chip.style.background = TYPE_COLOR[t] || '#888';
+    wrap.appendChild(chip);
+  });
+  return wrap;
+}
+
+// --- 진화 트리 ---
+function pad4(n) { var s = '' + n; while (s.length < 4) s = '0' + s; return s; }
+var POKEMON_REGIONS = ['알로라', '가라르', '히스이', '팔데아'];
+function splitRegion(name) {
+  for (var i = 0; i < POKEMON_REGIONS.length; i++) {
+    var prefix = POKEMON_REGIONS[i] + ' ';
+    if (name.indexOf(prefix) === 0) {
+      return { region: POKEMON_REGIONS[i], base: name.slice(prefix.length) };
+    }
+  }
+  return { region: null, base: name };
+}
+function makeEvoCell(node, currentDex, currentName) {
+  var dex = node[0], name = node[1];
+  var split = splitRegion(name);
+  var isCurrent = (dex === currentDex && name === currentName);
+  var cell = document.createElement('div');
+  cell.className = 'evolution-cell';
+  if (isCurrent) cell.classList.add('current');
+  var img = document.createElement('img');
+  // 리전폼: '포켓몬도트_NNNN_라이츄(알로라).webp', 일반: '포켓몬도트_NNNN_라이츄.webp'.
+  // Windows 파일시스템 호환을 위해 ':'은 '_'로 치환 (예: '타입:널' → '타입_널').
+  var fileBase = split.base.replace(/:/g, '_');
+  img.src = 'img_pokemon/도트/포켓몬도트_' + pad4(dex) + '_' + fileBase
+    + (split.region ? '(' + split.region + ')' : '') + '.webp';
+  img.alt = name;
+  img.draggable = false;
+  cell.appendChild(img);
+  var label = document.createElement('div');
+  label.className = 'evo-name';
+  label.textContent = name;
+  cell.appendChild(label);
+  // 클릭 시: 자기 자신은 무동작. 리전폼은 같은 dex의 일반 폼(base name)으로 점프.
+  cell.addEventListener('click', function(e) {
+    e.stopPropagation();
+    if (isCurrent) return;
+    var overlay = document.getElementById('dexOverlay');
+    if (overlay) overlay.style.display = 'none';
+    gotoPokemon(split.base);
+  });
+  return cell;
+}
+function buildEvolutionTree(dex, currentName) {
+  if (dex == null || !window.__pokemonEvolutions) return null;
+  var entry = window.__pokemonEvolutions[dex];
+  if (!entry) return null;
+  var wrap = document.createElement('div');
+  wrap.className = 'evolution-tree';
+  if (entry.variant === 'fanout') {
+    // 이브이 — 한 줄에 root + 모든 분기 도트
+    var line = document.createElement('div');
+    line.className = 'evolution-line';
+    line.appendChild(makeEvoCell(entry.root, dex, currentName));
+    var arrow = document.createElement('span');
+    arrow.className = 'evolution-arrow';
+    arrow.textContent = '→';
+    line.appendChild(arrow);
+    var tail = document.createElement('div');
+    tail.className = 'evolution-fanout-tail';
+    entry.tails.forEach(function(t) { tail.appendChild(makeEvoCell(t, dex, currentName)); });
+    line.appendChild(tail);
+    wrap.appendChild(line);
+  } else if (dex === 79 || dex === 80 || dex === 199) {
+    // 야돈 패밀리만 4줄이라 화면에 부담 → 같은 prefix 라인들을 묶어
+    // 마지막 분기를 fanout으로 한 줄에 표시 (2줄로 압축).
+    var groups = [];
+    entry.lines.forEach(function(chain) {
+      if (!chain.length) return;
+      var prefix = chain.slice(0, -1);
+      var tail = chain[chain.length - 1];
+      var key = prefix.map(function(n) { return n[0] + '|' + n[1]; }).join('>');
+      var found = null;
+      for (var i = 0; i < groups.length; i++) {
+        if (groups[i].key === key) { found = groups[i]; break; }
+      }
+      if (found) found.tails.push(tail);
+      else groups.push({ key: key, prefix: prefix, tails: [tail] });
+    });
+    groups.forEach(function(g) {
+      var line = document.createElement('div');
+      line.className = 'evolution-line';
+      g.prefix.forEach(function(node, idx) {
+        if (idx > 0) {
+          var arrow = document.createElement('span');
+          arrow.className = 'evolution-arrow';
+          arrow.textContent = '→';
+          line.appendChild(arrow);
+        }
+        line.appendChild(makeEvoCell(node, dex, currentName));
+      });
+      if (g.prefix.length > 0) {
+        var sepArrow = document.createElement('span');
+        sepArrow.className = 'evolution-arrow';
+        sepArrow.textContent = '→';
+        line.appendChild(sepArrow);
+      }
+      if (g.tails.length === 1) {
+        line.appendChild(makeEvoCell(g.tails[0], dex, currentName));
+      } else {
+        var tailWrap = document.createElement('div');
+        tailWrap.className = 'evolution-fanout-tail';
+        g.tails.forEach(function(t) { tailWrap.appendChild(makeEvoCell(t, dex, currentName)); });
+        line.appendChild(tailWrap);
+      }
+      wrap.appendChild(line);
+    });
+  } else {
+    // 일반 chain (분기는 여러 줄 — 기존 동작)
+    entry.lines.forEach(function(chain) {
+      var line = document.createElement('div');
+      line.className = 'evolution-line';
+      chain.forEach(function(node, idx) {
+        if (idx > 0) {
+          var arrow = document.createElement('span');
+          arrow.className = 'evolution-arrow';
+          arrow.textContent = '→';
+          line.appendChild(arrow);
+        }
+        line.appendChild(makeEvoCell(node, dex, currentName));
+      });
+      wrap.appendChild(line);
+    });
+  }
+  return wrap;
+}
+
+// --- 검색 매칭 (정확 이름 일치) ---
+function findPokemonMatch(query) {
+  var q = (query || '').replace(/\s+/g, '');
+  if (!q) return null;
+  // allCharacters에 모든 세대 메타가 합쳐져 있으면 그것을 우선
+  if (allCharacters && allCharacters.length) {
+    for (var i = 0; i < allCharacters.length; i++) {
+      if (allCharacters[i].name === q) return allCharacters[i];
+    }
+  }
+  // fallback: 캐시된 세대 인덱스 직접 훑기
+  for (var k in window.__pokemonGen) {
+    var list = window.__pokemonGen[k];
+    if (!list) continue;
+    for (var j = 0; j < list.length; j++) {
+      if (list[j].name === q) return list[j];
+    }
+  }
+  return null;
+}
+function findPokemonGen(char) {
+  if (!char) return null;
+  for (var k in window.__pokemonGen) {
+    var list = window.__pokemonGen[k];
+    if (!list) continue;
+    if (list.indexOf(char) !== -1) return parseInt(k, 10);
+    // dex 번호 비교 (allCharacters 경로로 들어왔을 때 객체 동일성 보장이 안 됨)
+    for (var j = 0; j < list.length; j++) {
+      if (list[j].dex === char.dex && list[j].name === char.name) return parseInt(k, 10);
+    }
+  }
+  return null;
+}
 
 // --- 세대별 데이터 동적 로더 (한 번 로드되면 캐시) ---
 var genLoaders = {}; // gen -> Promise
@@ -465,7 +944,7 @@ function getRandomCharacters() {
     shuffled[j] = temp;
   }
   return shuffled.slice(0, 12).map(function(c, idx) {
-    return { hour: idx + 1, name: c.name, file: c.file };
+    return { hour: idx + 1, name: c.name, file: c.file, dex: c.dex };
   });
 }
 
@@ -494,6 +973,7 @@ function setMode(mode) {
     clockWrapper.style.display = 'block';
     digitalRow.style.display = 'inline-block';
     dexWrap.style.display = 'none';
+    resetDexSearchUI();
     characters = basicCharacters.slice();
     layout();
   } else if (mode === 'full') {
@@ -501,12 +981,19 @@ function setMode(mode) {
     clockWrapper.style.display = 'block';
     digitalRow.style.display = 'inline-block';
     dexWrap.style.display = 'none';
+    resetDexSearchUI();
     loadAllGens().then(function () {
       if (currentMode !== 'full') return;
       characters = getRandomCharacters();
       layout();
     });
   }
+}
+function resetDexSearchUI() {
+  var inp = document.getElementById('dexSearchInput');
+  var msg = document.getElementById('dexSearchMsg');
+  if (inp) { inp.value = ''; inp.classList.remove('error', 'shake-x'); }
+  if (msg) { msg.textContent = ''; }
 }
 
 function buildGenTabs() {
@@ -559,13 +1046,20 @@ function renderGen(gen, list) {
   list.forEach(function (char) {
     var item = document.createElement('div');
     item.className = 'dex-item';
+    item.dataset.dex = char.dex;
 
+    var imgWrap = document.createElement('div');
+    imgWrap.className = 'dex-img-wrap';
     var img = document.createElement('img');
     img.src = char.file;
     img.alt = char.name;
     img.draggable = false;
     img.loading = 'lazy';
-    item.appendChild(img);
+    imgWrap.appendChild(img);
+    var tier = getPokemonTier(char.dex);
+    var badge = makeTierBadge(tier, Math.max(8, itemSize * 0.11));
+    if (badge) imgWrap.appendChild(badge);
+    item.appendChild(imgWrap);
 
     var name = document.createElement('div');
     name.className = 'dex-name';
@@ -590,13 +1084,116 @@ function showDexOverlay(char) {
   var overlay = document.getElementById('dexOverlay');
   var overlayImg = document.getElementById('dexOverlayImg');
   var overlayName = document.getElementById('dexOverlayName');
+  var overlayWrap = document.getElementById('dexOverlayImgWrap');
   overlayImg.src = char.file;
   overlayImg.alt = char.name;
+  // 기존 뱃지 제거 후 새로 추가
+  if (overlayWrap) {
+    var oldBadge = overlayWrap.querySelector('.tier-badge');
+    if (oldBadge) oldBadge.remove();
+    var bigBadge = makeTierBadge(getPokemonTier(char.dex));
+    if (bigBadge) overlayWrap.appendChild(bigBadge);
+  }
   var dexLabel = char.dex ? ' (#' + String(char.dex).padStart(4, '0') + ')' : '';
   overlayName.textContent = char.name + dexLabel;
   overlayName.style.fontSize = Math.max(18, window.innerWidth * 0.035) + 'px';
+  // 타입 chip — 기존 chips 제거 후 새로 추가
+  var oldChips = overlay.querySelector('.type-chips');
+  if (oldChips) oldChips.remove();
+  var dexForType = (char.dex != null) ? char.dex : dexFromFile(char.file);
+  var chips = buildTypeChips(dexForType);
+  if (chips) overlay.appendChild(chips);
+  // 진화 트리 — 기존 트리 제거 후 새로 추가 (진화 없으면 표시 안 함)
+  var oldEvo = overlay.querySelector('.evolution-tree');
+  if (oldEvo) oldEvo.remove();
+  var evoTree = buildEvolutionTree(dexForType, char.name);
+  if (evoTree) overlay.appendChild(evoTree);
   overlay.style.display = 'flex';
   overlay.onclick = function() { overlay.style.display = 'none'; };
+}
+
+// 검색 결과 표시 헬퍼
+function flashDexSearchError(msg) {
+  var inp = document.getElementById('dexSearchInput');
+  var msgEl = document.getElementById('dexSearchMsg');
+  if (msgEl) msgEl.textContent = msg || '';
+  if (!inp) return;
+  inp.classList.add('error');
+  inp.classList.remove('shake-x');
+  void inp.offsetWidth;
+  inp.classList.add('shake-x');
+}
+function clearDexSearchError() {
+  var inp = document.getElementById('dexSearchInput');
+  var msgEl = document.getElementById('dexSearchMsg');
+  if (inp) { inp.classList.remove('error', 'shake-x'); }
+  if (msgEl) msgEl.textContent = '';
+}
+
+// 컨테이너 기준 정확 스크롤 + lazy 이미지 즉시 로드 + 약간의 시간차 후 오버레이
+function dexPreciseJump(container, item, onArrive) {
+  if (container) {
+    container.querySelectorAll('img[loading="lazy"]').forEach(function(img) {
+      img.loading = 'eager';
+    });
+  }
+  requestAnimationFrame(function() {
+    requestAnimationFrame(function() {
+      var itemRect = item.getBoundingClientRect();
+      var contRect = container.getBoundingClientRect();
+      var target = container.scrollTop + (itemRect.top - contRect.top)
+                   - (container.clientHeight / 2) + (itemRect.height / 2);
+      target = Math.max(0, Math.min(target, container.scrollHeight - container.clientHeight));
+      if (typeof container.scrollTo === 'function') {
+        container.scrollTo({ top: target, behavior: 'smooth' });
+      } else {
+        container.scrollTop = target;
+      }
+      item.classList.remove('dex-found-flash');
+      void item.offsetWidth;
+      item.classList.add('dex-found-flash');
+      if (onArrive) setTimeout(onArrive, 700);
+    });
+  });
+}
+
+// 전세대 사전 로드 → 매칭 → 해당 세대 탭 전환 → 렌더 후 스크롤+오버레이
+function gotoPokemon(query) {
+  var q = (query || '').replace(/\s+/g, '');
+  if (!q) { flashDexSearchError('이름을 입력해줘'); return; }
+  if (currentMode !== 'dex') setMode('dex');
+  loadAllGens().then(function () {
+    var found = findPokemonMatch(q);
+    if (!found) { flashDexSearchError('그런 포켓몬은 없어'); return; }
+    clearDexSearchError();
+    var gen = findPokemonGen(found);
+    if (gen == null) { flashDexSearchError('세대 정보 없음'); return; }
+
+    var container = document.getElementById('dexContainer');
+    var doJump = function () {
+      var item = document.querySelector('#dexContainer .dex-item[data-dex="' + found.dex + '"]');
+      if (!item) {
+        // 렌더가 아직 안 끝났으면 한 프레임 더 기다리기
+        requestAnimationFrame(function () {
+          var item2 = document.querySelector('#dexContainer .dex-item[data-dex="' + found.dex + '"]');
+          if (!item2) return;
+          dexPreciseJump(container, item2, function() { showDexOverlay(found); });
+        });
+        return;
+      }
+      dexPreciseJump(container, item, function() { showDexOverlay(found); });
+    };
+
+    if (selectedGen === gen) {
+      requestAnimationFrame(doJump);
+    } else {
+      selectGen(gen);
+      // selectGen 내부의 loadGen → renderGen 체인이 끝난 다음 점프
+      loadGen(gen).then(function () { requestAnimationFrame(doJump); });
+    }
+  }).catch(function () {
+    flashDexSearchError('데이터 로드 실패');
+  });
 }
 
 
@@ -612,8 +1209,8 @@ function layout() {
   // 시계 크기: 뷰포트의 짧은 쪽 기준, 제목+디지털 시간 여백 확보
   var vw = window.innerWidth;
   var vh = window.innerHeight;
-  var titleSpace = vh * 0.1;  // 상하 여백 (제목 + 디지털시간)
-  var S = Math.min(vw * 0.92, (vh - titleSpace) * 0.88);
+  var titleSpace = vh * 0.12;  // 상하 여백 (제목 + 디지털시간 + 안전 buffer)
+  var S = Math.min(vw * 0.9, (vh - titleSpace) * 0.82);
   var R = S / 2; // 반지름
 
   // CSS 변수로 S 전달 (box-shadow 등에서 사용)
@@ -712,6 +1309,11 @@ function layout() {
     img.alt = char.name;
     img.draggable = false;
     marker.appendChild(img);
+
+    // 전설/환상 뱃지 (도감 모드와 동일 스타일)
+    var tier = getPokemonTierFromChar(char);
+    var markerBadge = makeTierBadge(tier, Math.max(8, markerSize * 0.16));
+    if (markerBadge) marker.appendChild(markerBadge);
 
     var nameLabel = document.createElement('div');
     nameLabel.className = 'char-name';
@@ -814,6 +1416,53 @@ window.addEventListener('load', function() {
   document.getElementById('btnBasic').addEventListener('click', function() { setMode('basic'); });
   document.getElementById('btnFull').addEventListener('click', function() { setMode('full'); });
   document.getElementById('btnDex').addEventListener('click', function() { setMode('dex'); });
+  // 도감 검색
+  var dexInp = document.getElementById('dexSearchInput');
+  var dexClr = document.getElementById('dexSearchClear');
+  if (dexInp) {
+    dexInp.addEventListener('input', clearDexSearchError);
+    dexInp.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' || e.keyCode === 13) {
+        e.preventDefault();
+        gotoPokemon(dexInp.value);
+      }
+    });
+  }
+  if (dexClr) {
+    dexClr.addEventListener('click', function() {
+      if (!dexInp) return;
+      dexInp.value = '';
+      clearDexSearchError();
+      dexInp.focus();
+    });
+  }
+  // 화상키보드 (디저트 게임의 OSK를 도감 검색에서도 사용)
+  var dexOskEl = document.getElementById('dexOsk');
+  var dexOskBtn = document.getElementById('dexOskToggle');
+  if (window.OnScreenKeyboard && dexInp && dexOskEl && dexOskBtn) {
+    var oskInstance = null;
+    dexOskBtn.addEventListener('click', function() {
+      if (!oskInstance) {
+        oskInstance = window.OnScreenKeyboard.attach({
+          input: dexInp,
+          oskRoot: dexOskEl,
+          onCommit: function(val) {
+            dexOskEl.hidden = true;
+            dexOskBtn.classList.remove('active');
+            gotoPokemon(val);
+          },
+          onChange: clearDexSearchError,
+          onDismiss: function() {
+            dexOskEl.hidden = true;
+            dexOskBtn.classList.remove('active');
+          }
+        });
+      }
+      dexOskEl.hidden = !dexOskEl.hidden;
+      dexOskBtn.classList.toggle('active', !dexOskEl.hidden);
+      if (!dexOskEl.hidden) dexInp.focus();
+    });
+  }
   setMode('basic');
   addFloatingHearts();
   updateClock();
