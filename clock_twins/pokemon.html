@@ -805,11 +805,33 @@ function buildEvolutionTree(dex, currentName) {
     line.appendChild(tail);
     wrap.appendChild(line);
   } else {
-    // 일반 chain (분기는 여러 줄)
+    // 일반 chain — 같은 prefix(마지막 노드 제외) 라인들을 묶어 마지막 분기를
+    // 한 줄에 fanout으로 펼침. 야돈 같은 4줄 케이스 → 2줄로 압축.
+    var groups = [];
     entry.lines.forEach(function(chain) {
+      if (!chain.length) return;
+      var prefix = chain.slice(0, -1);
+      var tail = chain[chain.length - 1];
+      var key = prefix.map(function(n) { return n[0] + '|' + n[1]; }).join('>');
+      var found = null;
+      for (var i = 0; i < groups.length; i++) {
+        if (groups[i].key === key) { found = groups[i]; break; }
+      }
+      if (found) {
+        // 같은 tail이 중복 추가되지 않도록
+        var dup = false;
+        for (var j = 0; j < found.tails.length; j++) {
+          if (found.tails[j][0] === tail[0] && found.tails[j][1] === tail[1]) { dup = true; break; }
+        }
+        if (!dup) found.tails.push(tail);
+      } else {
+        groups.push({ key: key, prefix: prefix, tails: [tail] });
+      }
+    });
+    groups.forEach(function(g) {
       var line = document.createElement('div');
       line.className = 'evolution-line';
-      chain.forEach(function(node, idx) {
+      g.prefix.forEach(function(node, idx) {
         if (idx > 0) {
           var arrow = document.createElement('span');
           arrow.className = 'evolution-arrow';
@@ -818,6 +840,21 @@ function buildEvolutionTree(dex, currentName) {
         }
         line.appendChild(makeEvoCell(node, dex, currentName));
       });
+      if (g.prefix.length > 0) {
+        var sepArrow = document.createElement('span');
+        sepArrow.className = 'evolution-arrow';
+        sepArrow.textContent = '→';
+        line.appendChild(sepArrow);
+      }
+      if (g.tails.length === 1) {
+        line.appendChild(makeEvoCell(g.tails[0], dex, currentName));
+      } else {
+        // 분기 — 같은 줄에 fanout으로 나열 (이브이 fanout과 같은 시각 패턴)
+        var tailWrap = document.createElement('div');
+        tailWrap.className = 'evolution-fanout-tail';
+        g.tails.forEach(function(t) { tailWrap.appendChild(makeEvoCell(t, dex, currentName)); });
+        line.appendChild(tailWrap);
+      }
       wrap.appendChild(line);
     });
   }
