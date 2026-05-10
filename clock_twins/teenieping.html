@@ -1020,7 +1020,11 @@ window.addEventListener('load', function() {
             dexOskBtn.classList.remove('active');
             gotoTeenieping(val);
           },
-          onChange: clearDexSearchError
+          onChange: clearDexSearchError,
+          onDismiss: function() {
+            dexOskEl.hidden = true;
+            dexOskBtn.classList.remove('active');
+          }
         });
       }
       dexOskEl.hidden = !dexOskEl.hidden;

@@ -153,16 +153,28 @@
   };
 
   function attach(opts) {
-    var input    = opts.input;
-    var oskRoot  = opts.oskRoot;
-    var onCommit = opts.onCommit || function() {};
-    var onChange = opts.onChange || function() {};
+    var input     = opts.input;
+    var oskRoot   = opts.oskRoot;
+    var onCommit  = opts.onCommit  || function() {};
+    var onChange  = opts.onChange  || function() {};
+    var onDismiss = opts.onDismiss || null;
 
     var oskMode = 'ko';
     var oskShift = false;
 
     function buildOSK() {
       oskRoot.innerHTML = '';
+      // 우상단 닫기 버튼 (onDismiss가 주어진 경우)
+      if (onDismiss) {
+        var dismissBtn = document.createElement('button');
+        dismissBtn.type = 'button';
+        dismissBtn.className = 'osk-dismiss';
+        dismissBtn.textContent = '✕';
+        dismissBtn.setAttribute('aria-label', '키보드 닫기');
+        dismissBtn.addEventListener('mousedown', function(e) { e.preventDefault(); });
+        dismissBtn.addEventListener('click', function(e) { e.preventDefault(); onDismiss(); });
+        oskRoot.appendChild(dismissBtn);
+      }
       var layoutKey = oskMode === 'ko' && oskShift ? 'ko_shift' : oskMode;
       var layout = OSK_LAYOUTS[layoutKey];
       layout.forEach(function(row) {
