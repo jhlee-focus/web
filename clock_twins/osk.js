@@ -189,7 +189,7 @@
           else if (k === 'OK')    { btn.classList.add('wide','action');  btn.textContent = '확인'; }
           else if (k === 'MODE')  { btn.classList.add('wide');           btn.textContent = oskMode === 'ko' ? '한/영' : 'KO/EN'; }
           else if (k === 'CLEAR') { btn.classList.add('wide');           btn.textContent = '지우기'; }
-          else if (k === 'SHIFT') { btn.classList.add('wide');           btn.textContent = oskShift ? '⇧ ON' : '⇧'; }
+          else if (k === 'SHIFT') { btn.classList.add('shift');          btn.textContent = oskShift ? '⇧ ON' : '⇧'; }
           else if (k === 'NEXT')  { btn.classList.add('wide');           btn.textContent = '다음 ▶'; }
           else                    {                                       btn.textContent = k; }
           // input focus를 빼앗기지 않도록 mousedown에서 default 차단
