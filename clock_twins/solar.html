@@ -1,0 +1,1173 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>태양계 시계</title>
+<link rel="stylesheet" href="osk.css">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; overflow: hidden; }
+  body {
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+  body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #050818 0%, #0d1b3d 25%, #1a237e 50%, #311b92 75%, #1a1340 100%);
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    color: #fff;
+  }
+  h1 {
+    color: #ffd54f;
+    text-shadow: 0 0 12px rgba(255,213,79,0.5), 0 1px 3px rgba(0,0,0,0.5);
+    letter-spacing: 0.18em;
+  }
+  .clock-wrapper {
+    position: relative;
+  }
+  .clock-face {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #1a237e 0%, #0d1b3d 55%, #050818 100%);
+    box-shadow:
+      0 0 0 calc(var(--s) * 0.013) rgba(255,213,79,0.35),
+      0 0 0 calc(var(--s) * 0.026) rgba(100,181,246,0.18),
+      0 calc(var(--s) * 0.013) calc(var(--s) * 0.053) rgba(0,0,0,0.4),
+      inset 0 0 calc(var(--s) * 0.12) rgba(13,71,161,0.25);
+  }
+  /* 궤도 링 (궤도 모드에서만 표시) */
+  .orbit-rings {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 2;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+  }
+  .clock-face.orbit-on .orbit-rings { opacity: 1; }
+  .orbit-ring {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 213, 79, 0.22);
+    box-shadow: 0 0 6px rgba(255, 213, 79, 0.08) inset;
+    transform: translate(-50%, -50%);
+  }
+  .hour-marker {
+    position: absolute;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.3s ease;
+    cursor: pointer;
+  }
+  .hour-marker:hover {
+    transform: translate(-50%, -50%) scale(1.35);
+    z-index: 20;
+    filter: drop-shadow(0 4px 12px rgba(255,213,79,0.5));
+  }
+  .hour-marker img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    filter: drop-shadow(0 2px 8px rgba(0,0,0,0.6));
+  }
+  .char-name {
+    position: absolute;
+    bottom: -1.6em;
+    left: 50%;
+    transform: translateX(-50%);
+    font-weight: 700;
+    color: #ffd54f;
+    white-space: nowrap;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    text-shadow: 0 0 4px rgba(0,0,0,0.9), 0 0 8px rgba(0,0,0,0.7), 0 1px 2px rgba(0,0,0,0.8);
+    pointer-events: none;
+  }
+  .hour-marker:hover .char-name,
+  .sun-center:hover .char-name { opacity: 1; }
+  .hour-number {
+    position: absolute;
+    font-weight: 800;
+    color: rgba(255, 213, 79, 0.65);
+    transform: translate(-50%, -50%);
+    z-index: 5;
+    pointer-events: none;
+    text-shadow: 0 0 6px rgba(0,0,0,0.6);
+  }
+  .hand {
+    position: absolute;
+    bottom: 50%;
+    left: 50%;
+    transform-origin: bottom center;
+    z-index: 30;
+    will-change: transform;
+  }
+  .hand-hour {
+    height: 22%;
+    background: linear-gradient(to top, #f57c00, #ffd54f);
+    box-shadow: 0 0 8px rgba(255,213,79,0.5);
+  }
+  .hand-minute {
+    height: 30%;
+    background: linear-gradient(to top, #1565c0, #4fc3f7);
+    box-shadow: 0 0 6px rgba(79,195,247,0.4);
+  }
+  .hand-second {
+    height: 35%;
+    background: linear-gradient(to top, #c1440e, #ff7043);
+    box-shadow: 0 0 4px rgba(255,112,67,0.4);
+  }
+  /* 시계 중심: 태양 이미지 */
+  .sun-center {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    border-radius: 50%;
+    z-index: 40;
+    transform: translate(-50%, -50%);
+    overflow: hidden;
+    box-shadow: 0 0 20px rgba(255,193,7,0.6), 0 0 40px rgba(255,87,34,0.35);
+    cursor: pointer;
+    background: radial-gradient(circle, #fdd835, #f57c00);
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .sun-center:hover { transform: translate(-50%, -50%) scale(1.15); }
+  .sun-center img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    pointer-events: none;
+  }
+  .digital-time {
+    font-weight: 700;
+    color: #ffd54f;
+    letter-spacing: 0.2em;
+    background: rgba(255,255,255,0.08);
+    border-radius: 999px;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 2px 12px rgba(0,0,0,0.4), inset 0 0 0 1px rgba(255,213,79,0.2);
+  }
+  .digital-row {
+    position: relative;
+    display: inline-block;
+  }
+  .credit {
+    position: absolute;
+    left: calc(100% + 0.5em);
+    top: 50%;
+    transform: translateY(-50%);
+    color: #ffd54f;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    pointer-events: none;
+    white-space: nowrap;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.6);
+  }
+  .sparkle {
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.95);
+    animation: sparkle 3s infinite ease-in-out;
+    z-index: 2;
+    pointer-events: none;
+    box-shadow: 0 0 4px rgba(255,255,255,0.8);
+  }
+  @keyframes sparkle {
+    0%, 100% { opacity: 0; transform: scale(0); }
+    50% { opacity: 1; transform: scale(1); }
+  }
+  .floating-heart {
+    position: fixed;
+    opacity: 0.22;
+    animation: floatUp linear infinite;
+    pointer-events: none;
+    z-index: 0;
+  }
+  @keyframes floatUp {
+    0% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
+    10% { opacity: 0.22; }
+    90% { opacity: 0.22; }
+    100% { transform: translateY(-10vh) rotate(360deg); opacity: 0; }
+  }
+  .hour-marker.active img {
+    filter: drop-shadow(0 0 12px rgba(255,213,79,0.8)) drop-shadow(0 2px 6px rgba(0,0,0,0.6));
+  }
+  /* active marker pulse: 별 모드는 동심원 펄스, 궤도 모드는 회전 링 */
+  .active-pulse {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    z-index: -1;
+  }
+  .active-pulse .pulse-ring {
+    border-radius: 50%;
+    border: 2px solid rgba(255,213,79,0.55);
+    animation: pulseRing 2s infinite ease-out;
+  }
+  @keyframes pulseRing {
+    0%   { transform: scale(0.6); opacity: 0.85; }
+    100% { transform: scale(1.7); opacity: 0; }
+  }
+  .tick {
+    position: absolute;
+    background: rgba(255,255,255,0.22);
+    transform-origin: center var(--radius);
+    border-radius: 1px;
+    z-index: 1;
+  }
+
+  .mode-controls {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    z-index: 50;
+  }
+  .mode-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .mode-btn {
+    border: 2px solid rgba(255,213,79,0.4);
+    background: rgba(255,255,255,0.08);
+    color: #ffd54f;
+    font-weight: 700;
+    border-radius: 999px;
+    cursor: pointer;
+    backdrop-filter: blur(10px);
+    transition: all 0.3s ease;
+    outline: none;
+  }
+  .mode-btn:hover {
+    background: rgba(255,213,79,0.15);
+  }
+  .mode-btn.mode-active {
+    background: linear-gradient(135deg, #f57c00, #ffd54f);
+    color: #1a1340;
+    border-color: transparent;
+    box-shadow: 0 2px 12px rgba(255,193,7,0.45);
+  }
+  /* 도감 모드 */
+  .dex-wrap {
+    width: 92vw;
+    max-width: 1100px;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+  .dex-section { margin-bottom: 22px; }
+  .dex-container {
+    width: 100%;
+    max-height: calc(100dvh - 200px);
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 8px;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255,213,79,0.45) transparent;
+  }
+  .dex-container::-webkit-scrollbar { width: 6px; }
+  .dex-container::-webkit-scrollbar-thumb { background: rgba(255,213,79,0.45); border-radius: 3px; }
+  .dex-section-title {
+    font-weight: 800;
+    color: #ffd54f;
+    font-size: 18px;
+    padding: 8px 12px 6px;
+    border-bottom: 2px solid rgba(255,213,79,0.35);
+    margin: 0 0 12px;
+    background: rgba(0,0,0,0.35);
+    backdrop-filter: blur(6px);
+    letter-spacing: 0.06em;
+    border-radius: 8px 8px 0 0;
+  }
+  .dex-section-title .count {
+    color: #4fc3f7;
+    font-weight: 600;
+    font-size: 13px;
+    margin-left: 8px;
+    letter-spacing: 0;
+  }
+  .dex-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    gap: 14px;
+    justify-items: center;
+  }
+  .dex-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    padding: 6px;
+    border-radius: 14px;
+  }
+  .dex-item:hover {
+    transform: scale(1.12);
+    background: rgba(255,213,79,0.15);
+  }
+  .dex-img-wrap {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1;
+  }
+  .dex-img-wrap img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    filter: drop-shadow(0 2px 8px rgba(0,0,0,0.55));
+  }
+  .tier-badge {
+    position: absolute;
+    left: 2%;
+    bottom: 2%;
+    font-weight: 800;
+    color: #fff;
+    padding: 2px 7px;
+    border-radius: 999px;
+    line-height: 1.1;
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    text-shadow: 0 1px 1px rgba(0,0,0,0.4);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.35), inset 0 0 0 1.5px rgba(255,255,255,0.55);
+    pointer-events: none;
+    white-space: nowrap;
+  }
+  .tier-badge.tier-star    { background: linear-gradient(135deg, #ffd54f, #f57c00); color: #1a1340; }
+  .tier-badge.tier-planet  { background: linear-gradient(135deg, #4fc3f7, #1565c0); }
+  .tier-badge.tier-moon    { background: linear-gradient(135deg, #f5f5f5, #9e9e9e); color: #263238; }
+  .tier-badge.tier-dwarf   { background: linear-gradient(135deg, #ce93d8, #6a1b9a); }
+  .tier-badge.tier-comet   { background: linear-gradient(135deg, #b2ebf2, #ffffff); color: #006064; }
+  .tier-badge.tier-probe   { background: linear-gradient(135deg, #ff8a65, #b71c1c); }
+  .dex-overlay .tier-badge {
+    left: 8%;
+    bottom: 8%;
+    padding: 4px 14px;
+    font-size: 18px;
+    border-radius: 999px;
+  }
+  .dex-overlay-imgwrap {
+    position: relative;
+    display: inline-block;
+  }
+  .dex-item .dex-name {
+    font-weight: 700;
+    color: #ffd54f;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+    margin-top: 4px;
+    font-size: 14px;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.6);
+  }
+  .dex-item .dex-num {
+    font-weight: 600;
+    color: rgba(255,213,79,0.6);
+    text-align: center;
+    margin-top: 1px;
+    font-size: 11px;
+  }
+  /* 도감 확대 오버레이 */
+  .dex-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.78);
+    backdrop-filter: blur(10px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: safe center;
+    padding: 4vh 16px 8vh;
+    overflow-y: auto;
+    z-index: 1000;
+    cursor: pointer;
+    animation: fadeIn 0.2s ease;
+  }
+  .dex-overlay-imgwrap { flex-shrink: 0; }
+  .dex-overlay img {
+    max-width: 38vmin;
+    max-height: 38vmin;
+    object-fit: contain;
+    filter: drop-shadow(0 6px 24px rgba(255,213,79,0.35)) drop-shadow(0 4px 16px rgba(0,0,0,0.6));
+    animation: popIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .dex-overlay-name {
+    color: #ffd54f;
+    font-weight: 800;
+    margin-top: 16px;
+    text-shadow: 0 2px 12px rgba(0,0,0,0.8);
+    font-size: clamp(20px, 4vmin, 32px);
+    animation: popIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .info-chips {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 12px;
+    animation: popIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .info-chip {
+    padding: 6px 16px;
+    border-radius: 999px;
+    font-weight: 700;
+    color: #fff;
+    font-size: clamp(12px, 2vmin, 16px);
+    letter-spacing: 0.04em;
+    text-shadow: 0 1px 1px rgba(0,0,0,0.4);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.4), inset 0 0 0 1.5px rgba(255,255,255,0.4);
+    background: rgba(255,255,255,0.12);
+    backdrop-filter: blur(6px);
+    white-space: nowrap;
+  }
+  .info-chip.kind  { background: linear-gradient(135deg, #1565c0, #4fc3f7); }
+  .info-chip.dist  { background: linear-gradient(135deg, #6a1b9a, #ce93d8); }
+  .info-chip.parent{ background: linear-gradient(135deg, #f57c00, #ffb74d); }
+  .blurb {
+    color: #fff;
+    text-align: center;
+    margin-top: 18px;
+    max-width: 60ch;
+    font-size: clamp(13px, 2.2vmin, 17px);
+    line-height: 1.55;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.7);
+    animation: popIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    padding: 0 16px;
+  }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes popIn { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+  /* 도감 검색 (포켓몬과 동일 패턴) */
+  .dex-search-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 6px 4px 6px;
+    background: rgba(255,255,255,0.55);
+    backdrop-filter: blur(10px);
+    border-radius: 12px;
+    position: relative;
+    /* '홈으로'(z-index 100)와 겹칠 때 검색창이 위에 오도록 */
+    z-index: 110;
+  }
+  .dex-search-input {
+    flex: 1;
+    padding: 10px 14px;
+    font-size: 15px;
+    font-weight: 600;
+    color: #1a1340;
+    background: rgba(255,255,255,0.92);
+    border: 2px solid rgba(255,213,79,0.4);
+    border-radius: 999px;
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+  .dex-search-input::placeholder { color: rgba(26,19,64,0.45); font-weight: 500; }
+  .dex-search-input:focus {
+    border-color: #ffd54f;
+    box-shadow: 0 0 0 4px rgba(255,213,79,0.35);
+  }
+  .dex-search-input.error {
+    border-color: #ff5252;
+    box-shadow: 0 0 0 4px rgba(255,82,82,0.3);
+  }
+  .dex-search-clear {
+    border: 2px solid rgba(255,213,79,0.4);
+    background: rgba(255,255,255,0.92);
+    color: #1a1340;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    font-size: 18px;
+    font-weight: 800;
+    line-height: 1;
+    cursor: pointer;
+    transition: background 0.2s ease;
+  }
+  .dex-search-clear:hover { background: rgba(255,213,79,0.4); }
+  .dex-search-msg {
+    color: #ff8a80;
+    font-weight: 700;
+    font-size: 13px;
+    margin-left: 4px;
+    min-height: 1em;
+  }
+  @keyframes dexShake {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-6px); }
+    40% { transform: translateX(6px); }
+    60% { transform: translateX(-4px); }
+    80% { transform: translateX(4px); }
+  }
+  .dex-search-input.shake-x { animation: dexShake 0.4s ease; }
+  @keyframes dexFoundFlashSolar {
+    0%   { box-shadow: 0 0 0 0 rgba(255,213,79,0.65); background: rgba(255,213,79,0.35); }
+    50%  { box-shadow: 0 0 0 12px rgba(255,213,79,0.0); background: rgba(255,213,79,0.55); }
+    100% { box-shadow: 0 0 0 0 rgba(255,213,79,0.0); background: rgba(255,213,79,0.0); }
+  }
+  .dex-item.dex-found-flash { animation: dexFoundFlashSolar 1.2s ease; }
+
+  /* 홈 버튼 */
+  .home-link {
+    position: fixed;
+    top: max(10px, calc(env(safe-area-inset-top, 0px) + 6px));
+    left: max(10px, calc(env(safe-area-inset-left, 0px) + 6px));
+    z-index: 100;
+    padding: 8px 14px;
+    border: 2px solid rgba(255,213,79,0.45);
+    background: rgba(0,0,0,0.45);
+    color: #ffd54f;
+    font-weight: 700;
+    font-size: 14px;
+    border-radius: 999px;
+    text-decoration: none;
+    backdrop-filter: blur(10px);
+    cursor: pointer;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.4);
+    transition: background 0.2s ease, transform 0.15s ease;
+  }
+  .home-link:hover { background: rgba(255,213,79,0.18); }
+  .home-link:active { transform: scale(0.96); }
+
+  /* OSK 색상: 인디고/딥 퍼플 톤 (티니핑/포켓몬 OSK와 동일한 명도/채도 매치) */
+  .dex-wrap {
+    --osk-primary: #5e35b1;
+    --osk-primary-dark: #311b92;
+    --osk-active-bg: #ede7f6;
+    --osk-text: #311b92;
+  }
+  #dexOsk {
+    margin-top: 4px;
+    margin-bottom: 4px;
+    position: relative;
+    /* 검색바와 같은 stacking — '홈으로'보다 위 */
+    z-index: 109;
+  }
+</style>
+</head>
+<body>
+<a href="index.html" class="home-link" aria-label="시계 메뉴로 돌아가기">🏠 홈으로</a>
+<h1 id="title">🪐 태양계 시계 🪐</h1>
+
+<div class="mode-controls" id="modeControls">
+  <div class="mode-row">
+    <button id="btnBasic" class="mode-btn mode-active">기본 모드</button>
+    <button id="btnOrbit" class="mode-btn">궤도 모드</button>
+    <button id="btnDex" class="mode-btn">도감 모드</button>
+  </div>
+</div>
+
+<div id="dexWrap" class="dex-wrap" style="display:none">
+  <div class="dex-search-row">
+    <input type="text" id="dexSearchInput" class="dex-search-input"
+           placeholder="이름으로 찾기 (예: 지구, 토성, 달)" autocomplete="off" />
+    <button type="button" id="dexOskToggle" class="dex-osk-toggle" aria-label="화상키보드">⌨️</button>
+    <button type="button" id="dexSearchClear" class="dex-search-clear" aria-label="지우기">×</button>
+  </div>
+  <div id="dexOsk" class="osk" hidden></div>
+  <div class="dex-search-msg" id="dexSearchMsg"></div>
+  <div id="dexContainer" class="dex-container"></div>
+</div>
+
+<div id="dexOverlay" class="dex-overlay" style="display:none">
+  <div id="dexOverlayImgWrap" class="dex-overlay-imgwrap">
+    <img id="dexOverlayImg" src="" alt="">
+  </div>
+  <div id="dexOverlayName" class="dex-overlay-name"></div>
+  <div id="dexOverlayChips" class="info-chips"></div>
+  <div id="dexOverlayBlurb" class="blurb"></div>
+</div>
+
+<div class="clock-wrapper" id="clockWrapper">
+  <div class="clock-face" id="clockFace">
+    <div class="orbit-rings" id="orbitRings"></div>
+    <div class="hand hand-hour" id="hourHand"></div>
+    <div class="hand hand-minute" id="minuteHand"></div>
+    <div class="hand hand-second" id="secondHand"></div>
+    <div class="sun-center" id="sunCenter" title="태양">
+      <img src="img_solar/SS-01_태양.webp" alt="태양">
+      <div class="char-name" id="sunNameLabel">태양</div>
+    </div>
+  </div>
+</div>
+<div class="digital-row" id="digitalRow">
+  <div class="digital-time" id="digitalTime">00:00:00</div>
+  <div class="credit" id="creditText"><strong>별과 행성</strong><span style="font-weight:400">이 그리는 시간</span></div>
+</div>
+
+<script src="osk.js"></script>
+<script src="solar_data.js"></script>
+<script>
+// ── 데이터 별칭 ──
+var characters = basicSolar.slice();
+
+// ── 분류(tier → 뱃지 클래스) ──
+var TIER_CLASS = {
+  '항성': 'tier-star',
+  '행성': 'tier-planet',
+  '위성': 'tier-moon',
+  '왜소행성': 'tier-dwarf',
+  '혜성': 'tier-comet',
+  '탐사선': 'tier-probe'
+};
+function makeTierBadge(tier, fontSize) {
+  if (!TIER_CLASS[tier]) return null;
+  var b = document.createElement('div');
+  b.className = 'tier-badge ' + TIER_CLASS[tier];
+  b.textContent = tier;
+  if (fontSize) b.style.fontSize = fontSize + 'px';
+  return b;
+}
+
+// ── 검색 ──
+function findSolarMatch(query) {
+  var q = (query || '').replace(/\s+/g, '');
+  if (!q) return null;
+  for (var i = 0; i < allSolar.length; i++) {
+    if (allSolar[i].name === q) return allSolar[i];
+  }
+  return null;
+}
+function cssEscape(s) {
+  if (window.CSS && typeof window.CSS.escape === 'function') return window.CSS.escape(s);
+  return String(s).replace(/[^a-zA-Z0-9_\- -￿]/g, function(c) { return '\\' + c; });
+}
+
+// ── 모드 관리 ──
+var currentMode = 'basic';   // basic | orbit | dex
+
+function setMode(mode) {
+  currentMode = mode;
+  document.getElementById('btnBasic').classList.toggle('mode-active', mode === 'basic');
+  document.getElementById('btnOrbit').classList.toggle('mode-active', mode === 'orbit');
+  document.getElementById('btnDex').classList.toggle('mode-active', mode === 'dex');
+
+  var clockWrapper = document.getElementById('clockWrapper');
+  var digitalRow = document.getElementById('digitalRow');
+  var dexWrap = document.getElementById('dexWrap');
+
+  if (mode === 'dex') {
+    clockWrapper.style.display = 'none';
+    digitalRow.style.display = 'none';
+    dexWrap.style.display = 'flex';
+    buildDex();
+  } else {
+    clockWrapper.style.display = 'block';
+    digitalRow.style.display = 'inline-block';
+    dexWrap.style.display = 'none';
+    resetDexSearchUI();
+    layout();
+  }
+}
+
+function resetDexSearchUI() {
+  var inp = document.getElementById('dexSearchInput');
+  var msg = document.getElementById('dexSearchMsg');
+  if (inp) { inp.value = ''; inp.classList.remove('error', 'shake-x'); }
+  if (msg) { msg.textContent = ''; }
+}
+
+// ── 도감 (티니핑 패턴: 모든 분류를 한 페이지에 섹션별로) ──
+var KIND_ORDER = ['항성', '내행성', '외행성', '위성', '왜소행성', '혜성', '탐사선'];
+
+function buildDex() {
+  var container = document.getElementById('dexContainer');
+  if (container.dataset.built === '1') return;
+  container.innerHTML = '';
+  container.scrollTop = 0;
+
+  var vw = window.innerWidth;
+  var itemSize = Math.max(80, Math.min(140, vw / 7));
+  var fontSize = Math.max(11, itemSize * 0.13);
+
+  // 분류별 그룹화 + 거리순 정렬
+  var byKind = {};
+  allSolar.forEach(function (c) {
+    var k = c.kind || '기타';
+    if (!byKind[k]) byKind[k] = [];
+    byKind[k].push(c);
+  });
+  var orderedKinds = KIND_ORDER.filter(function (k) { return byKind[k]; })
+    .concat(Object.keys(byKind).filter(function (k) { return KIND_ORDER.indexOf(k) === -1; }));
+
+  orderedKinds.forEach(function (kind) {
+    var list = byKind[kind].slice().sort(function (a, b) {
+      return (a.distance_au || 0) - (b.distance_au || 0);
+    });
+
+    var section = document.createElement('div');
+    section.className = 'dex-section';
+
+    var title = document.createElement('div');
+    title.className = 'dex-section-title';
+    title.innerHTML = kind + ' <span class="count">(' + list.length + '개)</span>';
+    section.appendChild(title);
+
+    var grid = document.createElement('div');
+    grid.className = 'dex-grid';
+    grid.style.gridTemplateColumns = 'repeat(auto-fill, minmax(' + itemSize + 'px, 1fr))';
+
+    list.forEach(function (c) {
+      var item = document.createElement('div');
+      item.className = 'dex-item';
+      item.dataset.name = c.name;
+
+      var imgWrap = document.createElement('div');
+      imgWrap.className = 'dex-img-wrap';
+      var img = document.createElement('img');
+      img.src = c.file;
+      img.alt = c.name;
+      img.draggable = false;
+      img.loading = 'lazy';
+      imgWrap.appendChild(img);
+      var badge = makeTierBadge(c.tier, Math.max(9, itemSize * 0.10));
+      if (badge) imgWrap.appendChild(badge);
+      item.appendChild(imgWrap);
+
+      var name = document.createElement('div');
+      name.className = 'dex-name';
+      name.textContent = c.name;
+      name.style.fontSize = fontSize + 'px';
+      item.appendChild(name);
+
+      if (c.distance_au != null && c.distance_au > 0) {
+        var sub = document.createElement('div');
+        sub.className = 'dex-num';
+        sub.textContent = c.distance_au.toFixed(2) + ' AU';
+        item.appendChild(sub);
+      }
+
+      item.addEventListener('click', function () { showDexOverlay(c); });
+      grid.appendChild(item);
+    });
+
+    section.appendChild(grid);
+    container.appendChild(section);
+  });
+
+  container.dataset.built = '1';
+}
+
+function showDexOverlay(c) {
+  var overlay = document.getElementById('dexOverlay');
+  var overlayImg = document.getElementById('dexOverlayImg');
+  var overlayName = document.getElementById('dexOverlayName');
+  var overlayWrap = document.getElementById('dexOverlayImgWrap');
+  var chipsRow = document.getElementById('dexOverlayChips');
+  var blurbEl = document.getElementById('dexOverlayBlurb');
+
+  overlayImg.src = c.file;
+  overlayImg.alt = c.name;
+  overlayName.textContent = c.name;
+
+  // 뱃지
+  var oldBadge = overlayWrap.querySelector('.tier-badge');
+  if (oldBadge) oldBadge.remove();
+  var bigBadge = makeTierBadge(c.tier);
+  if (bigBadge) overlayWrap.appendChild(bigBadge);
+
+  // 정보 칩
+  chipsRow.innerHTML = '';
+  if (c.kind) {
+    var k = document.createElement('span');
+    k.className = 'info-chip kind';
+    k.textContent = c.kind;
+    chipsRow.appendChild(k);
+  }
+  if (c.distance_au != null) {
+    var d = document.createElement('span');
+    d.className = 'info-chip dist';
+    d.textContent = c.distance_au === 0 ? '중심 (0 AU)' : (c.distance_au.toFixed(2) + ' AU');
+    chipsRow.appendChild(d);
+  }
+  if (c.parent) {
+    var p = document.createElement('span');
+    p.className = 'info-chip parent';
+    p.textContent = c.parent + '의 위성';
+    chipsRow.appendChild(p);
+  }
+
+  blurbEl.textContent = c.blurb || '';
+
+  overlay.style.display = 'flex';
+  overlay.onclick = function () { overlay.style.display = 'none'; };
+}
+
+// ── 검색 → 도감 점프 ──
+function flashDexSearchError(msg) {
+  var inp = document.getElementById('dexSearchInput');
+  var msgEl = document.getElementById('dexSearchMsg');
+  if (msgEl) msgEl.textContent = msg || '';
+  if (!inp) return;
+  inp.classList.add('error');
+  inp.classList.remove('shake-x');
+  void inp.offsetWidth;
+  inp.classList.add('shake-x');
+}
+function clearDexSearchError() {
+  var inp = document.getElementById('dexSearchInput');
+  var msgEl = document.getElementById('dexSearchMsg');
+  if (inp) inp.classList.remove('error', 'shake-x');
+  if (msgEl) msgEl.textContent = '';
+}
+function dexPreciseJump(container, item, onArrive) {
+  if (container) {
+    container.querySelectorAll('img[loading="lazy"]').forEach(function (img) {
+      img.loading = 'eager';
+    });
+  }
+  requestAnimationFrame(function () {
+    requestAnimationFrame(function () {
+      var itemRect = item.getBoundingClientRect();
+      var contRect = container.getBoundingClientRect();
+      var target = container.scrollTop + (itemRect.top - contRect.top)
+                   - (container.clientHeight / 2) + (itemRect.height / 2);
+      target = Math.max(0, Math.min(target, container.scrollHeight - container.clientHeight));
+      if (typeof container.scrollTo === 'function') container.scrollTo({ top: target, behavior: 'smooth' });
+      else container.scrollTop = target;
+      item.classList.remove('dex-found-flash');
+      void item.offsetWidth;
+      item.classList.add('dex-found-flash');
+      if (onArrive) setTimeout(onArrive, 700);
+    });
+  });
+}
+
+function gotoSolar(query) {
+  var found = findSolarMatch(query);
+  if (!found) { flashDexSearchError('그 천체는 도감에 없어'); return; }
+  clearDexSearchError();
+  if (currentMode !== 'dex') setMode('dex');
+  var container = document.getElementById('dexContainer');
+  var item = document.querySelector('#dexContainer .dex-item[data-name="' + cssEscape(found.name) + '"]');
+  if (!item) { flashDexSearchError('도감을 다시 열어줘'); return; }
+  dexPreciseJump(container, item, function () { showDexOverlay(found); });
+}
+
+// ── DOM refs (시계) ──
+var clockWrapper = document.getElementById('clockWrapper');
+var clockFace = document.getElementById('clockFace');
+var titleEl = document.getElementById('title');
+var digitalEl = document.getElementById('digitalTime');
+
+// ── 비례 스케일링 layout ──
+function layout() {
+  var vw = window.innerWidth;
+  var vh = window.innerHeight;
+  var titleSpace = vh * 0.18;
+  var S = Math.min(vw * 0.9, (vh - titleSpace) * 0.78);
+  var R = S / 2;
+
+  clockFace.style.setProperty('--s', S + 'px');
+  clockWrapper.style.width = S + 'px';
+  clockWrapper.style.height = S + 'px';
+
+  titleEl.style.fontSize = (S * 0.05) + 'px';
+  titleEl.style.marginBottom = (S * 0.012) + 'px';
+
+  // 모드 버튼
+  var modeControls = document.getElementById('modeControls');
+  var btnFontSize = S * 0.024;
+  var btnPadV = S * 0.008;
+  var btnPadH = S * 0.025;
+  modeControls.style.marginBottom = (S * 0.012) + 'px';
+  document.querySelectorAll('.mode-btn').forEach(function (btn) {
+    btn.style.fontSize = btnFontSize + 'px';
+    btn.style.padding = btnPadV + 'px ' + btnPadH + 'px';
+  });
+
+  var digitalRow = document.getElementById('digitalRow');
+  digitalEl.style.fontSize = (S * 0.045) + 'px';
+  digitalEl.style.padding = (S * 0.012) + 'px ' + (S * 0.04) + 'px';
+  digitalRow.style.marginTop = (S * 0.025) + 'px';
+  document.getElementById('creditText').style.fontSize = (S * 0.022) + 'px';
+
+  // 시계 바늘
+  var hourHand = document.getElementById('hourHand');
+  var minuteHand = document.getElementById('minuteHand');
+  var secondHand = document.getElementById('secondHand');
+  var hw = Math.max(2, S * 0.014);
+  hourHand.style.width = hw + 'px';
+  hourHand.style.marginLeft = (-hw / 2) + 'px';
+  hourHand.style.borderRadius = (hw / 2) + 'px';
+  var mw = Math.max(1.5, S * 0.009);
+  minuteHand.style.width = mw + 'px';
+  minuteHand.style.marginLeft = (-mw / 2) + 'px';
+  minuteHand.style.borderRadius = (mw / 2) + 'px';
+  var sw = Math.max(1, S * 0.004);
+  secondHand.style.width = sw + 'px';
+  secondHand.style.marginLeft = (-sw / 2) + 'px';
+  secondHand.style.borderRadius = (sw / 2) + 'px';
+
+  // 태양 (중심)
+  var sun = document.getElementById('sunCenter');
+  var sunSize = S * 0.12;
+  sun.style.width = sunSize + 'px';
+  sun.style.height = sunSize + 'px';
+  var sunName = document.getElementById('sunNameLabel');
+  if (sunName) sunName.style.fontSize = (S * 0.022) + 'px';
+
+  // ── 눈금 ──
+  document.querySelectorAll('.tick').forEach(function (el) { el.remove(); });
+  var tickW = Math.max(1, S * 0.003);
+  var tickH = S * 0.015;
+  for (var i = 0; i < 60; i++) {
+    if (i % 5 === 0) continue;
+    var tick = document.createElement('div');
+    tick.className = 'tick';
+    tick.style.setProperty('--radius', R + 'px');
+    tick.style.width = tickW + 'px';
+    tick.style.height = tickH + 'px';
+    tick.style.left = '50%';
+    tick.style.top = (S * 0.01) + 'px';
+    tick.style.marginLeft = (-tickW / 2) + 'px';
+    tick.style.transform = 'rotate(' + (i * 6) + 'deg)';
+    clockFace.appendChild(tick);
+  }
+
+  // ── 모드별 위치 토글 ──
+  var orbitOn = (currentMode === 'orbit');
+  clockFace.classList.toggle('orbit-on', orbitOn);
+
+  // ── 궤도 링 ──
+  var orbitWrap = document.getElementById('orbitRings');
+  orbitWrap.innerHTML = '';
+  // 1시(수성)~12시(보이저)에 해당하는 12개 궤도 반지름 비율
+  // 가장 안쪽(수성)은 태양과 충분히 떨어뜨리고, 가장 바깥(보이저)은 시 숫자(0.96) 안쪽에 충분한 간격으로 배치
+  var SPIRAL_RATIOS = [0.34, 0.39, 0.43, 0.48, 0.52, 0.57, 0.61, 0.66, 0.70, 0.74, 0.79, 0.83];
+  if (orbitOn) {
+    SPIRAL_RATIOS.forEach(function (r) {
+      var ring = document.createElement('div');
+      ring.className = 'orbit-ring';
+      var d = R * r * 2; // 지름 = 2 × R × ratio
+      ring.style.width = d + 'px';
+      ring.style.height = d + 'px';
+      orbitWrap.appendChild(ring);
+    });
+  }
+
+  // ── 마커 + 숫자 ──
+  document.querySelectorAll('.hour-marker, .hour-number').forEach(function (el) { el.remove(); });
+  var markerSize = S * (orbitOn ? 0.10 : 0.13); // 나선 모드는 안쪽 행성이 작아지지 않도록 살짝 축소
+  var numFontSize = S * 0.038;
+  var nameFontSize = S * 0.022;
+
+  characters.forEach(function (char) {
+    var hour = char.hour;
+    var angle = (hour * 30 - 90) * (Math.PI / 180);
+    // 모드별 거리: 기본은 동일 반지름, 궤도는 시순 인덱스에 따른 나선
+    var markerDist = orbitOn ? (R * SPIRAL_RATIOS[hour - 1]) : (R * 0.78);
+
+    var marker = document.createElement('div');
+    marker.className = 'hour-marker';
+    marker.dataset.hour = hour;
+    marker.style.width = markerSize + 'px';
+    marker.style.height = markerSize + 'px';
+    marker.style.left = (R + markerDist * Math.cos(angle)) + 'px';
+    marker.style.top = (R + markerDist * Math.sin(angle)) + 'px';
+
+    var img = document.createElement('img');
+    img.src = char.file;
+    img.alt = char.name;
+    img.draggable = false;
+    marker.appendChild(img);
+
+    var markerBadge = makeTierBadge(char.tier, Math.max(8, markerSize * 0.14));
+    if (markerBadge) marker.appendChild(markerBadge);
+
+    var nameLabel = document.createElement('div');
+    nameLabel.className = 'char-name';
+    nameLabel.textContent = char.name;
+    nameLabel.style.fontSize = nameFontSize + 'px';
+    marker.appendChild(nameLabel);
+
+    marker.title = hour + '시 — ' + char.name;
+    (function (name) {
+      marker.addEventListener('click', function () {
+        var entry = findSolarMatch(name);
+        if (entry) showDexOverlay(entry);
+      });
+    })(char.name);
+
+    clockFace.appendChild(marker);
+
+    // 숫자: 기본은 마커 안쪽, 궤도는 가장 바깥에 모두 배치
+    var numberDist = orbitOn ? (R * 0.96) : (R * 0.58);
+    var numEl = document.createElement('div');
+    numEl.className = 'hour-number';
+    numEl.style.fontSize = numFontSize + 'px';
+    numEl.style.left = (R + numberDist * Math.cos(angle)) + 'px';
+    numEl.style.top = (R + numberDist * Math.sin(angle)) + 'px';
+    numEl.textContent = hour;
+    clockFace.appendChild(numEl);
+  });
+
+  // ── 반짝이 별 (강화: 60개) ──
+  document.querySelectorAll('.sparkle').forEach(function (el) { el.remove(); });
+  for (var j = 0; j < 60; j++) {
+    var sparkle = document.createElement('div');
+    sparkle.className = 'sparkle';
+    sparkle.style.left = (Math.random() * S) + 'px';
+    sparkle.style.top = (Math.random() * S) + 'px';
+    sparkle.style.animationDelay = (Math.random() * 3) + 's';
+    var sz = (S * 0.003 + Math.random() * S * 0.007) + 'px';
+    sparkle.style.width = sz;
+    sparkle.style.height = sz;
+    clockFace.appendChild(sparkle);
+  }
+}
+
+// ── 떠다니는 별/혜성 ──
+function addFloatingStars() {
+  document.querySelectorAll('.floating-heart').forEach(function (el) { el.remove(); });
+  var symbols = ['✨','🌟','⭐','💫','☄️','🌠','🪐'];
+  for (var i = 0; i < 16; i++) {
+    var s = document.createElement('div');
+    s.className = 'floating-heart';
+    s.textContent = symbols[Math.floor(Math.random() * symbols.length)];
+    s.style.left = (Math.random() * 100) + 'vw';
+    s.style.fontSize = (0.7 + Math.random() * 1.4) + 'rem';
+    s.style.animationDuration = (8 + Math.random() * 14) + 's';
+    s.style.animationDelay = (Math.random() * 12) + 's';
+    document.body.appendChild(s);
+  }
+}
+
+// ── 시계 업데이트 ──
+function updateClock() {
+  var now = new Date();
+  var h = now.getHours() % 12;
+  var m = now.getMinutes();
+  var s = now.getSeconds();
+  var ms = now.getMilliseconds();
+  var secondDeg = (s + ms / 1000) * 6;
+  var minuteDeg = (m + s / 60) * 6;
+  var hourDeg = (h + m / 60 + s / 3600) * 30;
+  document.getElementById('secondHand').style.transform = 'rotate(' + secondDeg + 'deg)';
+  document.getElementById('minuteHand').style.transform = 'rotate(' + minuteDeg + 'deg)';
+  document.getElementById('hourHand').style.transform = 'rotate(' + hourDeg + 'deg)';
+  var hh = String(now.getHours()).padStart(2, '0');
+  var mm = String(m).padStart(2, '0');
+  var ss = String(s).padStart(2, '0');
+  document.getElementById('digitalTime').textContent = hh + ':' + mm + ':' + ss;
+
+  var currentHour = h === 0 ? 12 : h;
+  document.querySelectorAll('.hour-marker').forEach(function (marker) {
+    var isActive = parseInt(marker.dataset.hour) === currentHour;
+    var pulseEl = marker.querySelector('.active-pulse');
+    if (isActive) {
+      marker.classList.add('active');
+      if (!pulseEl) {
+        pulseEl = document.createElement('div');
+        pulseEl.className = 'active-pulse';
+        var size = marker.offsetWidth * 1.4;
+        pulseEl.innerHTML = '<div class="pulse-ring" style="width:' + size + 'px;height:' + size + 'px"></div>';
+        marker.appendChild(pulseEl);
+      }
+    } else {
+      marker.classList.remove('active');
+      if (pulseEl) pulseEl.remove();
+    }
+  });
+  requestAnimationFrame(updateClock);
+}
+
+// ── 초기화 ──
+window.addEventListener('load', function () {
+  document.getElementById('btnBasic').addEventListener('click', function () { setMode('basic'); });
+  document.getElementById('btnOrbit').addEventListener('click', function () { setMode('orbit'); });
+  document.getElementById('btnDex').addEventListener('click', function () { setMode('dex'); });
+
+  // 태양 클릭 → 도감 오버레이
+  document.getElementById('sunCenter').addEventListener('click', function () {
+    var sun = findSolarMatch('태양');
+    if (sun) showDexOverlay(sun);
+  });
+
+  // 도감 검색
+  var dexInp = document.getElementById('dexSearchInput');
+  var dexClr = document.getElementById('dexSearchClear');
+  if (dexInp) {
+    dexInp.addEventListener('input', clearDexSearchError);
+    dexInp.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' || e.keyCode === 13) {
+        e.preventDefault();
+        gotoSolar(dexInp.value);
+      }
+    });
+  }
+  if (dexClr) {
+    dexClr.addEventListener('click', function () {
+      if (!dexInp) return;
+      dexInp.value = '';
+      clearDexSearchError();
+      dexInp.focus();
+    });
+  }
+
+  // 화상키보드
+  var dexOskEl = document.getElementById('dexOsk');
+  var dexOskBtn = document.getElementById('dexOskToggle');
+  if (window.OnScreenKeyboard && dexInp && dexOskEl && dexOskBtn) {
+    var oskInstance = null;
+    dexOskBtn.addEventListener('click', function () {
+      if (!oskInstance) {
+        oskInstance = window.OnScreenKeyboard.attach({
+          input: dexInp,
+          oskRoot: dexOskEl,
+          onCommit: function (val) {
+            dexOskEl.hidden = true;
+            dexOskBtn.classList.remove('active');
+            gotoSolar(val);
+          },
+          onChange: clearDexSearchError,
+          onDismiss: function () {
+            dexOskEl.hidden = true;
+            dexOskBtn.classList.remove('active');
+          }
+        });
+      }
+      dexOskEl.hidden = !dexOskEl.hidden;
+      dexOskBtn.classList.toggle('active', !dexOskEl.hidden);
+      if (!dexOskEl.hidden) dexInp.focus();
+    });
+  }
+
+  setMode('basic');
+  addFloatingStars();
+  updateClock();
+});
+
+var resizeTimer;
+window.addEventListener('resize', function () {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(function () {
+    if (currentMode === 'dex') {
+      var dc = document.getElementById('dexContainer');
+      dc.dataset.built = '';
+      dc.innerHTML = '';
+      buildDex();
+    } else {
+      layout();
+    }
+  }, 80);
+});
+</script>
+</body>
+</html>

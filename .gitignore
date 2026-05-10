@@ -1,2 +1,5 @@
 .claude/
 .omc/
+
+# Solar clock: 원본 이미지(NASA/Wikimedia)는 빌드 산출물(.webp)만 커밋
+clock_twins/img_solar_src/
