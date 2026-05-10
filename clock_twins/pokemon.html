@@ -744,13 +744,29 @@ function buildTypeChips(dex) {
 
 // --- 진화 트리 ---
 function pad4(n) { var s = '' + n; while (s.length < 4) s = '0' + s; return s; }
-function makeEvoCell(node, currentDex) {
+var POKEMON_REGIONS = ['알로라', '가라르', '히스이', '팔데아'];
+function splitRegion(name) {
+  for (var i = 0; i < POKEMON_REGIONS.length; i++) {
+    var prefix = POKEMON_REGIONS[i] + ' ';
+    if (name.indexOf(prefix) === 0) {
+      return { region: POKEMON_REGIONS[i], base: name.slice(prefix.length) };
+    }
+  }
+  return { region: null, base: name };
+}
+function makeEvoCell(node, currentDex, currentName) {
   var dex = node[0], name = node[1];
+  var split = splitRegion(name);
+  var isCurrent = (dex === currentDex && name === currentName);
   var cell = document.createElement('div');
   cell.className = 'evolution-cell';
-  if (dex === currentDex) cell.classList.add('current');
+  if (isCurrent) cell.classList.add('current');
   var img = document.createElement('img');
-  img.src = 'img_pokemon/도트/포켓몬도트_' + pad4(dex) + '_' + name + '.webp';
+  // 리전폼: '포켓몬도트_NNNN_라이츄(알로라).webp', 일반: '포켓몬도트_NNNN_라이츄.webp'.
+  // Windows 파일시스템 호환을 위해 ':'은 '_'로 치환 (예: '타입:널' → '타입_널').
+  var fileBase = split.base.replace(/:/g, '_');
+  img.src = 'img_pokemon/도트/포켓몬도트_' + pad4(dex) + '_' + fileBase
+    + (split.region ? '(' + split.region + ')' : '') + '.webp';
   img.alt = name;
   img.draggable = false;
   cell.appendChild(img);
@@ -758,17 +774,17 @@ function makeEvoCell(node, currentDex) {
   label.className = 'evo-name';
   label.textContent = name;
   cell.appendChild(label);
-  // 클릭 시 해당 포켓몬으로 이동 (자기 자신이면 무동작) — 검색 점프와 동일 흐름
+  // 클릭 시: 자기 자신은 무동작. 리전폼은 같은 dex의 일반 폼(base name)으로 점프.
   cell.addEventListener('click', function(e) {
     e.stopPropagation();
-    if (dex === currentDex) return;
+    if (isCurrent) return;
     var overlay = document.getElementById('dexOverlay');
     if (overlay) overlay.style.display = 'none';
-    gotoPokemon(name);
+    gotoPokemon(split.base);
   });
   return cell;
 }
-function buildEvolutionTree(dex) {
+function buildEvolutionTree(dex, currentName) {
   if (dex == null || !window.__pokemonEvolutions) return null;
   var entry = window.__pokemonEvolutions[dex];
   if (!entry) return null;
@@ -778,14 +794,14 @@ function buildEvolutionTree(dex) {
     // 이브이 — 한 줄에 root + 모든 분기 도트
     var line = document.createElement('div');
     line.className = 'evolution-line';
-    line.appendChild(makeEvoCell(entry.root, dex));
+    line.appendChild(makeEvoCell(entry.root, dex, currentName));
     var arrow = document.createElement('span');
     arrow.className = 'evolution-arrow';
     arrow.textContent = '→';
     line.appendChild(arrow);
     var tail = document.createElement('div');
     tail.className = 'evolution-fanout-tail';
-    entry.tails.forEach(function(t) { tail.appendChild(makeEvoCell(t, dex)); });
+    entry.tails.forEach(function(t) { tail.appendChild(makeEvoCell(t, dex, currentName)); });
     line.appendChild(tail);
     wrap.appendChild(line);
   } else {
@@ -800,7 +816,7 @@ function buildEvolutionTree(dex) {
           arrow.textContent = '→';
           line.appendChild(arrow);
         }
-        line.appendChild(makeEvoCell(node, dex));
+        line.appendChild(makeEvoCell(node, dex, currentName));
       });
       wrap.appendChild(line);
     });
@@ -1046,7 +1062,7 @@ function showDexOverlay(char) {
   // 진화 트리 — 기존 트리 제거 후 새로 추가 (진화 없으면 표시 안 함)
   var oldEvo = overlay.querySelector('.evolution-tree');
   if (oldEvo) oldEvo.remove();
-  var evoTree = buildEvolutionTree(dexForType);
+  var evoTree = buildEvolutionTree(dexForType, char.name);
   if (evoTree) overlay.appendChild(evoTree);
   overlay.style.display = 'flex';
   overlay.onclick = function() { overlay.style.display = 'none'; };
