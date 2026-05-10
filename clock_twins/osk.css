@@ -7,7 +7,27 @@
   border-radius: 16px;
   padding: 10px;
   user-select: none;
+  position: relative;
 }
+.osk-dismiss {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(0,0,0,0.15);
+  color: #444;
+  border: none;
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+  z-index: 2;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+.osk-dismiss:hover { background: rgba(0,0,0,0.28); color: #111; }
+.osk-dismiss:active { transform: scale(0.94); }
 .osk-row {
   display: flex;
   gap: 6px;
