@@ -1455,18 +1455,27 @@ window.addEventListener('load', function() {
           onCommit: function(val) {
             dexOskEl.hidden = true;
             dexOskBtn.classList.remove('active');
+            dexInp.removeAttribute('inputmode');
             gotoPokemon(val);
           },
           onChange: clearDexSearchError,
           onDismiss: function() {
             dexOskEl.hidden = true;
             dexOskBtn.classList.remove('active');
+            dexInp.removeAttribute('inputmode');
           }
         });
       }
-      dexOskEl.hidden = !dexOskEl.hidden;
-      dexOskBtn.classList.toggle('active', !dexOskEl.hidden);
-      if (!dexOskEl.hidden) dexInp.focus();
+      var oskNowVisible = dexOskEl.hidden;  // 토글 직전: 숨김 → 곧 표시됨
+      dexOskEl.hidden = !oskNowVisible;
+      dexOskBtn.classList.toggle('active', oskNowVisible);
+      if (oskNowVisible) {
+        // OS 가상키보드 억제: 우리 OSK 표시 중에는 inputmode="none"
+        dexInp.setAttribute('inputmode', 'none');
+        dexInp.focus();
+      } else {
+        dexInp.removeAttribute('inputmode');
+      }
     });
   }
   setMode('basic');
