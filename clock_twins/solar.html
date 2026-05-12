@@ -950,12 +950,7 @@ function applyOrbitFrame() {
       var ct = Math.cos(s.tilt), st = Math.sin(s.tilt);
       pos[n] = { dx: lx * ct - ly * st, dy: lx * st + ly * ct };
     } else if (s.type === 'voyager') {
-      // 화면 밖 나가면 지구 현재 위치에서 재출발
-      if (Math.hypot(s.xRatio, s.yRatio) > 0.95) {
-        var e = orbitState['지구'];
-        s.xRatio = e.ratio * Math.cos(e.angle);
-        s.yRatio = e.ratio * Math.sin(e.angle);
-      }
+      // 리스폰은 tickOrbit에서 지구 lap에 맞춰 처리
       pos[n] = { dx: s.xRatio * R, dy: s.yRatio * R };
     }
   }
@@ -973,6 +968,15 @@ function applyOrbitFrame() {
     if (!marker) continue;
     marker.style.left = (R + pos[n].dx) + 'px';
     marker.style.top = (R + pos[n].dy) + 'px';
+    if (n === '핼리혜성') {
+      // 이미지 좌상단이 꼬리, 우하단이 본체. 자연 꼬리 방향 = +x로부터 225° (CW screen).
+      // 꼬리가 태양 반대편을 향하려면 = (본체→외측 방향) = atan2(dy, dx) (태양은 원점).
+      // 필요한 CW 회전 = 목표각 − 225°.
+      var dy = pos[n].dy, dx = pos[n].dx;
+      var rotDeg = Math.atan2(dy, dx) * 180 / Math.PI - 225;
+      var img = marker.querySelector('img');
+      if (img) img.style.transform = 'rotate(' + rotDeg + 'deg)';
+    }
   }
 }
 
@@ -984,6 +988,10 @@ function tickOrbit(now) {
   }
   var dt = orbitLastTime ? Math.min(0.1, (now - orbitLastTime) / 1000) : 0;
   orbitLastTime = now;
+
+  // 보이저 리스폰 동기화: 지구가 3시 방향(angle = 2π·k 통과)을 지날 때마다 재출발
+  var earthLapBefore = Math.floor(orbitState['지구'].angle / (2 * Math.PI));
+
   for (var n in orbitState) {
     var s = orbitState[n];
     if (s.type === 'voyager') {
@@ -993,6 +1001,13 @@ function tickOrbit(now) {
       s.angle += s.omega * dt;
     }
   }
+
+  var earthLapAfter = Math.floor(orbitState['지구'].angle / (2 * Math.PI));
+  if (earthLapAfter > earthLapBefore) {
+    orbitState['보이저1호'].xRatio = ORBIT_RATIOS['지구'];  // = 지구 3시 위치
+    orbitState['보이저1호'].yRatio = 0;
+  }
+
   applyOrbitFrame();
   orbitAnimId = requestAnimationFrame(tickOrbit);
 }
@@ -1072,11 +1087,21 @@ function layout() {
     clockFace.appendChild(tick);
   }
 
-  // ── 모드 토글 ──
+  // ── 모드 토글 + orbitState 관리 ──
   var orbitOn = (currentMode === 'orbit');
   clockFace.classList.toggle('orbit-on', orbitOn);
+  if (orbitOn) {
+    if (!orbitState) orbitState = initOrbitState();
+  } else {
+    orbitState = null;
+    if (orbitAnimId != null) {
+      cancelAnimationFrame(orbitAnimId);
+      orbitAnimId = null;
+    }
+    orbitLastTime = null;
+  }
 
-  // ── 궤도 링 (orbit 모드에서만, 9개 태양 동심원: 수성~명왕성) ──
+  // ── 궤도 시각화 (orbit 모드만): 9개 태양 동심원 + 핼리혜성 타원 ──
   var orbitWrap = document.getElementById('orbitRings');
   orbitWrap.innerHTML = '';
   if (orbitOn) {
@@ -1089,6 +1114,34 @@ function layout() {
       ring.style.height = d + 'px';
       orbitWrap.appendChild(ring);
     });
+    // 핼리혜성 타원 (태양이 한 초점, tilt 회전 적용)
+    if (orbitState && orbitState['핼리혜성']) {
+      var hs = orbitState['핼리혜성'];
+      var ha = hs.aRatio * R, hb = hs.bRatio * R;
+      var hc = Math.sqrt(Math.max(0, ha * ha - hb * hb));
+      // 타원 중심을 focus(=clock center R,R) 기준 (-c, 0)에 두고 tilt 회전한 좌표
+      var ecx = R - hc * Math.cos(hs.tilt);
+      var ecy = R - hc * Math.sin(hs.tilt);
+      var tiltDeg = hs.tilt * 180 / Math.PI;
+      var SVG_NS = 'http://www.w3.org/2000/svg';
+      var svg = document.createElementNS(SVG_NS, 'svg');
+      svg.setAttribute('class', 'halley-orbit');
+      svg.setAttribute('width', R * 2);
+      svg.setAttribute('height', R * 2);
+      svg.style.cssText = 'position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none';
+      var ell = document.createElementNS(SVG_NS, 'ellipse');
+      ell.setAttribute('cx', ecx);
+      ell.setAttribute('cy', ecy);
+      ell.setAttribute('rx', ha);
+      ell.setAttribute('ry', hb);
+      ell.setAttribute('transform', 'rotate(' + tiltDeg + ' ' + ecx + ' ' + ecy + ')');
+      ell.setAttribute('fill', 'none');
+      ell.setAttribute('stroke', 'rgba(255, 213, 79, 0.32)');
+      ell.setAttribute('stroke-width', '1');
+      ell.setAttribute('stroke-dasharray', '5 4');
+      svg.appendChild(ell);
+      orbitWrap.appendChild(svg);
+    }
   }
 
   // ── 기존 마커·숫자 제거 ──
@@ -1155,21 +1208,13 @@ function layout() {
     clockFace.appendChild(numEl);
   }
 
-  // ── 궤도 애니메이션 토글 ──
+  // ── 궤도 애니메이션 시작 (orbit 모드만; orbitState/정리는 layout 상단에서 처리됨) ──
   if (orbitOn) {
-    if (!orbitState) orbitState = initOrbitState();
-    applyOrbitFrame();  // 즉시 1프레임 적용해 기본 위치 덮어씀
+    applyOrbitFrame();  // 즉시 1프레임 적용
     if (orbitAnimId == null) {
       orbitLastTime = null;
       orbitAnimId = requestAnimationFrame(tickOrbit);
     }
-  } else {
-    orbitState = null;
-    if (orbitAnimId != null) {
-      cancelAnimationFrame(orbitAnimId);
-      orbitAnimId = null;
-    }
-    orbitLastTime = null;
   }
 
   // ── 반짝이 별 (강화: 60개) ──
