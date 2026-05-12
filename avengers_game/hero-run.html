@@ -1266,11 +1266,13 @@ function selectHero(i){
 }
 
 /* 도감 검색: 일치 셀로 스크롤 + 플래시 + 상세 오버레이 자동 표시
-   (도감에서는 hero 선택을 변경하지 않음 — 선택은 시작 화면 검색을 통해서만) */
+   사용자 명세: 도감 검색으로 찾은 히어로도 메인 페이지의 선택 hero 로 반영.
+   ※ 도감 셀 단순 클릭은 선택 변경 X (그건 showHeroOverlay 만 호출) — 검색만 selection 변경. */
 function dexGotoHero(query){
   const idx = findHero(query);
   if(idx < 0){ flashSearchError('dex-search-input', 'dex-search-msg', '그런 히어로는 없어'); return; }
   clearSearchError('dex-search-input', 'dex-search-msg');
+  selectHero(idx);
   const grid = document.getElementById('hero-dex-grid');
   const item = document.querySelector('#hero-dex-grid .hero-dex-item[data-idx="' + idx + '"]');
   if(!grid || !item){ showHeroOverlay(idx); return; }
