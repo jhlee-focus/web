@@ -49,6 +49,8 @@
     transition: opacity 0.5s ease;
   }
   .clock-face.orbit-on .orbit-rings { opacity: 1; }
+  /* 궤도 모드: 행성/왜소행성 등 시계 위 마커의 분류 뱃지는 숨김 (도감 셀은 영향 없음) */
+  .clock-face.orbit-on .hour-marker .tier-badge { display: none; }
   .orbit-ring {
     position: absolute;
     top: 50%;
@@ -136,7 +138,6 @@
     z-index: 40;
     transform: translate(-50%, -50%);
     overflow: hidden;
-    box-shadow: 0 0 20px rgba(255,193,7,0.6), 0 0 40px rgba(255,87,34,0.35);
     cursor: pointer;
     background: radial-gradient(circle, #fdd835, #f57c00);
     transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
