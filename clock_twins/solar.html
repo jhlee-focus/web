@@ -67,13 +67,14 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 10;
+    /* 시침·분침·초침(z:30)보다 위로, 태양(z:40)보다는 아래 */
+    z-index: 35;
     transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.3s ease;
     cursor: pointer;
   }
   .hour-marker:hover {
     transform: translate(-50%, -50%) scale(1.35);
-    z-index: 20;
+    z-index: 50;
     filter: drop-shadow(0 4px 12px rgba(255,213,79,0.5));
   }
   .hour-marker img {
@@ -887,7 +888,7 @@ var ORBIT_PERIODS = {
 var BODY_SIZES = {
   '수성': 0.045, '금성': 0.060, '지구': 0.060, '화성': 0.050,
   '목성': 0.100, '토성': 0.100, '천왕성': 0.075, '해왕성': 0.075,
-  '명왕성': 0.040, '달': 0.040, '핼리혜성': 0.045, '보이저1호': 0.050
+  '명왕성': 0.040, '달': 0.040, '핼리혜성': 0.090, '보이저1호': 0.050
 };
 var orbitState = null;     // 활성 시 객체, 비활성 시 null (resize 시 보존)
 var orbitAnimId = null;
@@ -898,10 +899,13 @@ function initOrbitState() {
   // 지구는 우상향 45° 방향(angle = -π/4)에서 출발, 나머지는 랜덤
   var EARTH_INIT_ANGLE = -Math.PI / 4;
   for (var n in ORBIT_RATIOS) {
+    var startAngle = (n === '지구') ? EARTH_INIT_ANGLE : Math.random() * Math.PI * 2;
     state[n] = {
       type: 'circle',
       ratio: ORBIT_RATIOS[n],
-      angle: (n === '지구') ? EARTH_INIT_ANGLE : Math.random() * Math.PI * 2,
+      angle: startAngle,
+      // 지구의 시작 각도를 별도로 저장 — 보이저 리스폰을 시작 각도 기준으로 detect.
+      initAngle: startAngle,
       omega: 2 * Math.PI / ORBIT_PERIODS[n]
     };
   }
@@ -994,9 +998,13 @@ function tickOrbit(now) {
   var dt = orbitLastTime ? Math.min(0.1, (now - orbitLastTime) / 1000) : 0;
   orbitLastTime = now;
 
-  // 보이저 리스폰 동기화: 지구가 시작 위치(우상향 45°)에 돌아올 때마다 재출발.
-  // 지구 angle은 단조 증가하므로 floor(angle / 2π) 증가 시점이 한 바퀴 완료.
-  var earthLapBefore = Math.floor(orbitState['지구'].angle / (2 * Math.PI));
+  // 보이저 리스폰 동기화: 지구가 시작 각도(우상향 45°)에 돌아올 때마다 재출발.
+  // 시작 각도 기준 lap 카운트 — floor((angle - initAngle) / 2π) 증가 시점이 한 바퀴 완료.
+  // (그냥 floor(angle / 2π)를 쓰면 angle=0(3시) 통과 시점에 lap이 증가해서 잘못된 위치에서 리스폰됨.)
+  // FP 누적 오차로 2π 경계에서 floor가 어긋날 수 있어 작은 epsilon을 더해 안정화.
+  var earthInit = orbitState['지구'].initAngle;
+  var LAP_EPS = 1e-9;
+  var earthLapBefore = Math.floor((orbitState['지구'].angle - earthInit + LAP_EPS) / (2 * Math.PI));
 
   for (var n in orbitState) {
     var s = orbitState[n];
@@ -1008,7 +1016,7 @@ function tickOrbit(now) {
     }
   }
 
-  var earthLapAfter = Math.floor(orbitState['지구'].angle / (2 * Math.PI));
+  var earthLapAfter = Math.floor((orbitState['지구'].angle - earthInit + LAP_EPS) / (2 * Math.PI));
   if (earthLapAfter > earthLapBefore) {
     // 지구의 현재 위치(45° 직후)에서 보이저 재출발
     var e = orbitState['지구'];
