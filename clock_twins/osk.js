@@ -137,41 +137,41 @@
       ['ㅂ','ㅈ','ㄷ','ㄱ','ㅅ','ㅛ','ㅕ','ㅑ','ㅐ','ㅔ'],
       ['ㅁ','ㄴ','ㅇ','ㄹ','ㅎ','ㅗ','ㅓ','ㅏ','ㅣ'],
       ['SHIFT','ㅋ','ㅌ','ㅊ','ㅍ','ㅠ','ㅜ','ㅡ','BACK'],
-      ['MODE','SPACE','NEXT','CLEAR','OK']
+      ['TXT','SYM','SPACE','NEXT','CLEAR','OK']
     ],
     ko_shift: [
       ['ㅃ','ㅉ','ㄸ','ㄲ','ㅆ','ㅛ','ㅕ','ㅑ','ㅒ','ㅖ'],
       ['ㅁ','ㄴ','ㅇ','ㄹ','ㅎ','ㅗ','ㅓ','ㅏ','ㅣ'],
       ['SHIFT','ㅋ','ㅌ','ㅊ','ㅍ','ㅠ','ㅜ','ㅡ','BACK'],
-      ['MODE','SPACE','NEXT','CLEAR','OK']
+      ['TXT','SYM','SPACE','NEXT','CLEAR','OK']
     ],
     en: [
       ['q','w','e','r','t','y','u','i','o','p'],
       ['a','s','d','f','g','h','j','k','l'],
       ['SHIFT','z','x','c','v','b','n','m','BACK'],
-      ['MODE','SPACE','NEXT','CLEAR','OK']
+      ['TXT','SYM','SPACE','NEXT','CLEAR','OK']
     ],
     en_shift: [
       ['Q','W','E','R','T','Y','U','I','O','P'],
       ['A','S','D','F','G','H','J','K','L'],
       ['SHIFT','Z','X','C','V','B','N','M','BACK'],
-      ['MODE','SPACE','NEXT','CLEAR','OK']
+      ['TXT','SYM','SPACE','NEXT','CLEAR','OK']
     ],
     sym: [
       ['1','2','3','4','5','6','7','8','9','0'],
       ['!','@','#','$','%','&','*','(',')'],
       ['SHIFT','-','+','=','/','.',',','?','BACK'],
-      ['MODE','SPACE','NEXT','CLEAR','OK']
+      ['TXT','SYM','SPACE','NEXT','CLEAR','OK']
     ],
     sym_shift: [
       ['~','`','^','_','|','\\',':',';','<','>'],
       ['{','}','[',']','"','\'','€','£','¥'],
       ['SHIFT','«','»','§','°','♥','★','☆','BACK'],
-      ['MODE','SPACE','NEXT','CLEAR','OK']
+      ['TXT','SYM','SPACE','NEXT','CLEAR','OK']
     ]
   };
-  var OSK_MODE_CYCLE = ['ko', 'en', 'sym'];
   var OSK_MODE_LABEL = { ko: '한글', en: 'ABC', sym: '기호' };
+  function otherText(t) { return t === 'ko' ? 'en' : 'ko'; }
 
   function attach(opts) {
     var input     = opts.input;
@@ -181,6 +181,7 @@
     var onDismiss = opts.onDismiss || null;
 
     var oskMode = 'ko';
+    var oskTextMode = 'ko';  // 마지막으로 사용한 텍스트 모드 (ko 또는 en) — sym에서 복귀 기준
     var oskShift = false;
 
     function buildOSK() {
@@ -199,9 +200,10 @@
       // 한·영·기호 모두 *_shift 레이아웃이 정의돼 있으면 shift 적용
       var layoutKey = (oskShift && OSK_LAYOUTS[oskMode + '_shift']) ? oskMode + '_shift' : oskMode;
       var layout = OSK_LAYOUTS[layoutKey];
-      // MODE 버튼은 다음 모드의 라벨을 표시 (사용자에게 어디로 갈지 보여줌)
-      var nextModeIdx = (OSK_MODE_CYCLE.indexOf(oskMode) + 1) % OSK_MODE_CYCLE.length;
-      var nextModeLabel = OSK_MODE_LABEL[OSK_MODE_CYCLE[nextModeIdx]];
+      // TXT: 텍스트 언어 토글(ko↔en). 항상 '다른 텍스트 모드' 라벨 표시.
+      var txtLabel = OSK_MODE_LABEL[otherText(oskTextMode)];
+      // SYM: 기호 ↔ 마지막 텍스트 토글. 현재 sym이면 복귀할 텍스트 라벨, 아니면 '기호'.
+      var symLabel = (oskMode === 'sym') ? OSK_MODE_LABEL[oskTextMode] : OSK_MODE_LABEL['sym'];
       layout.forEach(function(row) {
         var rowEl = document.createElement('div');
         rowEl.className = 'osk-row';
@@ -212,7 +214,8 @@
           if (k === 'SPACE')      { btn.classList.add('wide');           btn.textContent = '스페이스'; }
           else if (k === 'BACK')  { btn.classList.add('wide');           btn.textContent = '⌫'; }
           else if (k === 'OK')    { btn.classList.add('wide','action');  btn.textContent = '확인'; }
-          else if (k === 'MODE')  { btn.classList.add('wide');           btn.textContent = nextModeLabel; }
+          else if (k === 'TXT')   { btn.classList.add('wide');           btn.textContent = txtLabel; }
+          else if (k === 'SYM')   { btn.classList.add('wide');           btn.textContent = symLabel; }
           else if (k === 'CLEAR') { btn.classList.add('wide');           btn.textContent = '지우기'; }
           else if (k === 'SHIFT') { btn.classList.add('shift');          btn.textContent = oskShift ? '⇧ ON' : '⇧'; }
           else if (k === 'NEXT')  { btn.classList.add('wide');           btn.textContent = '다음 ▶'; }
@@ -234,9 +237,25 @@
       if (k === 'BACK')  { HangulIME.backspace(input); onChange(input.value); return; }
       if (k === 'CLEAR') { HangulIME.reset(); input.value = ''; onChange(input.value); return; }
       if (k === 'OK')    { HangulIME.commit(input); onCommit(input.value); return; }
-      if (k === 'MODE')  {
-        var ci = OSK_MODE_CYCLE.indexOf(oskMode);
-        oskMode = OSK_MODE_CYCLE[(ci + 1) % OSK_MODE_CYCLE.length];
+      if (k === 'TXT')   {
+        // 텍스트 언어 토글 (ko↔en). sym 모드라면 다른 텍스트로 빠져나감.
+        var nt = otherText(oskTextMode);
+        oskMode = nt;
+        oskTextMode = nt;
+        oskShift = false;
+        HangulIME.commit(input);
+        buildOSK();
+        onChange(input.value);
+        return;
+      }
+      if (k === 'SYM')   {
+        // 기호 모드 토글: 텍스트 → sym (현재를 oskTextMode로 기억), sym → oskTextMode로 복귀.
+        if (oskMode === 'sym') {
+          oskMode = oskTextMode;
+        } else {
+          oskTextMode = oskMode;
+          oskMode = 'sym';
+        }
         oskShift = false;
         HangulIME.commit(input);
         buildOSK();

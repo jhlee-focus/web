@@ -139,7 +139,7 @@
     transform: translate(-50%, -50%);
     overflow: hidden;
     cursor: pointer;
-    background: radial-gradient(circle, #fdd835, #f57c00);
+    background: transparent;
     transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
   }
   .sun-center:hover { transform: translate(-50%, -50%) scale(1.15); }
@@ -1171,7 +1171,10 @@ function layout() {
     marker.style.top = (R + markerDist * Math.sin(angle)) + 'px';
 
     var img = document.createElement('img');
-    img.src = char.file;
+    // 핼리혜성은 궤도 모드에서 전용 이미지(꼬리 강조)를 사용
+    img.src = (orbitOn && char.name === '핼리혜성')
+      ? 'img_solar/SS-12-1_핼리혜성_궤도모드.webp'
+      : char.file;
     img.alt = char.name;
     img.draggable = false;
     marker.appendChild(img);
