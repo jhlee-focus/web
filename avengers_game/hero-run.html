@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
   <title>⚡ 히어로 런</title>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@700;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../clock_twins/osk.css" />
   <style>
     *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
     html, body { height:100%; }
@@ -43,14 +44,400 @@
       border-radius:50px; cursor:pointer; transition:background .2s,color .2s;
     }
     #restart-btn:hover { background:rgba(255,255,255,.18); color:#fff; }
+
+    /* ══════════════════════════════════════
+       시작 화면 (DOM 오버레이) — 티니핑 시계 패턴 기반, MCU 다크 테마
+       ══════════════════════════════════════ */
+    #start-screen {
+      position: fixed; inset: 0; z-index: 150;
+      display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+      padding: max(20px, calc(env(safe-area-inset-top, 0px) + 20px)) 16px
+               max(20px, calc(env(safe-area-inset-bottom, 0px) + 20px));
+      gap: 12px;
+      overflow-y: auto;
+      background: linear-gradient(135deg, #0d0d0d 0%, #1a0000 50%, #2a0a0a 100%);
+      font-family: 'Noto Sans KR', sans-serif;
+    }
+    .start-marvel-badge {
+      background: #ED1D24; color: #fff;
+      font-size: 0.7rem; font-weight: 900; letter-spacing: 5px;
+      padding: 4px 16px; border-radius: 4px; margin-top: 6px;
+    }
+    .start-title {
+      color: #fff; font-size: clamp(1.6rem, 5vw, 2.4rem); font-weight: 900;
+      text-shadow: 0 0 24px rgba(237,29,36,0.7), 0 4px 12px rgba(0,0,0,0.7);
+      letter-spacing: -0.5px;
+    }
+    .start-subtitle {
+      color: rgba(255,255,255,0.5);
+      font-size: 0.78rem; font-weight: 700;
+      text-align: center; line-height: 1.5;
+    }
+
+    /* 검색바 (시작 화면용) — 도감 검색바와 같은 골격, MCU 레드 */
+    .hero-search-row {
+      display: flex; align-items: center; gap: 8px;
+      width: 100%; max-width: 380px;
+      padding: 6px 4px;
+      background: rgba(255,255,255,0.04);
+      backdrop-filter: blur(10px);
+      border-radius: 12px;
+    }
+    .hero-search-input {
+      flex: 1; min-width: 0;
+      padding: 10px 14px;
+      font-size: 15px; font-weight: 700;
+      color: #fff;
+      background: rgba(0,0,0,0.55);
+      border: 2px solid rgba(237,29,36,0.35);
+      border-radius: 999px; outline: none;
+      font-family: inherit;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .hero-search-input::placeholder { color: rgba(255,255,255,0.4); font-weight: 500; }
+    .hero-search-input:focus {
+      border-color: #ED1D24;
+      box-shadow: 0 0 0 4px rgba(237,29,36,0.22);
+    }
+    .hero-search-input.error {
+      border-color: #ff5252;
+      box-shadow: 0 0 0 4px rgba(255,82,82,0.28);
+    }
+    .hero-search-clear {
+      border: 2px solid rgba(237,29,36,0.35);
+      background: rgba(0,0,0,0.55);
+      color: #fff;
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      font-size: 18px; font-weight: 800; line-height: 1; cursor: pointer;
+    }
+    .hero-search-clear:hover { background: rgba(237,29,36,0.25); }
+    .hero-search-msg {
+      color: #ff6b6b; font-weight: 700; font-size: 13px;
+      min-height: 1em; text-align: center;
+    }
+    @keyframes heroShake {
+      0%,100% { transform: translateX(0); }
+      20% { transform: translateX(-6px); }
+      40% { transform: translateX(6px); }
+      60% { transform: translateX(-4px); }
+      80% { transform: translateX(4px); }
+    }
+    .hero-search-input.shake-x,
+    .dex-search-input.shake-x { animation: heroShake 0.4s ease; }
+    @keyframes heroFoundFlash {
+      0%   { box-shadow: 0 0 0 0 rgba(237,29,36,0.6);  background: rgba(237,29,36,0.25); }
+      50%  { box-shadow: 0 0 0 14px rgba(237,29,36,0); background: rgba(237,29,36,0.45); }
+      100% { box-shadow: 0 0 0 0 rgba(237,29,36,0);    background: rgba(237,29,36,0); }
+    }
+    .hero-found-flash { animation: heroFoundFlash 1.2s ease; }
+
+    /* OSK 색 변수 (티니핑=보라/분홍 → 히어로런=MCU 레드) */
+    #hero-osk, #dex-osk {
+      --osk-primary: #ED1D24;
+      --osk-primary-dark: #a30c12;
+      --osk-active-bg: #ffd5d8;
+      --osk-text: #1a0000;
+      width: 100%; max-width: 380px;
+    }
+
+    /* 히어로 프리뷰 카드 */
+    .hero-preview {
+      display: flex; flex-direction: column; align-items: center;
+      gap: 6px;
+      padding: 14px 18px 10px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(237,29,36,0.2);
+      border-radius: 18px;
+      min-width: 200px;
+    }
+    .hero-preview-canvas {
+      image-rendering: pixelated;
+      background: radial-gradient(circle at 50% 75%, rgba(237,29,36,0.20) 0%, rgba(237,29,36,0) 65%);
+      border-radius: 12px;
+    }
+    .hero-preview-name {
+      color: #FFD700;
+      font-size: 1.1rem; font-weight: 900;
+      letter-spacing: 0.5px;
+      text-shadow: 0 0 8px rgba(255,215,0,0.4);
+    }
+    .hero-preview-hint {
+      color: rgba(255,255,255,0.4);
+      font-size: 0.72rem; font-weight: 600; letter-spacing: 0.5px;
+    }
+
+    /* 시작/도감 버튼 */
+    .start-btn-row {
+      display: flex; flex-direction: column; gap: 10px;
+      width: 100%; max-width: 380px;
+      margin-top: 4px;
+    }
+    .btn-primary, .btn-secondary {
+      width: 100%;
+      padding: 14px 24px;
+      font-size: 1.05rem; font-weight: 900;
+      border-radius: 999px; border: 2px solid transparent;
+      cursor: pointer; font-family: inherit;
+      transition: transform 0.12s, box-shadow 0.2s, background 0.2s;
+    }
+    .btn-primary {
+      background: #ED1D24; color: #fff;
+      box-shadow: 0 6px 24px rgba(237,29,36,0.55);
+    }
+    .btn-primary:hover { background: #ff2630; }
+    .btn-primary:active { transform: translateY(2px); box-shadow: 0 3px 12px rgba(237,29,36,0.45); }
+    .btn-secondary {
+      background: rgba(255,255,255,0.08);
+      color: rgba(255,255,255,0.92);
+      border-color: rgba(255,255,255,0.18);
+    }
+    .btn-secondary:hover { background: rgba(255,255,255,0.15); }
+    .btn-secondary:active { transform: translateY(2px); }
+
+    .hiscore-text {
+      color: rgba(255,215,0,0.65);
+      font-size: 0.85rem; font-weight: 700;
+      margin-top: 2px; min-height: 1.1em;
+    }
+
+    /* ══════════════════════════════════════
+       도감 화면
+       ══════════════════════════════════════ */
+    #dex-screen {
+      position: fixed; inset: 0; z-index: 160;
+      display: flex; flex-direction: column; align-items: center;
+      padding: max(54px, calc(env(safe-area-inset-top, 0px) + 54px)) 12px
+               max(12px, calc(env(safe-area-inset-bottom, 0px) + 12px));
+      gap: 10px;
+      background: linear-gradient(135deg, #0d0d0d 0%, #1a0000 50%, #2a0a0a 100%);
+      font-family: 'Noto Sans KR', sans-serif;
+    }
+    /* 보호망: HTML hidden 속성은 display:flex 같은 명시 CSS 가 있으면 무력화되므로
+       명시적으로 hidden 상태일 때 display:none 을 강제한다. */
+    #dex-screen[hidden], #start-screen[hidden] { display: none !important; }
+    #dex-back-btn {
+      position: fixed;
+      top: max(12px, calc(env(safe-area-inset-top, 0px) + 8px));
+      left: max(12px, calc(env(safe-area-inset-left, 0px) + 8px));
+      z-index: 200;
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.2);
+      color: rgba(255,255,255,0.85);
+      font-family: inherit; font-size: 0.82rem; font-weight: 700;
+      padding: 7px 14px; border-radius: 999px; cursor: pointer;
+    }
+    #dex-back-btn:hover { background: rgba(255,255,255,0.2); }
+    .dex-title {
+      color: #fff; font-size: 1.4rem; font-weight: 900;
+      text-shadow: 0 0 18px rgba(237,29,36,0.6);
+      letter-spacing: 0.4px; margin-top: 2px;
+    }
+    /* 도감 검색바 (티니핑 .dex-search-row 와 동일 구조) */
+    .dex-search-row {
+      display: flex; align-items: center; gap: 8px;
+      width: 100%; max-width: 480px;
+      padding: 6px 4px;
+      position: sticky; top: 0;
+      background: rgba(0,0,0,0.55);
+      backdrop-filter: blur(10px);
+      border-radius: 12px;
+      z-index: 110;
+    }
+    .dex-search-input {
+      flex: 1; min-width: 0;
+      padding: 10px 14px;
+      font-size: 15px; font-weight: 700;
+      color: #fff;
+      background: rgba(0,0,0,0.6);
+      border: 2px solid rgba(237,29,36,0.4);
+      border-radius: 999px; outline: none;
+      font-family: inherit;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .dex-search-input::placeholder { color: rgba(255,255,255,0.4); font-weight: 500; }
+    .dex-search-input:focus { border-color: #ED1D24; box-shadow: 0 0 0 4px rgba(237,29,36,0.22); }
+    .dex-search-input.error { border-color: #ff5252; box-shadow: 0 0 0 4px rgba(255,82,82,0.28); }
+    .dex-search-clear {
+      border: 2px solid rgba(237,29,36,0.4);
+      background: rgba(0,0,0,0.6);
+      color: #fff;
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      font-size: 18px; font-weight: 800; line-height: 1; cursor: pointer;
+    }
+    .dex-search-clear:hover { background: rgba(237,29,36,0.25); }
+    .dex-search-msg {
+      color: #ff6b6b; font-weight: 700; font-size: 13px;
+      min-height: 1em; text-align: left;
+      width: 100%; max-width: 480px;
+      padding-left: 8px;
+    }
+    /* 도감 그리드: 각 셀이 캔버스 워킹 애니메이션 */
+    .hero-dex-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+      gap: 14px;
+      width: 100%; max-width: 720px;
+      padding: 6px 4px 24px;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(237,29,36,0.4) transparent;
+    }
+    .hero-dex-grid::-webkit-scrollbar { width: 6px; }
+    .hero-dex-grid::-webkit-scrollbar-thumb { background: rgba(237,29,36,0.4); border-radius: 3px; }
+    .hero-dex-item {
+      display: flex; flex-direction: column; align-items: center;
+      gap: 4px;
+      padding: 10px 6px;
+      background: rgba(255,255,255,0.04);
+      border: 1.5px solid rgba(255,255,255,0.08);
+      border-radius: 14px;
+      cursor: pointer;
+      transition: transform 0.18s, border-color 0.18s, background 0.18s;
+    }
+    .hero-dex-item:hover {
+      transform: translateY(-3px);
+      border-color: rgba(237,29,36,0.6);
+      background: rgba(237,29,36,0.08);
+    }
+    .hero-dex-item.selected {
+      border-color: #FFD700;
+      background: rgba(255,215,0,0.08);
+      box-shadow: 0 0 16px rgba(255,215,0,0.28);
+    }
+    .hero-dex-item canvas {
+      image-rendering: pixelated;
+      background: radial-gradient(circle at 50% 75%, rgba(237,29,36,0.18) 0%, rgba(237,29,36,0) 70%);
+      border-radius: 10px;
+    }
+    .hero-dex-item .hero-dex-name {
+      color: #fff; font-size: 0.82rem; font-weight: 800;
+      text-align: center; letter-spacing: 0.2px;
+    }
+    .hero-dex-item.hero-found-flash { animation: heroFoundFlash 1.2s ease; }
+
+    /* ══════════════════════════════════════
+       히어로 상세 오버레이 (도감 클릭/검색 매칭 시) — solar.html dex-overlay 패턴
+       ══════════════════════════════════════ */
+    #hero-overlay {
+      position: fixed; inset: 0; z-index: 220;
+      background: rgba(0,0,0,0.85);
+      backdrop-filter: blur(12px);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: safe center;
+      padding: 6vh 16px 8vh;
+      overflow-y: auto;
+      cursor: pointer;
+      animation: heroOverlayFadeIn 0.2s ease;
+    }
+    .hero-overlay-imgwrap {
+      flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      animation: heroOverlayPopIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .hero-overlay-img {
+      max-width: 60vmin; max-height: 60vmin;
+      object-fit: contain; border-radius: 18px;
+      filter: drop-shadow(0 8px 32px rgba(237,29,36,0.5)) drop-shadow(0 4px 16px rgba(0,0,0,0.6));
+    }
+    .hero-overlay-canvas {
+      image-rendering: pixelated;
+      max-width: 60vmin; max-height: 60vmin;
+      background: radial-gradient(circle at 50% 75%, rgba(237,29,36,0.25) 0%, rgba(237,29,36,0) 70%);
+      border-radius: 18px;
+      filter: drop-shadow(0 8px 32px rgba(237,29,36,0.5));
+    }
+    .hero-overlay-name {
+      color: #FFD700; font-weight: 900;
+      margin-top: 20px;
+      text-shadow: 0 2px 12px rgba(0,0,0,0.8), 0 0 16px rgba(255,215,0,0.4);
+      font-size: clamp(22px, 5vmin, 36px);
+      letter-spacing: 0.5px;
+      animation: heroOverlayPopIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .hero-overlay-blurb {
+      color: rgba(255,255,255,0.9);
+      margin-top: 14px;
+      max-width: min(540px, 92vw);
+      font-size: clamp(13px, 2.4vmin, 16px);
+      font-weight: 600; line-height: 1.65;
+      text-align: center; letter-spacing: 0.2px;
+      text-shadow: 0 1px 4px rgba(0,0,0,0.6);
+      animation: heroOverlayPopIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .hero-overlay-hint {
+      color: rgba(255,255,255,0.42);
+      font-size: 0.78rem; font-weight: 600;
+      margin-top: 22px; letter-spacing: 0.6px;
+    }
+    @keyframes heroOverlayFadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes heroOverlayPopIn { from { transform: scale(0.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    [hidden] { display: none !important; }
   </style>
 </head>
 <body>
   <a class="home-btn" href="index.html">← 홈으로</a>
   <button id="restart-btn" onclick="goToStart()">⟵ 처음으로</button>
+
+  <!-- ── 시작 화면 (DOM 오버레이) ── -->
+  <div id="start-screen">
+    <div class="start-marvel-badge">M A R V E L</div>
+    <div class="start-title">⚡ 히어로 런</div>
+    <div class="start-subtitle">← → 키 또는 화면 좌우 터치로 이동<br>빌런에게 부딪히면 처치! 빨간 장애물은 피하세요</div>
+
+    <div class="hero-search-row">
+      <input type="text" id="hero-search-input" class="hero-search-input"
+             placeholder="히어로 이름 (예: 아이언맨, 토르)" autocomplete="off" />
+      <button type="button" id="hero-osk-toggle" class="dex-osk-toggle" aria-label="화상키보드">⌨️</button>
+      <button type="button" id="hero-search-clear" class="hero-search-clear" aria-label="지우기">×</button>
+    </div>
+    <div id="hero-osk" class="osk" hidden></div>
+    <div class="hero-search-msg" id="hero-search-msg"></div>
+
+    <div class="hero-preview">
+      <canvas id="hero-preview-canvas" width="180" height="180" class="hero-preview-canvas"></canvas>
+      <div class="hero-preview-name" id="hero-preview-name">—</div>
+      <div class="hero-preview-hint">검색 또는 도감으로 변경하세요</div>
+    </div>
+
+    <div class="start-btn-row">
+      <button type="button" class="btn-primary" id="btn-start-game">▶  게임 시작</button>
+      <button type="button" class="btn-secondary" id="btn-open-dex">📖  히어로 도감</button>
+    </div>
+    <div class="hiscore-text" id="hiscore-text"></div>
+  </div>
+
+  <!-- ── 도감 화면 (초기 숨김 — 도감 버튼 누를 때만 표시) -->
+  <div id="dex-screen" hidden style="display:none">
+    <button type="button" id="dex-back-btn">⟵ 뒤로</button>
+    <div class="dex-title">📖 히어로 도감</div>
+    <div class="dex-search-row">
+      <input type="text" id="dex-search-input" class="dex-search-input"
+             placeholder="이름으로 찾기 (예: 아이언맨, 토르)" autocomplete="off" />
+      <button type="button" id="dex-osk-toggle" class="dex-osk-toggle" aria-label="화상키보드">⌨️</button>
+      <button type="button" id="dex-search-clear" class="dex-search-clear" aria-label="지우기">×</button>
+    </div>
+    <div id="dex-osk" class="osk" hidden></div>
+    <div class="dex-search-msg" id="dex-search-msg"></div>
+    <div id="hero-dex-grid" class="hero-dex-grid"></div>
+  </div>
+
+  <!-- ── 히어로 상세 오버레이 (도감 클릭 / 도감 검색 매칭 시 표시) -->
+  <div id="hero-overlay" hidden style="display:none">
+    <div id="hero-overlay-imgwrap" class="hero-overlay-imgwrap">
+      <img id="hero-overlay-img" class="hero-overlay-img" src="" alt="" hidden />
+      <canvas id="hero-overlay-canvas" class="hero-overlay-canvas" width="320" height="320" hidden></canvas>
+    </div>
+    <div id="hero-overlay-name" class="hero-overlay-name"></div>
+    <div id="hero-overlay-blurb" class="hero-overlay-blurb"></div>
+    <div class="hero-overlay-hint">탭하여 닫기</div>
+  </div>
+
   <div id="side-left" class="side-panel"><img src="2D게임 애셋/히어로런_어벤져스 팀.webp" alt="어벤져스 팀" style="object-position:right center;"/></div>
   <div id="side-right" class="side-panel"><img src="2D게임 애셋/히어로런_타노스 팀.webp" alt="타노스 팀" style="object-position:left center;"/></div>
   <canvas id="c"></canvas>
+<script src="../clock_twins/osk.js"></script>
 <script>
 const HEROES=[
   {key:"가모라",name:"가모라",src:"data:image/png;base64,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"},
@@ -126,7 +513,7 @@ resize();
 /* ── 스프라이트 로더 ── */
 const SP = {};
 const alphaMasks = {};  // `${key}_${dir}_${frame}` → Uint8Array (소스 해상도)
-let loaded = 0, total = 1 + VILLAIN_DATA.length;
+let loaded = 0, total = HERO_COUNT + VILLAIN_DATA.length;
 
 function computeAlphaMask(key, img, cw, ch){
   cw = cw || 1; ch = ch || 1;
@@ -173,10 +560,21 @@ function updateBackBtn(){
   const btn = document.getElementById('restart-btn');
   if(btn) btn.style.display = (state === 'playing') ? 'flex' : 'none';
 }
-function goToStart(){ state = 'start'; updateBackBtn(); }
-/* 현재 선택된 히어로 인덱스 — 선언 후 바로 초기 랜덤 로드 */
+function goToStart(){
+  state = 'start';
+  updateBackBtn();
+  if(typeof showScreen === 'function') showScreen('start');
+  if(typeof updatePreview === 'function') updatePreview();
+  if(typeof updateHiScoreText === 'function') updateHiScoreText();
+}
+/* 현재 선택된 히어로 인덱스 — 시작 화면에서 랜덤으로 진입 */
 let heroIdx = Math.floor(Math.random() * HERO_COUNT);
-loadImg(HEROES[heroIdx].key, HEROES[heroIdx].src, HEROES[heroIdx].cw, HEROES[heroIdx].ch);
+/* 모든 플레이어블 히어로의 스프라이트를 사전 로드
+   (시작 화면 프리뷰 + 도감 워킹 애니메이션이 동시에 필요) */
+for(let _i = 0; _i < HERO_COUNT; _i++){
+  const _h = HEROES[_i];
+  loadImg(_h.key, _h.src, _h.cw, _h.ch);
+}
 let score, hp, hero, enemies, blocks, particles, popups;
 let eTimer, bTimer;
 /* 하이스코어 — localStorage에 영속 저장 */
@@ -193,12 +591,16 @@ function pickRandomHero(){
 }
 
 function initGame(){
-  pickRandomHero();
+  /* 사용자가 시작 화면/도감에서 선택한 hero 유지.
+     (이전에는 매 게임마다 pickRandomHero() 호출했지만, 이제 검색/도감 선택을 따른다.) */
+  const _h = HEROES[heroIdx];
+  if(!SP[_h.key]){ loadImg(_h.key, _h.src, _h.cw, _h.ch); }
   score=0; hp=3; eTimer=0; bTimer=0; timeLeft=GAME_TIME;
   enemies=[]; blocks=[]; particles=[]; popups=[];
   hero = { x: W/2-SPR/2, y: HERO_Y, frame:0, ftick:0, dir:DIR_DOWN, inv:0 };
   state = 'playing';
   updateBackBtn();
+  if(typeof showScreen === 'function') showScreen('game');
 }
 
 /* ── 스프라이트 그리기 ── */
@@ -223,7 +625,15 @@ function drawHero(img, x, y, dir, frame, cw, ch){
 
 /* ── 입력 ── */
 const K = {};
-document.addEventListener('keydown', e => { K[e.key]=true; if(state!=='playing') initGame(); });
+document.addEventListener('keydown', e => {
+  /* 검색창 등 입력 필드 포커스 중에는 게임 컨트롤 무시 */
+  const ae = document.activeElement;
+  if(ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA')) return;
+  K[e.key]=true;
+  /* 시작 화면 진입은 DOM '게임 시작' 버튼으로만.
+     게임오버 상태에서만 키 입력으로 즉시 재시작 가능. */
+  if(state === 'gameover') initGame();
+});
 document.addEventListener('keyup', e => K[e.key] = false);
 let touchX = null;
 canvas.addEventListener('touchstart', e => {
@@ -236,8 +646,8 @@ canvas.addEventListener('touchstart', e => {
 canvas.addEventListener('touchend', e => {
   e.preventDefault();
   touchX = null;
-  // 버튼 영역 탭 감지
-  if(state === 'start' || state === 'gameover'){
+  // 버튼 영역 탭 감지 (게임오버 화면만; 시작 화면은 DOM이 처리)
+  if(state === 'gameover'){
     const t = e.changedTouches[0];
     canvas.dispatchEvent(new MouseEvent('click', {clientX:t.clientX, clientY:t.clientY, bubbles:true}));
   }
@@ -248,20 +658,16 @@ canvas.addEventListener('touchmove', e => {
   touchX = (e.touches[0].clientX - r.left) * (W / r.width);
 }, {passive:false});
 
-// 캔버스 클릭 → 상태별 버튼 히트 감지
+// 캔버스 클릭 → 게임오버 버튼만 처리 (시작 화면은 DOM 오버레이가 처리)
 canvas.addEventListener('click', ev => {
+  if(state !== 'gameover') return;
   const r = canvas.getBoundingClientRect();
   const mx = (ev.clientX - r.left) * (W / r.width);
   const my = (ev.clientY - r.top) * (H / r.height);
-  if(state === 'start'){
-    // "▶ 게임 시작" 버튼: x=W/2-95~W/2+95, y=nameY+90~nameY+140 (nameY=160)
-    if(mx >= W/2-95 && mx <= W/2+95 && my >= 250 && my <= 300) initGame();
-  } else if(state === 'gameover'){
-    const by = 150;
-    if(mx >= W/2-95 && mx <= W/2+95){
-      if(my >= by+218 && my <= by+266){ initGame(); }
-      if(my >= by+276 && my <= by+324){ goToStart(); }
-    }
+  const by = 150;
+  if(mx >= W/2-95 && mx <= W/2+95){
+    if(my >= by+218 && my <= by+266){ initGame(); }
+    if(my >= by+276 && my <= by+324){ goToStart(); }
   }
 });
 
@@ -439,40 +845,10 @@ function drawTouchHint(){
   ctx.fillText('오른쪽 ▶', W*3/4, H-18);
 }
 
-/* ── 시작 화면 ── */
-function drawStart(){
-  // MARVEL 배지
-  const bw = 106, bh = 26, bx = W/2-bw/2;
-  ctx.fillStyle = RED;
-  ctx.beginPath(); ctx.roundRect(bx, 46, bw, bh, 4); ctx.fill();
-  ctx.fillStyle = '#fff'; ctx.font = 'bold 10px Arial';
-  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillText('M A R V E L', W/2, 46+bh/2);
-
-  // 타이틀
-  ctx.save();
-  ctx.shadowBlur = 28; ctx.shadowColor = 'rgba(237,29,36,0.75)';
-  ctx.fillStyle = '#fff';
-  ctx.font = 'bold 30px ' + FONT_KR; ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
-  ctx.fillText('⚡ 히어로 런', W/2, 118);
-  ctx.restore();
-
-  // 조작 안내
-  const nameY = 160;
-  ctx.fillStyle = 'rgba(255,255,255,0.68)'; ctx.font = '14px ' + FONT_KR;
-  ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
-  ctx.fillText('← → 키 또는 화면 좌우 터치로 이동', W/2, nameY);
-  ctx.fillStyle = 'rgba(255,255,255,0.5)'; ctx.font = '13px ' + FONT_KR;
-  ctx.fillText('빌런에게 부딪히면 처치!  빨간 장애물은 피하세요', W/2, nameY+28);
-
-  // 최고 점수
-  if(hiScore > 0){
-    ctx.fillStyle = 'rgba(255,215,0,0.65)'; ctx.font = '14px ' + FONT_KR;
-    ctx.fillText('🏆 최고 점수: ' + hiScore, W/2, nameY+62);
-  }
-
-  drawBtn(W/2-95, nameY+90, 190, 50, '▶  게임 시작', RED);
-}
+/* ── 시작 화면 ──
+   (DOM 오버레이 #start-screen 이 시작 화면 UI를 그리므로 캔버스에는 BG만 남긴다.
+    drawBG() 는 loop() 안에서 이미 호출되므로 여기서는 no-op.) */
+function drawStart(){ /* DOM 오버레이가 처리 */ }
 
 /* ── 게임 업데이트 & 그리기 ── */
 function updateAndDraw(dt){
@@ -625,6 +1001,456 @@ function drawGameOver(){
   drawBtn(W/2-95, by+276, 190, 48, '🏠  처음으로', 'rgba(255,255,255,0.12)', '#fff');
 
 }
+
+/* ══════════════════════════════════════════════════════════════
+   DOM 시작 화면 / 도감 — 티니핑 시계(clock_twins/teenieping.html) 패턴 기반
+   ══════════════════════════════════════════════════════════════ */
+
+/* 히어로 상세 정보 — 도감 클릭/검색 매칭 시 오버레이에 표시
+   - image: avengers_game/이미지/ 폴더의 webp 경로
+   - blurb: 캐릭터 짧은 소개
+   - aliases: 본명/별명 — 코드네임 외에도 이걸로 검색 매칭 가능 (모두 공백은 정규화 시 제거됨) */
+const HERO_INFO = {
+  '가모라':       {
+    image: '이미지/가모라.webp',
+    blurb: '타노스의 양녀이자 우주 최강의 암살자. 가디언즈 오브 갤럭시의 핵심 멤버로, 한 자루의 검 "갓슬레이어"로 적을 베어낸다.',
+    aliases: ['가모라', '가모라 진-위필']
+  },
+  '네뷸라':       {
+    image: '이미지/네뷸라.webp',
+    blurb: '가모라의 자매. 사이보그 신체로 강화된 전사. 처음엔 적이었지만 결국 가디언즈의 일원이 된다.',
+    aliases: ['네뷸라']
+  },
+  '드랙스':       {
+    image: '이미지/드랙스.webp',
+    blurb: '복수에 불타는 전사 "드랙스 더 디스트로이어". 비유와 농담을 잘 못 알아듣는 직설적인 성격이 트레이드마크.',
+    aliases: ['드랙스 더 디스트로이어', '아서 더글라스']
+  },
+  '로켓':         {
+    image: '이미지/로켓.webp',
+    blurb: '유전 실험으로 만들어진 너구리 형태의 천재 엔지니어. 폭발물과 무기 제작의 달인이며 자신을 너구리라 부르면 분노한다.',
+    aliases: ['로켓 라쿤', '89P13']
+  },
+  '블랙위도우':   {
+    image: '이미지/블랙 위도우(나타샤 로마노프).webp',
+    blurb: '나타샤 로마노프. 전 KGB 스파이 출신의 어벤져스 창립 멤버. 격투·잠입·사격 모든 면에서 최정상급 요원이다.',
+    aliases: ['블랙 위도우', '나타샤 로마노프', '나타샤', '로마노프']
+  },
+  '스칼렛위치':   {
+    image: '이미지/스칼렛 위치(완다 막시모프).webp',
+    blurb: '완다 막시모프. 카오스 매직을 다루는 어벤져스 최강의 마법사 중 하나. 충분히 자라면 현실 자체를 왜곡할 수 있다.',
+    aliases: ['스칼렛 위치', '완다 막시모프', '완다', '막시모프']
+  },
+  '스타로드':     {
+    image: '이미지/스타로드(피터 퀼).webp',
+    blurb: '피터 퀼. 지구 출신의 우주 무법자이자 가디언즈 오브 갤럭시의 리더. 80년대 음악을 사랑하는 자칭 전설의 무법자.',
+    aliases: ['스타 로드', '피터 퀼', '피터', '퀼']
+  },
+  '아이언맨':     {
+    image: '이미지/아이언맨(토니 스타크).webp',
+    blurb: '토니 스타크. 천재 발명가이자 억만장자. 아이언맨 슈트를 만들어 어벤져스를 이끌었으며 "I am Iron Man" 한마디로 우주를 구했다.',
+    aliases: ['아이언 맨', '토니 스타크', '토니', '스타크']
+  },
+  '윈터솔저':     {
+    image: '이미지/윈터 솔져(버키 반즈).webp',
+    blurb: '버키 반즈. 캡틴 아메리카의 절친. 한때 세뇌된 암살자였지만 자신을 되찾고 비브라늄 의수를 휘두르는 영웅이 되었다.',
+    aliases: ['윈터 솔저', '윈터 솔져', '윈터솔져', '버키 반즈', '버키', '제임스 반즈', '반즈']
+  },
+  '캡틴아메리카': {
+    image: '이미지/캡틴 아메리카(스티브 로저스).webp',
+    blurb: '스티브 로저스. 슈퍼 솔저 혈청으로 강화된 영웅이자 어벤져스의 리더. 비브라늄 방패의 주인이며 가치를 굽히지 않는 미국 대장.',
+    aliases: ['캡틴 아메리카', '스티브 로저스', '스티브', '로저스', '캡틴']
+  },
+  '토르':         {
+    image: '이미지/토르.webp',
+    blurb: '아스가르드의 천둥의 신. 묠니르와 스톰브레이커를 휘두르는 우주 최강의 전사 중 하나로, 자격을 갖춘 자만이 그의 망치를 들 수 있다.',
+    aliases: ['토르 오딘슨', '오딘슨']
+  },
+  '팔콘':         {
+    image: '이미지/팔콘(샘 윌슨).webp',
+    blurb: '샘 윌슨. EXO-7 윙수트로 비행하는 공중전 전문가. 스티브 로저스의 뒤를 잇는 새로운 캡틴 아메리카가 된다.',
+    aliases: ['샘 윌슨', '샘', '윌슨']
+  }
+};
+
+/* 히어로 상세 오버레이 — solar.html dex-overlay 패턴
+   주의: 오버레이는 hero 선택을 변경하지 않는다 (사용자 명세: 선택은 검색을 통해서만). */
+function showHeroOverlay(idx){
+  if(idx < 0 || idx >= HERO_COUNT) return;
+  const h = HEROES[idx];
+  const info = HERO_INFO[h.name] || {};
+  const wrap = document.getElementById('hero-overlay');
+  const imgEl = document.getElementById('hero-overlay-img');
+  const cvEl = document.getElementById('hero-overlay-canvas');
+  const nameEl = document.getElementById('hero-overlay-name');
+  const blurbEl = document.getElementById('hero-overlay-blurb');
+  if(!wrap || !imgEl || !cvEl || !nameEl || !blurbEl) return;
+  if(info.image){
+    imgEl.src = info.image;
+    imgEl.alt = h.name;
+    imgEl.hidden = false;
+    cvEl.hidden = true;
+  } else {
+    /* 이미지 폴더에 없는 캐릭터(예: 가모라) — sprite 으로 크게 그려 fallback */
+    imgEl.hidden = true;
+    cvEl.hidden = false;
+    drawHeroOnCanvas(cvEl.getContext('2d'), cvEl, idx, 0);
+  }
+  nameEl.textContent = h.name;
+  blurbEl.textContent = info.blurb || '';
+  wrap.hidden = false;
+  wrap.style.display = 'flex';
+}
+
+function closeHeroOverlay(){
+  const wrap = document.getElementById('hero-overlay');
+  if(!wrap) return;
+  wrap.hidden = true;
+  wrap.style.display = 'none';
+}
+
+/* 화면 토글: 'start' | 'dex' | 'game' (game은 둘 다 hide)
+   inline style.display + hidden 속성을 둘 다 동기화해서
+   CSS display:flex 가 hidden 속성을 무력화하는 이슈를 회피 */
+function showScreen(name){
+  const ss = document.getElementById('start-screen');
+  const ds = document.getElementById('dex-screen');
+  if(ss){
+    const visible = (name === 'start');
+    ss.style.display = visible ? 'flex' : 'none';
+    if(visible) ss.removeAttribute('hidden'); else ss.setAttribute('hidden', '');
+  }
+  if(ds){
+    const visible = (name === 'dex');
+    ds.style.display = visible ? 'flex' : 'none';
+    if(visible) ds.removeAttribute('hidden'); else ds.setAttribute('hidden', '');
+  }
+}
+
+/* 검색 매칭
+   - 공백/탭/개행을 모두 제거한 뒤 정확 일치 비교 → 검색어와 데이터 양쪽 모두 정규화하므로
+     "토 니 스 타 크", "토니스타크", "토니 스타크" 모두 동일 키로 비교됨
+   - 코드네임(HEROES[i].name)뿐 아니라 HERO_INFO[name].aliases 의 본명/별명도 함께 매칭 */
+function normalizeHeroName(s){ return (s || '').replace(/\s+/g, ''); }
+function findHero(query){
+  const q = normalizeHeroName(query);
+  if(!q) return -1;
+  for(let i = 0; i < HERO_COUNT; i++){
+    const h = HEROES[i];
+    /* 1) 코드네임 매칭 */
+    if(normalizeHeroName(h.name) === q) return i;
+    /* 2) 본명/별명(aliases) 매칭 */
+    const info = HERO_INFO[h.name];
+    if(info && Array.isArray(info.aliases)){
+      for(const a of info.aliases){
+        if(normalizeHeroName(a) === q) return i;
+      }
+    }
+  }
+  return -1;
+}
+
+/* 검색 에러 표시 / 해제 — 티니핑 flashDexSearchError / clearDexSearchError */
+function flashSearchError(inpId, msgId, msg){
+  const inp = document.getElementById(inpId);
+  const msgEl = document.getElementById(msgId);
+  if(msgEl) msgEl.textContent = msg || '';
+  if(!inp) return;
+  inp.classList.add('error');
+  inp.classList.remove('shake-x');
+  void inp.offsetWidth;
+  inp.classList.add('shake-x');
+}
+function clearSearchError(inpId, msgId){
+  const inp = document.getElementById(inpId);
+  const msgEl = document.getElementById(msgId);
+  if(inp){ inp.classList.remove('error', 'shake-x'); }
+  if(msgEl) msgEl.textContent = '';
+}
+
+/* ── 히어로 프리뷰 + 도감 셀 공용 드로우 ──
+   항상 DIR_DOWN(앞을 보고 걷는 동작), frame 0/1/2 순환 */
+let walkFrame = 0;
+const previewCv = document.getElementById('hero-preview-canvas');
+const previewCx = previewCv ? previewCv.getContext('2d') : null;
+
+function drawHeroOnCanvas(cx, cv, idx, frame){
+  if(!cx || !cv) return;
+  cx.clearRect(0, 0, cv.width, cv.height);
+  const h = HEROES[idx];
+  const img = SP[h.key];
+  if(!img) return;
+  const cw = h.cw || 1, ch = h.ch || 1;
+  const srcW = CELL * cw, srcH = CELL * ch;
+  const sx = frame * srcW, sy = DIR_DOWN * srcH;
+  const pad = 10;
+  const maxW = cv.width - pad*2, maxH = cv.height - pad*2;
+  /* 모든 히어로의 표시 height 를 통일.
+     정사각형 히어로(1x1)는 셀의 ~70% 높이로 그리고,
+     가로형(팔콘, cw>=2)도 같은 height 를 우선하되 가로가 넘치면 가로 fit 으로 fallback.
+     → 이전엔 fit-to-cell 이라 팔콘만 절반 높이로 작아 보였던 문제 해결. */
+  const TARGET_H = maxH * 0.70;
+  let dh = TARGET_H;
+  let dw = dh * (srcW / srcH);
+  if(dw > maxW){ dw = maxW; dh = dw * (srcH / srcW); }
+  const dx = (cv.width - dw) / 2;
+  const dy = (cv.height - dh) / 2 + dh * 0.04; // 살짝 아래로 (그림자 영역 확보)
+  cx.imageSmoothingEnabled = false;
+  cx.drawImage(img, sx, sy, srcW, srcH, dx, dy, dw, dh);
+}
+
+function updatePreview(){
+  if(!previewCx || !previewCv) return;
+  drawHeroOnCanvas(previewCx, previewCv, heroIdx, walkFrame);
+  const nameEl = document.getElementById('hero-preview-name');
+  if(nameEl) nameEl.textContent = HEROES[heroIdx].name;
+}
+
+function updateHiScoreText(){
+  const el = document.getElementById('hiscore-text');
+  if(!el) return;
+  el.textContent = hiScore > 0 ? '🏆 최고 점수: ' + hiScore : '';
+}
+
+/* ── 히어로 도감 ── */
+const dexCellRefs = [];  // { idx, canvas, ctx, item }
+
+function buildHeroDex(){
+  const grid = document.getElementById('hero-dex-grid');
+  if(!grid) return;
+  if(grid.dataset.built === '1') return;
+  grid.innerHTML = '';
+  dexCellRefs.length = 0;
+  const cellPx = Math.max(96, Math.min(140, Math.round(window.innerWidth / 4)));
+  for(let i = 0; i < HERO_COUNT; i++){
+    const h = HEROES[i];
+    const item = document.createElement('div');
+    item.className = 'hero-dex-item';
+    item.dataset.name = h.name;
+    item.dataset.idx = String(i);
+    if(i === heroIdx) item.classList.add('selected');
+
+    const cv = document.createElement('canvas');
+    cv.width = cellPx;
+    cv.height = cellPx;
+    item.appendChild(cv);
+
+    const name = document.createElement('div');
+    name.className = 'hero-dex-name';
+    name.textContent = h.name;
+    item.appendChild(name);
+
+    item.addEventListener('click', function(){
+      /* 사용자 명세: "캐릭터 선택은 도감 모드에서 하지 말고 검색을 통해서만"
+         → 도감 클릭은 hero 선택을 바꾸지 않고 상세 오버레이만 표시 */
+      showHeroOverlay(i);
+    });
+    grid.appendChild(item);
+
+    dexCellRefs.push({ idx: i, canvas: cv, ctx: cv.getContext('2d'), item });
+  }
+  grid.dataset.built = '1';
+}
+
+function refreshDexSelection(){
+  document.querySelectorAll('#hero-dex-grid .hero-dex-item').forEach(function(el){
+    el.classList.toggle('selected', parseInt(el.dataset.idx, 10) === heroIdx);
+  });
+}
+
+function selectHero(i){
+  if(i < 0 || i >= HERO_COUNT) return;
+  heroIdx = i;
+  refreshDexSelection();
+  updatePreview();
+}
+
+/* 도감 검색: 일치 셀로 스크롤 + 플래시 + 상세 오버레이 자동 표시
+   (도감에서는 hero 선택을 변경하지 않음 — 선택은 시작 화면 검색을 통해서만) */
+function dexGotoHero(query){
+  const idx = findHero(query);
+  if(idx < 0){ flashSearchError('dex-search-input', 'dex-search-msg', '그런 히어로는 없어'); return; }
+  clearSearchError('dex-search-input', 'dex-search-msg');
+  const grid = document.getElementById('hero-dex-grid');
+  const item = document.querySelector('#hero-dex-grid .hero-dex-item[data-idx="' + idx + '"]');
+  if(!grid || !item){ showHeroOverlay(idx); return; }
+  requestAnimationFrame(function(){
+    requestAnimationFrame(function(){
+      const ir = item.getBoundingClientRect();
+      const gr = grid.getBoundingClientRect();
+      let target = grid.scrollTop + (ir.top - gr.top) - grid.clientHeight/2 + ir.height/2;
+      target = Math.max(0, Math.min(target, grid.scrollHeight - grid.clientHeight));
+      if(typeof grid.scrollTo === 'function') grid.scrollTo({ top: target, behavior: 'smooth' });
+      else grid.scrollTop = target;
+      item.classList.remove('hero-found-flash');
+      void item.offsetWidth;
+      item.classList.add('hero-found-flash');
+      /* 스크롤 + 플래시 후 약간의 지연을 두고 상세 오버레이 띄움 (티니핑 dexPreciseJump 와 동일 흐름) */
+      setTimeout(function(){ showHeroOverlay(idx); }, 600);
+    });
+  });
+}
+
+/* 시작 화면 검색: 매칭되면 즉시 선택 (사용자 명세: "찾자마자 하단 히어로가 바뀌고") */
+function startGotoHero(query){
+  const idx = findHero(query);
+  if(idx < 0){ flashSearchError('hero-search-input', 'hero-search-msg', '그런 히어로는 없어'); return; }
+  clearSearchError('hero-search-input', 'hero-search-msg');
+  selectHero(idx);
+}
+
+/* ── 워킹 애니메이션: 프리뷰 1개 + 도감 셀 N개를 같은 frame 으로 갱신 ── */
+let walkTickAccum = 0;
+let lastWalkTs = 0;
+function walkLoop(ts){
+  const dt = Math.min((ts - lastWalkTs) / 1000, 0.05); lastWalkTs = ts;
+  walkTickAccum += dt;
+  if(walkTickAccum >= 0.13){ walkTickAccum = 0; walkFrame = (walkFrame + 1) % 3; }
+  const ss = document.getElementById('start-screen');
+  if(ss && ss.style.display !== 'none' && !ss.hasAttribute('hidden')){
+    drawHeroOnCanvas(previewCx, previewCv, heroIdx, walkFrame);
+  }
+  const ds = document.getElementById('dex-screen');
+  if(ds && ds.style.display !== 'none' && !ds.hasAttribute('hidden')){
+    for(const ref of dexCellRefs){
+      drawHeroOnCanvas(ref.ctx, ref.canvas, ref.idx, walkFrame);
+    }
+  }
+  requestAnimationFrame(walkLoop);
+}
+requestAnimationFrame(function(ts){ lastWalkTs = ts; requestAnimationFrame(walkLoop); });
+
+/* ── OSK 와이어링 (티니핑 dexOsk 와 동일 패턴) ──
+   - ⌨️ 토글: OSK 표시/숨김
+   - OSK 표시 중에는 inputmode="none" 으로 OS 가상키보드 억제
+   - 확인(OK) 또는 닫기(✕) 시 OSK 숨김 + inputmode 복원 */
+function wireOSK(inputId, oskRootId, oskBtnId, onCommitCb, onChangeCb){
+  const input = document.getElementById(inputId);
+  const oskRoot = document.getElementById(oskRootId);
+  const oskBtn = document.getElementById(oskBtnId);
+  if(!window.OnScreenKeyboard || !input || !oskRoot || !oskBtn) return;
+  let oskInstance = null;
+  oskBtn.addEventListener('click', function(){
+    if(!oskInstance){
+      oskInstance = window.OnScreenKeyboard.attach({
+        input: input,
+        oskRoot: oskRoot,
+        onCommit: function(val){
+          oskRoot.hidden = true;
+          oskBtn.classList.remove('active');
+          input.removeAttribute('inputmode');
+          onCommitCb(val);
+        },
+        onChange: function(){ if(onChangeCb) onChangeCb(); },
+        onDismiss: function(){
+          oskRoot.hidden = true;
+          oskBtn.classList.remove('active');
+          input.removeAttribute('inputmode');
+        }
+      });
+    }
+    const willShow = oskRoot.hidden;
+    oskRoot.hidden = !willShow;
+    oskBtn.classList.toggle('active', willShow);
+    if(willShow){
+      input.setAttribute('inputmode', 'none');
+      input.focus();
+    } else {
+      input.removeAttribute('inputmode');
+    }
+  });
+}
+
+/* ── 이벤트 와이어링 + 초기 표시 ── */
+window.addEventListener('load', function(){
+  /* 시작 화면 검색 */
+  const sInp = document.getElementById('hero-search-input');
+  const sClr = document.getElementById('hero-search-clear');
+  if(sInp){
+    sInp.addEventListener('input', function(){ clearSearchError('hero-search-input', 'hero-search-msg'); });
+    sInp.addEventListener('keydown', function(e){
+      if(e.key === 'Enter' || e.keyCode === 13){ e.preventDefault(); startGotoHero(sInp.value); }
+    });
+  }
+  if(sClr){
+    sClr.addEventListener('click', function(){
+      if(!sInp) return;
+      sInp.value = '';
+      clearSearchError('hero-search-input', 'hero-search-msg');
+      sInp.focus();
+    });
+  }
+  wireOSK('hero-search-input', 'hero-osk', 'hero-osk-toggle',
+    function(val){ startGotoHero(val); },
+    function(){ clearSearchError('hero-search-input', 'hero-search-msg'); }
+  );
+
+  /* 도감 검색 */
+  const dInp = document.getElementById('dex-search-input');
+  const dClr = document.getElementById('dex-search-clear');
+  if(dInp){
+    dInp.addEventListener('input', function(){ clearSearchError('dex-search-input', 'dex-search-msg'); });
+    dInp.addEventListener('keydown', function(e){
+      if(e.key === 'Enter' || e.keyCode === 13){ e.preventDefault(); dexGotoHero(dInp.value); }
+    });
+  }
+  if(dClr){
+    dClr.addEventListener('click', function(){
+      if(!dInp) return;
+      dInp.value = '';
+      clearSearchError('dex-search-input', 'dex-search-msg');
+      dInp.focus();
+    });
+  }
+  wireOSK('dex-search-input', 'dex-osk', 'dex-osk-toggle',
+    function(val){ dexGotoHero(val); },
+    function(){ clearSearchError('dex-search-input', 'dex-search-msg'); }
+  );
+
+  /* 시작 / 도감 / 뒤로 버튼 */
+  const btnStart = document.getElementById('btn-start-game');
+  if(btnStart) btnStart.addEventListener('click', function(){ initGame(); });
+  const btnDex = document.getElementById('btn-open-dex');
+  if(btnDex) btnDex.addEventListener('click', function(){
+    buildHeroDex();
+    refreshDexSelection();
+    state = 'dex';
+    showScreen('dex');
+  });
+  const btnDexBack = document.getElementById('dex-back-btn');
+  if(btnDexBack) btnDexBack.addEventListener('click', function(){
+    state = 'start';
+    showScreen('start');
+    updatePreview();
+  });
+
+  /* 히어로 상세 오버레이 — 어디든 클릭 시 닫힘 (solar.html 패턴) */
+  const heroOv = document.getElementById('hero-overlay');
+  if(heroOv) heroOv.addEventListener('click', closeHeroOverlay);
+
+  /* 초기 화면 */
+  updatePreview();
+  updateHiScoreText();
+  showScreen('start');
+});
+
+/* 윈도우 리사이즈 시 도감 셀 크기 재계산 */
+let _dexResizeTimer = null;
+window.addEventListener('resize', function(){
+  clearTimeout(_dexResizeTimer);
+  _dexResizeTimer = setTimeout(function(){
+    const grid = document.getElementById('hero-dex-grid');
+    if(grid && grid.dataset.built === '1'){
+      grid.dataset.built = '';
+      grid.innerHTML = '';
+      dexCellRefs.length = 0;
+      if(state === 'dex'){
+        buildHeroDex();
+        refreshDexSelection();
+      }
+    }
+  }, 120);
+});
 
 /* ── 메인 루프 ── */
 let last = 0;
