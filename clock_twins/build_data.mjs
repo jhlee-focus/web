@@ -72,7 +72,7 @@ writeFileSync(
 const POK_DIR = 'img_pokemon';
 const pokAll = [];
 for (const genDir of readdirSync(POK_DIR)) {
-  const genMatch = genDir.match(/^(\d+)세대$/);
+  const genMatch = genDir.match(/^gen_(\d+)$/);
   if (!genMatch) continue;
   const gen = parseInt(genMatch[1], 10);
   for (const f of readdirSync(path.join(POK_DIR, genDir))) {

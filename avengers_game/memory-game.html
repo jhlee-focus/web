@@ -6,7 +6,7 @@
   <title>⚡ 어벤져스 메모리 게임</title>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@700;900&display=swap" rel="stylesheet" />
   <!-- 이미지 목록 (update-images.bat 실행 시 자동 갱신) -->
-  <script src="이미지/images.js" onerror="console.warn('images.js 없음, 폴더 자동 인식 시도')"></script>
+  <script src="images/images.js" onerror="console.warn('images.js 없음, 폴더 자동 인식 시도')"></script>
   <style>
     *, *::before, *::after {
       margin: 0; padding: 0; box-sizing: border-box;
@@ -402,7 +402,7 @@ function filenameToChar(filename) {
 async function loadCharList() {
   // 1순위: 폴더 디렉토리 리스팅 시도
   try {
-    const res  = await fetch('이미지/');
+    const res  = await fetch('images/');
     if (res.ok) {
       const html = await res.text();
       const doc  = new DOMParser().parseFromString(html, 'text/html');
@@ -426,7 +426,7 @@ async function loadCharList() {
   return [];
 }
 
-const IMAGE_BASE = '이미지/';
+const IMAGE_BASE = 'images/';
 
 const DIFF_CONFIG = {
   easy:   { pairs:  6, cols: 4, label: '쉬움' },   // 4열 × 3행  r≈0.90
