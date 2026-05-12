@@ -131,6 +131,7 @@
   })();
 
   // ── Layouts ────────────────────────────────────────────────────────────────
+  // 모든 모드는 동일한 4행 구조: row1=10, row2=9, row3=SHIFT+7+BACK=9, row4=5(MODE/SPACE/NEXT/CLEAR/OK)
   var OSK_LAYOUTS = {
     ko: [
       ['ㅂ','ㅈ','ㄷ','ㄱ','ㅅ','ㅛ','ㅕ','ㅑ','ㅐ','ㅔ'],
@@ -147,10 +148,30 @@
     en: [
       ['q','w','e','r','t','y','u','i','o','p'],
       ['a','s','d','f','g','h','j','k','l'],
-      ['z','x','c','v','b','n','m','BACK'],
+      ['SHIFT','z','x','c','v','b','n','m','BACK'],
+      ['MODE','SPACE','NEXT','CLEAR','OK']
+    ],
+    en_shift: [
+      ['Q','W','E','R','T','Y','U','I','O','P'],
+      ['A','S','D','F','G','H','J','K','L'],
+      ['SHIFT','Z','X','C','V','B','N','M','BACK'],
+      ['MODE','SPACE','NEXT','CLEAR','OK']
+    ],
+    sym: [
+      ['1','2','3','4','5','6','7','8','9','0'],
+      ['!','@','#','$','%','&','*','(',')'],
+      ['SHIFT','-','+','=','/','.',',','?','BACK'],
+      ['MODE','SPACE','NEXT','CLEAR','OK']
+    ],
+    sym_shift: [
+      ['~','`','^','_','|','\\',':',';','<','>'],
+      ['{','}','[',']','"','\'','€','£','¥'],
+      ['SHIFT','«','»','§','°','♥','★','☆','BACK'],
       ['MODE','SPACE','NEXT','CLEAR','OK']
     ]
   };
+  var OSK_MODE_CYCLE = ['ko', 'en', 'sym'];
+  var OSK_MODE_LABEL = { ko: '한글', en: 'ABC', sym: '기호' };
 
   function attach(opts) {
     var input     = opts.input;
@@ -175,8 +196,12 @@
         dismissBtn.addEventListener('click', function(e) { e.preventDefault(); onDismiss(); });
         oskRoot.appendChild(dismissBtn);
       }
-      var layoutKey = oskMode === 'ko' && oskShift ? 'ko_shift' : oskMode;
+      // 한·영·기호 모두 *_shift 레이아웃이 정의돼 있으면 shift 적용
+      var layoutKey = (oskShift && OSK_LAYOUTS[oskMode + '_shift']) ? oskMode + '_shift' : oskMode;
       var layout = OSK_LAYOUTS[layoutKey];
+      // MODE 버튼은 다음 모드의 라벨을 표시 (사용자에게 어디로 갈지 보여줌)
+      var nextModeIdx = (OSK_MODE_CYCLE.indexOf(oskMode) + 1) % OSK_MODE_CYCLE.length;
+      var nextModeLabel = OSK_MODE_LABEL[OSK_MODE_CYCLE[nextModeIdx]];
       layout.forEach(function(row) {
         var rowEl = document.createElement('div');
         rowEl.className = 'osk-row';
@@ -187,7 +212,7 @@
           if (k === 'SPACE')      { btn.classList.add('wide');           btn.textContent = '스페이스'; }
           else if (k === 'BACK')  { btn.classList.add('wide');           btn.textContent = '⌫'; }
           else if (k === 'OK')    { btn.classList.add('wide','action');  btn.textContent = '확인'; }
-          else if (k === 'MODE')  { btn.classList.add('wide');           btn.textContent = oskMode === 'ko' ? '한/영' : 'KO/EN'; }
+          else if (k === 'MODE')  { btn.classList.add('wide');           btn.textContent = nextModeLabel; }
           else if (k === 'CLEAR') { btn.classList.add('wide');           btn.textContent = '지우기'; }
           else if (k === 'SHIFT') { btn.classList.add('shift');          btn.textContent = oskShift ? '⇧ ON' : '⇧'; }
           else if (k === 'NEXT')  { btn.classList.add('wide');           btn.textContent = '다음 ▶'; }
@@ -209,7 +234,15 @@
       if (k === 'BACK')  { HangulIME.backspace(input); onChange(input.value); return; }
       if (k === 'CLEAR') { HangulIME.reset(); input.value = ''; onChange(input.value); return; }
       if (k === 'OK')    { HangulIME.commit(input); onCommit(input.value); return; }
-      if (k === 'MODE')  { oskMode = oskMode === 'ko' ? 'en' : 'ko'; oskShift = false; HangulIME.commit(input); buildOSK(); onChange(input.value); return; }
+      if (k === 'MODE')  {
+        var ci = OSK_MODE_CYCLE.indexOf(oskMode);
+        oskMode = OSK_MODE_CYCLE[(ci + 1) % OSK_MODE_CYCLE.length];
+        oskShift = false;
+        HangulIME.commit(input);
+        buildOSK();
+        onChange(input.value);
+        return;
+      }
       if (k === 'SHIFT') { oskShift = !oskShift; buildOSK(); return; }
       if (k === 'NEXT')  { HangulIME.commit(input); onChange(input.value); return; }
 
