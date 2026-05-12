@@ -270,11 +270,17 @@
     flex-direction: column;
     align-items: stretch;
     gap: 10px;
+    /* 고정 높이 — OSK 토글 시 wrap 크기가 변하지 않아 검색바 위치가 흔들리지 않음.
+       내부 dex-container는 flex:1로 잔여 공간을 채워 OSK 등장 시 자동 축소. */
+    height: calc(100dvh - 130px);
+    min-height: 0;
   }
   .dex-section { margin-bottom: 22px; }
   .dex-container {
     width: 100%;
-    max-height: calc(100dvh - 200px);
+    /* dex-wrap 안에서 잔여 세로 공간을 모두 차지 — OSK가 떠도 검색바는 그대로 두고 그리드만 축소 */
+    flex: 1 1 0;
+    min-height: 0;
     overflow-y: auto;
     overflow-x: hidden;
     padding: 8px;
@@ -1178,7 +1184,10 @@ function layout() {
     var markerDist = R * 0.78;  // 기본 모드 위치 (orbit 모드에선 즉시 덮어씀)
     // 천체별 마커 크기 (목성·토성=0.10 유지, 달<지구, 나머지는 더 작게)
     var sizeBase = BODY_SIZES[char.name] || 0.06;
-    var markerSize = S * sizeBase * (orbitOn ? 1 : basicSizeScale);
+    var modeScale = orbitOn ? 1 : basicSizeScale;
+    // 핼리혜성은 기본 모드에서 70%로 축소 (orbit 모드 크기는 유지)
+    if (!orbitOn && char.name === '핼리혜성') modeScale *= 0.7;
+    var markerSize = S * sizeBase * modeScale;
 
     var marker = document.createElement('div');
     marker.className = 'hour-marker';
