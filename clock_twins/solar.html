@@ -875,11 +875,18 @@ var ORBIT_RATIOS = {
   '목성': 0.54, '토성': 0.62, '천왕성': 0.70, '해왕성': 0.78,
   '명왕성': 0.86
 };
-// 공전 주기(초) — 안쪽일수록 빠르게, 화면에서 천천히 도는 정도로 압축.
+// 공전 주기(초). 내행성은 절반 이하 속도(주기 ≈ 2.5×), 외행성/왜소행성은 80% 속도(주기 1.25×).
 var ORBIT_PERIODS = {
-  '수성': 6, '금성': 9, '지구': 13, '화성': 19,
-  '목성': 32, '토성': 50, '천왕성': 70, '해왕성': 95,
-  '명왕성': 130
+  '수성': 15, '금성': 23, '지구': 33, '화성': 48,
+  '목성': 40, '토성': 63, '천왕성': 88, '해왕성': 119,
+  '명왕성': 163
+};
+// 천체별 마커 지름 (S 비율). 목성·토성은 기존 0.10 유지, 나머지는 더 작게.
+// 실제 비율은 너무 극단적이라 시인성 확보 수준으로 절충.
+var BODY_SIZES = {
+  '수성': 0.045, '금성': 0.060, '지구': 0.060, '화성': 0.050,
+  '목성': 0.100, '토성': 0.100, '천왕성': 0.075, '해왕성': 0.075,
+  '명왕성': 0.040, '달': 0.040, '핼리혜성': 0.045, '보이저1호': 0.050
 };
 var orbitState = null;     // 활성 시 객체, 비활성 시 null (resize 시 보존)
 var orbitAnimId = null;
@@ -896,28 +903,28 @@ function initOrbitState() {
       omega: 2 * Math.PI / ORBIT_PERIODS[n]
     };
   }
-  // 달: 지구 위성, 빠르게 공전
+  // 달: 지구 위성 (80% 속도 적용 → 1.8 × 1.25 ≈ 2.3초/회)
   state['달'] = {
     type: 'satellite',
     parent: '지구',
-    ratio: 0.055,                    // 지구로부터의 거리 (R 대비)
+    ratio: 0.045,                    // 지구로부터의 거리 (마커가 작아져 살짝 더 가깝게)
     angle: Math.random() * Math.PI * 2,
-    omega: 2 * Math.PI / 1.8         // 1.8초/회
+    omega: 2 * Math.PI / 2.3
   };
-  // 핼리혜성: 타원 궤도 (태양은 한 초점), 살짝 기울임
+  // 핼리혜성: 타원 궤도 (80% 속도 → 55 × 1.25 = 69초 주기)
   state['핼리혜성'] = {
     type: 'ellipse',
-    aRatio: 0.50, bRatio: 0.34,      // a+c ≈ 0.87R (apoapsis), a-c ≈ 0.13R (periapsis)
-    tilt: Math.PI / 5,                // 36° 기울기
+    aRatio: 0.50, bRatio: 0.34,
+    tilt: Math.PI / 5,
     angle: Math.random() * Math.PI * 2,
-    omega: 2 * Math.PI / 55           // 55초 주기
+    omega: 2 * Math.PI / 69
   };
-  // 보이저 1호: 지구 t=0 위치(3시 방향)에서 +x 방향으로 천천히
+  // 보이저 1호: 지구 t=0 위치(3시 방향)에서 +x 방향으로 천천히 (80% 속도)
   state['보이저1호'] = {
     type: 'voyager',
     xRatio: ORBIT_RATIOS['지구'],
     yRatio: 0,
-    vxRatio: 0.020,                   // 1R 거리 ~50초
+    vxRatio: 0.016,                   // 0.020 × 0.8
     vyRatio: 0
   };
   return state;
@@ -1086,15 +1093,19 @@ function layout() {
 
   // ── 기존 마커·숫자 제거 ──
   document.querySelectorAll('.hour-marker, .hour-number').forEach(function (el) { el.remove(); });
-  var markerSize = S * (orbitOn ? 0.10 : 0.13);
   var numFontSize = S * 0.038;
   var nameFontSize = S * 0.022;
+  // 기본 모드는 크기 차이를 살짝 완화해서 잘 보이도록 30% 확대 적용
+  var basicSizeScale = 1.3;
 
   // 마커 12개 — 두 모드 공통 생성. orbit 모드에선 tickOrbit이 매 프레임 left/top 덮어씀.
   characters.forEach(function (char) {
     var hour = char.hour;
     var angle = (hour * 30 - 90) * (Math.PI / 180);
     var markerDist = R * 0.78;  // 기본 모드 위치 (orbit 모드에선 즉시 덮어씀)
+    // 천체별 마커 크기 (목성·토성=0.10 유지, 달<지구, 나머지는 더 작게)
+    var sizeBase = BODY_SIZES[char.name] || 0.06;
+    var markerSize = S * sizeBase * (orbitOn ? 1 : basicSizeScale);
 
     var marker = document.createElement('div');
     marker.className = 'hour-marker';
