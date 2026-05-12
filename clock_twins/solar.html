@@ -895,20 +895,21 @@ var orbitLastTime = null;
 
 function initOrbitState() {
   var state = {};
+  // 지구는 우상향 45° 방향(angle = -π/4)에서 출발, 나머지는 랜덤
+  var EARTH_INIT_ANGLE = -Math.PI / 4;
   for (var n in ORBIT_RATIOS) {
     state[n] = {
       type: 'circle',
       ratio: ORBIT_RATIOS[n],
-      // 지구는 항상 3시 방향(angle=0)에서 출발, 나머지는 랜덤
-      angle: (n === '지구') ? 0 : Math.random() * Math.PI * 2,
+      angle: (n === '지구') ? EARTH_INIT_ANGLE : Math.random() * Math.PI * 2,
       omega: 2 * Math.PI / ORBIT_PERIODS[n]
     };
   }
-  // 달: 지구 위성 (80% 속도 적용 → 1.8 × 1.25 ≈ 2.3초/회)
+  // 달: 지구 위성. 지구 이미지와 겹치지 않을 정도로 궤도 반경 키움.
   state['달'] = {
     type: 'satellite',
     parent: '지구',
-    ratio: 0.045,                    // 지구로부터의 거리 (마커가 작아져 살짝 더 가깝게)
+    ratio: 0.13,                     // 지구로부터의 거리 (이미지 가장자리 충분히 떨어짐)
     angle: Math.random() * Math.PI * 2,
     omega: 2 * Math.PI / 2.3
   };
@@ -920,13 +921,16 @@ function initOrbitState() {
     angle: Math.random() * Math.PI * 2,
     omega: 2 * Math.PI / 69
   };
-  // 보이저 1호: 지구 t=0 위치(3시 방향)에서 +x 방향으로 천천히 (80% 속도)
+  // 보이저 1호: 지구 시작 위치(우상향 45°)에서 같은 방향으로 비행.
+  // vx=0.025, vy=-0.025 → 속도 크기 ≈ 0.035R/s. 33초(지구 1바퀴)에 각 축으로 0.825R 이동,
+  // 시작 (0.269, -0.269)에서 종료 (1.094, -1.094) → 시계 테두리 넘어 '태양계 시계' 제목 영역 도달.
+  var ev = ORBIT_RATIOS['지구'];
   state['보이저1호'] = {
     type: 'voyager',
-    xRatio: ORBIT_RATIOS['지구'],
-    yRatio: 0,
-    vxRatio: 0.016,                   // 0.020 × 0.8
-    vyRatio: 0
+    xRatio: ev * Math.cos(EARTH_INIT_ANGLE),
+    yRatio: ev * Math.sin(EARTH_INIT_ANGLE),
+    vxRatio: 0.025,
+    vyRatio: -0.025
   };
   return state;
 }
@@ -990,7 +994,8 @@ function tickOrbit(now) {
   var dt = orbitLastTime ? Math.min(0.1, (now - orbitLastTime) / 1000) : 0;
   orbitLastTime = now;
 
-  // 보이저 리스폰 동기화: 지구가 3시 방향(angle = 2π·k 통과)을 지날 때마다 재출발
+  // 보이저 리스폰 동기화: 지구가 시작 위치(우상향 45°)에 돌아올 때마다 재출발.
+  // 지구 angle은 단조 증가하므로 floor(angle / 2π) 증가 시점이 한 바퀴 완료.
   var earthLapBefore = Math.floor(orbitState['지구'].angle / (2 * Math.PI));
 
   for (var n in orbitState) {
@@ -1005,8 +1010,10 @@ function tickOrbit(now) {
 
   var earthLapAfter = Math.floor(orbitState['지구'].angle / (2 * Math.PI));
   if (earthLapAfter > earthLapBefore) {
-    orbitState['보이저1호'].xRatio = ORBIT_RATIOS['지구'];  // = 지구 3시 위치
-    orbitState['보이저1호'].yRatio = 0;
+    // 지구의 현재 위치(45° 직후)에서 보이저 재출발
+    var e = orbitState['지구'];
+    orbitState['보이저1호'].xRatio = e.ratio * Math.cos(e.angle);
+    orbitState['보이저1호'].yRatio = e.ratio * Math.sin(e.angle);
   }
 
   applyOrbitFrame();
