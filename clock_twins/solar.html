@@ -866,6 +866,130 @@ var clockFace = document.getElementById('clockFace');
 var titleEl = document.getElementById('title');
 var digitalEl = document.getElementById('digitalTime');
 
+// ── 궤도 모드 애니메이션 ──
+// 9개 천체는 태양 중심 동심원 (수성-명왕성).
+// 달은 지구의 위성, 핼리혜성은 타원, 보이저는 지구에서 출발해 +x 방향 직선.
+// 모든 좌표는 R 비율 기반 → resize에도 안정.
+var ORBIT_RATIOS = {
+  '수성': 0.22, '금성': 0.30, '지구': 0.38, '화성': 0.46,
+  '목성': 0.54, '토성': 0.62, '천왕성': 0.70, '해왕성': 0.78,
+  '명왕성': 0.86
+};
+// 공전 주기(초) — 안쪽일수록 빠르게, 화면에서 천천히 도는 정도로 압축.
+var ORBIT_PERIODS = {
+  '수성': 6, '금성': 9, '지구': 13, '화성': 19,
+  '목성': 32, '토성': 50, '천왕성': 70, '해왕성': 95,
+  '명왕성': 130
+};
+var orbitState = null;     // 활성 시 객체, 비활성 시 null (resize 시 보존)
+var orbitAnimId = null;
+var orbitLastTime = null;
+
+function initOrbitState() {
+  var state = {};
+  for (var n in ORBIT_RATIOS) {
+    state[n] = {
+      type: 'circle',
+      ratio: ORBIT_RATIOS[n],
+      // 지구는 항상 3시 방향(angle=0)에서 출발, 나머지는 랜덤
+      angle: (n === '지구') ? 0 : Math.random() * Math.PI * 2,
+      omega: 2 * Math.PI / ORBIT_PERIODS[n]
+    };
+  }
+  // 달: 지구 위성, 빠르게 공전
+  state['달'] = {
+    type: 'satellite',
+    parent: '지구',
+    ratio: 0.055,                    // 지구로부터의 거리 (R 대비)
+    angle: Math.random() * Math.PI * 2,
+    omega: 2 * Math.PI / 1.8         // 1.8초/회
+  };
+  // 핼리혜성: 타원 궤도 (태양은 한 초점), 살짝 기울임
+  state['핼리혜성'] = {
+    type: 'ellipse',
+    aRatio: 0.50, bRatio: 0.34,      // a+c ≈ 0.87R (apoapsis), a-c ≈ 0.13R (periapsis)
+    tilt: Math.PI / 5,                // 36° 기울기
+    angle: Math.random() * Math.PI * 2,
+    omega: 2 * Math.PI / 55           // 55초 주기
+  };
+  // 보이저 1호: 지구 t=0 위치(3시 방향)에서 +x 방향으로 천천히
+  state['보이저1호'] = {
+    type: 'voyager',
+    xRatio: ORBIT_RATIOS['지구'],
+    yRatio: 0,
+    vxRatio: 0.020,                   // 1R 거리 ~50초
+    vyRatio: 0
+  };
+  return state;
+}
+
+function applyOrbitFrame() {
+  if (!orbitState) return;
+  var R = clockFace.getBoundingClientRect().width / 2;
+  if (R <= 0) return;
+
+  var pos = {};
+  // 1차 패스: 부모 의존 없는 천체 위치
+  for (var n in orbitState) {
+    var s = orbitState[n];
+    if (s.type === 'circle') {
+      pos[n] = { dx: s.ratio * R * Math.cos(s.angle), dy: s.ratio * R * Math.sin(s.angle) };
+    } else if (s.type === 'ellipse') {
+      var a = s.aRatio * R, b = s.bRatio * R;
+      var c = Math.sqrt(Math.max(0, a * a - b * b));
+      // 태양이 한 초점(원점에서 +c, 0). 타원 중심은 (-c, 0). 점: (a cos θ − c, b sin θ) 후 tilt 회전.
+      var lx = a * Math.cos(s.angle) - c;
+      var ly = b * Math.sin(s.angle);
+      var ct = Math.cos(s.tilt), st = Math.sin(s.tilt);
+      pos[n] = { dx: lx * ct - ly * st, dy: lx * st + ly * ct };
+    } else if (s.type === 'voyager') {
+      // 화면 밖 나가면 지구 현재 위치에서 재출발
+      if (Math.hypot(s.xRatio, s.yRatio) > 0.95) {
+        var e = orbitState['지구'];
+        s.xRatio = e.ratio * Math.cos(e.angle);
+        s.yRatio = e.ratio * Math.sin(e.angle);
+      }
+      pos[n] = { dx: s.xRatio * R, dy: s.yRatio * R };
+    }
+  }
+  // 2차 패스: 위성 (부모 위치 필요)
+  for (var n in orbitState) {
+    var s = orbitState[n];
+    if (s.type === 'satellite') {
+      var p = pos[s.parent];
+      pos[n] = { dx: p.dx + s.ratio * R * Math.cos(s.angle), dy: p.dy + s.ratio * R * Math.sin(s.angle) };
+    }
+  }
+  // DOM 반영
+  for (var n in pos) {
+    var marker = clockFace.querySelector('.hour-marker[data-name="' + cssEscape(n) + '"]');
+    if (!marker) continue;
+    marker.style.left = (R + pos[n].dx) + 'px';
+    marker.style.top = (R + pos[n].dy) + 'px';
+  }
+}
+
+function tickOrbit(now) {
+  if (currentMode !== 'orbit' || !orbitState) {
+    orbitLastTime = null;
+    orbitAnimId = null;
+    return;
+  }
+  var dt = orbitLastTime ? Math.min(0.1, (now - orbitLastTime) / 1000) : 0;
+  orbitLastTime = now;
+  for (var n in orbitState) {
+    var s = orbitState[n];
+    if (s.type === 'voyager') {
+      s.xRatio += s.vxRatio * dt;
+      s.yRatio += s.vyRatio * dt;
+    } else {
+      s.angle += s.omega * dt;
+    }
+  }
+  applyOrbitFrame();
+  orbitAnimId = requestAnimationFrame(tickOrbit);
+}
+
 // ── 비례 스케일링 layout ──
 function layout() {
   var vw = window.innerWidth;
@@ -941,42 +1065,41 @@ function layout() {
     clockFace.appendChild(tick);
   }
 
-  // ── 모드별 위치 토글 ──
+  // ── 모드 토글 ──
   var orbitOn = (currentMode === 'orbit');
   clockFace.classList.toggle('orbit-on', orbitOn);
 
-  // ── 궤도 링 ──
+  // ── 궤도 링 (orbit 모드에서만, 9개 태양 동심원: 수성~명왕성) ──
   var orbitWrap = document.getElementById('orbitRings');
   orbitWrap.innerHTML = '';
-  // 1시(수성)~12시(보이저)에 해당하는 12개 궤도 반지름 비율
-  // 가장 안쪽(수성)은 태양과 충분히 떨어뜨리고, 가장 바깥(보이저)은 시 숫자(0.96) 안쪽에 충분한 간격으로 배치
-  var SPIRAL_RATIOS = [0.34, 0.39, 0.43, 0.48, 0.52, 0.57, 0.61, 0.66, 0.70, 0.74, 0.79, 0.83];
   if (orbitOn) {
-    SPIRAL_RATIOS.forEach(function (r) {
+    Object.keys(ORBIT_RATIOS).forEach(function (name) {
+      var r = ORBIT_RATIOS[name];
       var ring = document.createElement('div');
       ring.className = 'orbit-ring';
-      var d = R * r * 2; // 지름 = 2 × R × ratio
+      var d = R * r * 2;
       ring.style.width = d + 'px';
       ring.style.height = d + 'px';
       orbitWrap.appendChild(ring);
     });
   }
 
-  // ── 마커 + 숫자 ──
+  // ── 기존 마커·숫자 제거 ──
   document.querySelectorAll('.hour-marker, .hour-number').forEach(function (el) { el.remove(); });
-  var markerSize = S * (orbitOn ? 0.10 : 0.13); // 나선 모드는 안쪽 행성이 작아지지 않도록 살짝 축소
+  var markerSize = S * (orbitOn ? 0.10 : 0.13);
   var numFontSize = S * 0.038;
   var nameFontSize = S * 0.022;
 
+  // 마커 12개 — 두 모드 공통 생성. orbit 모드에선 tickOrbit이 매 프레임 left/top 덮어씀.
   characters.forEach(function (char) {
     var hour = char.hour;
     var angle = (hour * 30 - 90) * (Math.PI / 180);
-    // 모드별 거리: 기본은 동일 반지름, 궤도는 시순 인덱스에 따른 나선
-    var markerDist = orbitOn ? (R * SPIRAL_RATIOS[hour - 1]) : (R * 0.78);
+    var markerDist = R * 0.78;  // 기본 모드 위치 (orbit 모드에선 즉시 덮어씀)
 
     var marker = document.createElement('div');
     marker.className = 'hour-marker';
     marker.dataset.hour = hour;
+    marker.dataset.name = char.name;  // orbit 위치 갱신용 룩업 키
     marker.style.width = markerSize + 'px';
     marker.style.height = markerSize + 'px';
     marker.style.left = (R + markerDist * Math.cos(angle)) + 'px';
@@ -1006,17 +1129,37 @@ function layout() {
     })(char.name);
 
     clockFace.appendChild(marker);
+  });
 
-    // 숫자: 기본은 마커 안쪽, 궤도는 가장 바깥에 모두 배치
-    var numberDist = orbitOn ? (R * 0.96) : (R * 0.58);
+  // 시 숫자 12개 — 두 모드 모두 시계 자리에 (반지름만 다름)
+  var numberDist = orbitOn ? (R * 0.96) : (R * 0.58);
+  for (var h = 1; h <= 12; h++) {
+    var ang = (h * 30 - 90) * (Math.PI / 180);
     var numEl = document.createElement('div');
     numEl.className = 'hour-number';
     numEl.style.fontSize = numFontSize + 'px';
-    numEl.style.left = (R + numberDist * Math.cos(angle)) + 'px';
-    numEl.style.top = (R + numberDist * Math.sin(angle)) + 'px';
-    numEl.textContent = hour;
+    numEl.style.left = (R + numberDist * Math.cos(ang)) + 'px';
+    numEl.style.top = (R + numberDist * Math.sin(ang)) + 'px';
+    numEl.textContent = h;
     clockFace.appendChild(numEl);
-  });
+  }
+
+  // ── 궤도 애니메이션 토글 ──
+  if (orbitOn) {
+    if (!orbitState) orbitState = initOrbitState();
+    applyOrbitFrame();  // 즉시 1프레임 적용해 기본 위치 덮어씀
+    if (orbitAnimId == null) {
+      orbitLastTime = null;
+      orbitAnimId = requestAnimationFrame(tickOrbit);
+    }
+  } else {
+    orbitState = null;
+    if (orbitAnimId != null) {
+      cancelAnimationFrame(orbitAnimId);
+      orbitAnimId = null;
+    }
+    orbitLastTime = null;
+  }
 
   // ── 반짝이 별 (강화: 60개) ──
   document.querySelectorAll('.sparkle').forEach(function (el) { el.remove(); });
@@ -1068,8 +1211,10 @@ function updateClock() {
   document.getElementById('digitalTime').textContent = hh + ':' + mm + ':' + ss;
 
   var currentHour = h === 0 ? 12 : h;
+  var orbitOn = currentMode === 'orbit';
   document.querySelectorAll('.hour-marker').forEach(function (marker) {
-    var isActive = parseInt(marker.dataset.hour) === currentHour;
+    // 궤도 모드에서는 마커가 시 위치를 떠나 공전하므로 active 펄스 비활성
+    var isActive = !orbitOn && parseInt(marker.dataset.hour) === currentHour;
     var pulseEl = marker.querySelector('.active-pulse');
     if (isActive) {
       marker.classList.add('active');
