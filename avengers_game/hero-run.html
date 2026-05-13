@@ -1341,6 +1341,7 @@ function wireOSK(inputId, oskRootId, oskBtnId, onCommitCb, onChangeCb){
           oskRoot.hidden = true;
           oskBtn.classList.remove('active');
           input.removeAttribute('inputmode');
+          input.removeAttribute('readonly');
           onCommitCb(val);
         },
         onChange: function(){ if(onChangeCb) onChangeCb(); },
@@ -1348,6 +1349,7 @@ function wireOSK(inputId, oskRootId, oskBtnId, onCommitCb, onChangeCb){
           oskRoot.hidden = true;
           oskBtn.classList.remove('active');
           input.removeAttribute('inputmode');
+          input.removeAttribute('readonly');
         }
       });
     }
@@ -1355,10 +1357,14 @@ function wireOSK(inputId, oskRootId, oskBtnId, onCommitCb, onChangeCb){
     oskRoot.hidden = !willShow;
     oskBtn.classList.toggle('active', willShow);
     if(willShow){
+      /* OS 가상키보드 억제: readonly + inputmode="none"
+         (inputmode="none" 만으로는 일부 모바일 브라우저에서 무시되므로 readonly 도 함께) */
+      input.setAttribute('readonly', '');
       input.setAttribute('inputmode', 'none');
       input.focus();
     } else {
       input.removeAttribute('inputmode');
+      input.removeAttribute('readonly');
     }
   });
 }
