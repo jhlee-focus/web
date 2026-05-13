@@ -167,6 +167,34 @@
       font-size: 0.72rem; font-weight: 600; letter-spacing: 0.5px;
     }
 
+    /* 모드 탭 (달리기 / 사격) */
+    .mode-tabs {
+      display: flex; gap: 6px;
+      padding: 4px;
+      background: rgba(0,0,0,0.45);
+      border: 1px solid rgba(237,29,36,0.28);
+      border-radius: 999px;
+      width: 100%; max-width: 380px;
+      margin-top: 2px;
+    }
+    .mode-tab {
+      flex: 1;
+      padding: 10px 16px;
+      font-size: 0.92rem; font-weight: 800;
+      border: none; border-radius: 999px;
+      background: transparent;
+      color: rgba(255,255,255,0.55);
+      cursor: pointer; font-family: inherit;
+      transition: background 0.15s, color 0.15s, box-shadow 0.2s;
+      letter-spacing: 0.2px;
+    }
+    .mode-tab.active {
+      background: #ED1D24; color: #fff;
+      box-shadow: 0 4px 14px rgba(237,29,36,0.45);
+    }
+    .mode-tab:hover:not(.active) { color: rgba(255,255,255,0.88); }
+    .mode-tab:active { transform: translateY(1px); }
+
     /* 시작/도감 버튼 */
     .start-btn-row {
       display: flex; flex-direction: column; gap: 10px;
@@ -401,6 +429,10 @@
       <div class="hero-preview-hint">검색 또는 도감으로 변경하세요</div>
     </div>
 
+    <div class="mode-tabs" id="mode-tabs" role="tablist" aria-label="게임 모드">
+      <button type="button" id="mode-tab-run" class="mode-tab active" data-mode="run">🏃 달리기 모드</button>
+      <button type="button" id="mode-tab-shoot" class="mode-tab" data-mode="shoot">🔫 사격 모드</button>
+    </div>
     <div class="start-btn-row">
       <button type="button" class="btn-primary" id="btn-start-game">▶  게임 시작</button>
       <button type="button" class="btn-secondary" id="btn-open-dex">📖  히어로 도감</button>
@@ -460,6 +492,19 @@ const HEROES=[
 
 const VILLAIN_DATA = HEROES.slice(12); // 빌런: ultronbot, ultron, crossbones, daredevil
 const HERO_COUNT = 12; // 플레이어블 히어로 수 (그루트·헐크 제외)
+
+/* 빌런 사양 — 사격 모드에서의 차별화 (달리기 모드는 모두 한 방 처치)
+   scale       : 그리기 + 충돌 박스 배율
+   speedMult   : 낙하 속도 배율
+   hp          : 사격 모드에서의 hp (총알 N발 맞아야 죽음)
+   weight      : 스폰 가중치 (높을수록 자주 나옴)
+   score       : 처치 시 +점수 */
+const VILLAIN_SPEC = {
+  crossbones: { scale: 1.0, speedMult: 1.0,    hp: 1, weight: 5, score: 1 },
+  daredevil:  { scale: 1.0, speedMult: 1.0,    hp: 1, weight: 5, score: 1 },
+  ultronbot:  { scale: 1.5, speedMult: 1/1.5,  hp: 3, weight: 2, score: 3 },  // 중간보스
+  ultron:     { scale: 2.0, speedMult: 0.5,    hp: 5, weight: 1, score: 5 }   // 보스
+};
 
 
 const canvas = document.getElementById('c');
@@ -556,6 +601,14 @@ const DIR_DOWN=0, DIR_LEFT=1, DIR_RIGHT=2;
 
 /* ── 게임 상태 ── */
 let state = 'start';
+/* 게임 모드: 'run' = 달리기 (기존, 박치기 처치) | 'shoot' = 사격 (자동 사격, 빌런 hp) */
+let gameMode = 'run';
+
+/* 사격 모드 상수 */
+const BULLET_SPD = 640;
+const BULLET_LONG = 14;
+const BULLET_SHORT = 5;
+const FIRE_INTERVAL = 0.42;  // 사격 간격 (초). 클수록 발사 속도 느림
 function updateBackBtn(){
   const btn = document.getElementById('restart-btn');
   if(btn) btn.style.display = (state === 'playing') ? 'flex' : 'none';
@@ -575,8 +628,8 @@ for(let _i = 0; _i < HERO_COUNT; _i++){
   const _h = HEROES[_i];
   loadImg(_h.key, _h.src, _h.cw, _h.ch);
 }
-let score, hp, hero, enemies, blocks, particles, popups;
-let eTimer, bTimer;
+let score, hp, hero, enemies, blocks, particles, popups, bullets;
+let eTimer, bTimer, fireTimer;
 /* 하이스코어 — localStorage에 영속 저장 */
 let hiScore = +(localStorage.getItem('mcu_hs_run') || 0);
 const GAME_TIME = 60;
@@ -595,8 +648,8 @@ function initGame(){
      (이전에는 매 게임마다 pickRandomHero() 호출했지만, 이제 검색/도감 선택을 따른다.) */
   const _h = HEROES[heroIdx];
   if(!SP[_h.key]){ loadImg(_h.key, _h.src, _h.cw, _h.ch); }
-  score=0; hp=3; eTimer=0; bTimer=0; timeLeft=GAME_TIME;
-  enemies=[]; blocks=[]; particles=[]; popups=[];
+  score=0; hp=3; eTimer=0; bTimer=0; fireTimer=0; timeLeft=GAME_TIME;
+  enemies=[]; blocks=[]; particles=[]; popups=[]; bullets=[];
   hero = { x: W/2-SPR/2, y: HERO_Y, frame:0, ftick:0, dir:DIR_DOWN, inv:0 };
   state = 'playing';
   updateBackBtn();
@@ -607,6 +660,14 @@ function initGame(){
 function drawChar(img, x, y, dir, frame){
   if(!img) return;
   ctx.drawImage(img, frame*CELL, dir*CELL, CELL, CELL, x, y, SPR, SPR);
+}
+
+/* 빌런 그리기 — scale 배율 지원 (사격 모드 보스/중간보스용) */
+function drawCharScaled(img, x, y, dir, frame, scale){
+  if(!img) return;
+  scale = scale || 1;
+  const sz = SPR * scale;
+  ctx.drawImage(img, frame*CELL, dir*CELL, CELL, CELL, x, y, sz, sz);
 }
 
 /* cw/ch 배율을 반영한 히어로 전용 드로우
@@ -673,20 +734,42 @@ canvas.addEventListener('click', ev => {
 
 /* ── 스폰 ── */
 const VKEYS = VILLAIN_DATA.map(v => v.key);
+
+/* 가중치 기반 빌런 선택 — VILLAIN_SPEC[k].weight 비율로 추첨 */
+function pickVillainKey(){
+  let total = 0;
+  for(const k of VKEYS) total += (VILLAIN_SPEC[k] ? VILLAIN_SPEC[k].weight : 1);
+  let r = Math.random() * total;
+  for(const k of VKEYS){
+    const w = VILLAIN_SPEC[k] ? VILLAIN_SPEC[k].weight : 1;
+    if(r < w) return k;
+    r -= w;
+  }
+  return VKEYS[0];
+}
+
 function spawnEnemy(){
-  const vkey = VKEYS[Math.floor(Math.random()*VKEYS.length)];
-  /* 빌런별 고유 속도 보정
-     ultron    → +80 (최고속)
+  const vkey = pickVillainKey();
+  const spec = VILLAIN_SPEC[vkey] || { scale:1, speedMult:1, hp:1, score:1 };
+  /* 빌런별 고유 속도 보정 (절대값) — speedMult 와는 별개
+     ultron    → +80 (최고속) ※ speedMult 0.5 곱해지므로 실효 +40
      ultronbot → +40 (준고속)
      나머지     → +0  (보통)  */
   const SPEED_BONUS = { ultron: 80, ultronbot: 40 };
   const bonus = SPEED_BONUS[vkey] || 0;
+  const baseSpeed = 90 + Math.min(score*5, 140) + Math.random()*30 + bonus;
+  /* 큰 빌런이 화면 가로 밖으로 나가지 않도록 x 클램프 */
+  const maxX = Math.max(0, MAX_X - SPR * (spec.scale - 1));
   enemies.push({
-    x: Math.random() * MAX_X,
-    y: -SPR,
-    speed: 90 + Math.min(score*5, 140) + Math.random()*30 + bonus,
+    x: Math.random() * maxX,
+    y: -SPR * spec.scale,
+    speed: baseSpeed * spec.speedMult,
     frame:0, ftick:0, dead:false,
-    key: vkey
+    key: vkey,
+    hp: spec.hp,
+    maxHp: spec.hp,
+    scale: spec.scale,
+    score: spec.score
   });
 }
 function spawnBlock(){
@@ -706,24 +789,27 @@ function popup(x, y, t){ popups.push({x,y,t,life:1.1}); }
 /* ── 충돌 ── */
 
 // 스프라이트의 월드 공간 바운딩 사각형 (drawHero 와 동일한 오프셋 적용)
-function spriteRect(x, y, cw, ch){
-  cw = cw || 1; ch = ch || 1;
+// scale: 사격 모드의 보스/중간보스용 표시 배율 — 충돌 박스도 같이 커진다
+function spriteRect(x, y, cw, ch, scale){
+  cw = cw || 1; ch = ch || 1; scale = scale || 1;
   return {
     left: x - SPR * (cw - 1) / 2,
     top:  y - SPR * (ch - 1),
-    w:    SPR * cw,
-    h:    SPR * ch
+    w:    SPR * cw * scale,
+    h:    SPR * ch * scale
   };
 }
 
 // 스프라이트 vs 스프라이트 픽셀 정밀 충돌
 // 소스 해상도(CELL 단위) 알파 마스크로 투명 픽셀 제외
+// aScale/bScale: 빌런 보스급(2x)·중간보스(1.5x)는 박스가 커지므로 알파 인덱싱도 보정
 function pixelHits(ax, ay, aKey, aDir, aFrame, acw, ach,
-                   bx, by, bKey, bDir, bFrame, bcw, bch){
-  acw = acw || 1; ach = ach || 1;
-  bcw = bcw || 1; bch = bch || 1;
-  const ar = spriteRect(ax, ay, acw, ach);
-  const br = spriteRect(bx, by, bcw, bch);
+                   bx, by, bKey, bDir, bFrame, bcw, bch,
+                   aScale, bScale){
+  acw = acw || 1; ach = ach || 1; aScale = aScale || 1;
+  bcw = bcw || 1; bch = bch || 1; bScale = bScale || 1;
+  const ar = spriteRect(ax, ay, acw, ach, aScale);
+  const br = spriteRect(bx, by, bcw, bch, bScale);
   // 1단계: AABB 교차 확인
   const ix0 = Math.max(ar.left, br.left);
   const iy0 = Math.max(ar.top,  br.top);
@@ -737,12 +823,15 @@ function pixelHits(ax, ay, aKey, aDir, aFrame, acw, ach,
   const awSrc = CELL * acw;
   const bwSrc = CELL * bcw;
   const STEP = 4;  // 월드 픽셀 4px 간격으로 샘플링 (성능 / 정밀도 균형)
+  /* world→source 변환: source 픽셀 = (world - rect.left) / (SC * scale) */
+  const aSC = SC * aScale;
+  const bSC = SC * bScale;
   for(let wx = ix0; wx < ix1; wx += STEP){
     for(let wy = iy0; wy < iy1; wy += STEP){
-      const axL = Math.floor((wx - ar.left) / SC);
-      const ayL = Math.floor((wy - ar.top)  / SC);
-      const bxL = Math.floor((wx - br.left) / SC);
-      const byL = Math.floor((wy - br.top)  / SC);
+      const axL = Math.floor((wx - ar.left) / aSC);
+      const ayL = Math.floor((wy - ar.top)  / aSC);
+      const bxL = Math.floor((wx - br.left) / bSC);
+      const byL = Math.floor((wy - br.top)  / bSC);
       if(maskA[ayL * awSrc + axL] && maskB[byL * bwSrc + bxL]) return true;
     }
   }
@@ -876,16 +965,107 @@ function updateAndDraw(dt){
   for(const e of enemies){
     e.y += e.speed*dt;
     e.ftick += dt; if(e.ftick > 0.17){ e.ftick=0; e.frame=(e.frame+1)%3; }
-    if(!e.dead && hero.inv<=0 && pixelHits(
+    if(e.dead || hero.inv > 0) continue;
+    const eScale = e.scale || 1;
+    const eSize = SPR * eScale;
+    const hit = pixelHits(
         hero.x, hero.y, _hd.key, hero.dir, hero.frame, _hd.cw||1, _hd.ch||1,
-        e.x, e.y, e.key, DIR_DOWN, e.frame, 1, 1)){
-      e.dead = true; score++;
+        e.x, e.y, e.key, DIR_DOWN, e.frame, 1, 1,
+        1, eScale);
+    if(!hit) continue;
+    if(gameMode === 'run'){
+      /* 달리기 모드: 박치기 한 방 처치 (보스/중간보스도 동일) */
+      e.dead = true;
+      const pts = e.score || 1;
+      score += pts;
       if(score > hiScore){ hiScore = score; localStorage.setItem('mcu_hs_run', hiScore); }
-      burst(e.x+SPR/2, e.y+SPR/2, '#FFD700', 14);
-      popup(e.x+SPR/2, e.y, '+1 ⭐');
+      burst(e.x+eSize/2, e.y+eSize/2, '#FFD700', 14);
+      popup(e.x+eSize/2, e.y, '+' + pts + ' ⭐');
+    } else {
+      /* 사격 모드 박치기:
+         - hp == 1 빌런 → 처치, 내 hp 무피해
+         - hp >  1 빌런 → 내 hp / 빌런 hp 둘 다 1씩 깎임 (무적시간 부여) */
+      if((e.hp || 1) <= 1){
+        e.dead = true;
+        const pts = e.score || 1;
+        score += pts;
+        if(score > hiScore){ hiScore = score; localStorage.setItem('mcu_hs_run', hiScore); }
+        burst(e.x+eSize/2, e.y+eSize/2, '#FFD700', 14);
+        popup(e.x+eSize/2, e.y, '+' + pts + ' ⭐');
+      } else {
+        e.hp -= 1;
+        hp--; hero.inv = 1.8;
+        burst(hero.x+SPR/2, hero.y+SPR/2, '#ff3030', 10);
+        burst(e.x+eSize/2,    e.y+eSize/2,    '#ff9999', 6);
+        popup(hero.x+SPR/2, hero.y, '💔');
+        if(hp <= 0){ state='gameover'; updateBackBtn(); return; }
+      }
     }
   }
-  enemies = enemies.filter(e => e.y < H+SPR && !e.dead);
+  enemies = enemies.filter(e => e.y < H + SPR * (e.scale||1) && !e.dead);
+
+  /* ── 사격 모드: 자동 사격 + 총알 처리 ── */
+  if(gameMode === 'shoot'){
+    fireTimer += dt;
+    if(fireTimer >= FIRE_INTERVAL){
+      fireTimer = 0;
+      /* 히어로 dir 기준으로 발사: DIR_LEFT/RIGHT 면 좌우, 아니면 정면(위) */
+      let vx = 0, vy = -BULLET_SPD;
+      let bx = hero.x + SPR/2 - BULLET_SHORT/2;
+      let by = hero.y;
+      if(hero.dir === DIR_LEFT){
+        vx = -BULLET_SPD; vy = 0;
+        bx = hero.x - BULLET_LONG;
+        by = hero.y + SPR/2 - BULLET_SHORT/2;
+      } else if(hero.dir === DIR_RIGHT){
+        vx = BULLET_SPD; vy = 0;
+        bx = hero.x + SPR;
+        by = hero.y + SPR/2 - BULLET_SHORT/2;
+      }
+      bullets.push({ x:bx, y:by, vx, vy, dead:false });
+    }
+    /* 총알 이동 */
+    for(const b of bullets){ b.x += b.vx*dt; b.y += b.vy*dt; }
+    /* 총알 vs 빌런 / 장애물 충돌 */
+    for(const b of bullets){
+      if(b.dead) continue;
+      const isHoriz = b.vx !== 0;
+      const bw = isHoriz ? BULLET_LONG : BULLET_SHORT;
+      const bh = isHoriz ? BULLET_SHORT : BULLET_LONG;
+      /* 빌런 hp 차감 */
+      for(const e of enemies){
+        if(e.dead) continue;
+        const eSize = SPR * (e.scale||1);
+        if(b.x + bw < e.x || b.x > e.x + eSize ||
+           b.y + bh < e.y || b.y > e.y + eSize) continue;
+        b.dead = true;
+        e.hp = (e.hp||1) - 1;
+        burst(b.x+bw/2, b.y+bh/2, '#FFD700', 5);
+        if(e.hp <= 0){
+          e.dead = true;
+          const pts = e.score || 1;
+          score += pts;
+          if(score > hiScore){ hiScore = score; localStorage.setItem('mcu_hs_run', hiScore); }
+          burst(e.x+eSize/2, e.y+eSize/2, '#FFD700', 18);
+          popup(e.x+eSize/2, e.y, '+' + pts + ' ⭐');
+        } else {
+          popup(b.x+bw/2, b.y, '-1');
+        }
+        break;
+      }
+      if(b.dead) continue;
+      /* 총알이 장애물에 막힘 */
+      for(const blk of blocks){
+        if(blk.hit) continue;
+        if(b.x + bw < blk.x || b.x > blk.x + blk.w ||
+           b.y + bh < blk.y || b.y > blk.y + blk.h) continue;
+        b.dead = true;
+        burst(b.x+bw/2, b.y+bh/2, '#ff9999', 4);
+        break;
+      }
+    }
+    bullets = bullets.filter(b => !b.dead && b.x > -40 && b.x < W+40 && b.y > -40 && b.y < H+40);
+  }
 
   // 타이머
   timeLeft -= dt;
@@ -923,10 +1103,37 @@ function updateAndDraw(dt){
     ctx.restore();
   }
 
-  /* ── 적 그리기 ── */
+  /* ── 적 그리기 (보스 / 중간보스는 scale 적용) ── */
   for(const e of enemies){
-    if(SP[e.key]) drawChar(SP[e.key], e.x, e.y, DIR_DOWN, e.frame);
-    else { ctx.fillStyle='#ff4444'; ctx.fillRect(e.x,e.y,SPR,SPR); }
+    const eScale = e.scale || 1;
+    const eSize = SPR * eScale;
+    if(SP[e.key]) drawCharScaled(SP[e.key], e.x, e.y, DIR_DOWN, e.frame, eScale);
+    else { ctx.fillStyle='#ff4444'; ctx.fillRect(e.x, e.y, eSize, eSize); }
+    /* 사격 모드 + hp > 1 (보스/중간보스): HP 바 */
+    if(gameMode === 'shoot' && (e.maxHp || 1) > 1){
+      const barW = eSize, barH = 4;
+      const pct = Math.max(0, (e.hp || 0) / e.maxHp);
+      ctx.fillStyle = 'rgba(0,0,0,0.55)';
+      ctx.fillRect(e.x, e.y - barH - 3, barW, barH);
+      ctx.fillStyle = pct > 0.5 ? '#4caf50' : pct > 0.25 ? '#ffc107' : '#f44336';
+      ctx.fillRect(e.x, e.y - barH - 3, barW * pct, barH);
+    }
+  }
+
+  /* ── 총알 (사격 모드) ── */
+  if(gameMode === 'shoot'){
+    for(const b of bullets){
+      const isHoriz = b.vx !== 0;
+      const bw = isHoriz ? BULLET_LONG : BULLET_SHORT;
+      const bh = isHoriz ? BULLET_SHORT : BULLET_LONG;
+      ctx.save();
+      ctx.shadowBlur = 12; ctx.shadowColor = '#FFA500';
+      ctx.fillStyle = '#FFD700';
+      ctx.beginPath();
+      ctx.roundRect(b.x, b.y, bw, bh, Math.min(bw,bh)/2);
+      ctx.fill();
+      ctx.restore();
+    }
   }
 
   /* ── 파티클 ── */
@@ -1414,6 +1621,17 @@ window.addEventListener('load', function(){
     function(val){ dexGotoHero(val); },
     function(){ clearSearchError('dex-search-input', 'dex-search-msg'); }
   );
+
+  /* 모드 탭 (달리기 / 사격) */
+  const modeRunBtn = document.getElementById('mode-tab-run');
+  const modeShootBtn = document.getElementById('mode-tab-shoot');
+  function setGameMode(m){
+    gameMode = (m === 'shoot') ? 'shoot' : 'run';
+    if(modeRunBtn)   modeRunBtn.classList.toggle('active', gameMode === 'run');
+    if(modeShootBtn) modeShootBtn.classList.toggle('active', gameMode === 'shoot');
+  }
+  if(modeRunBtn)   modeRunBtn.addEventListener('click',   function(){ setGameMode('run'); });
+  if(modeShootBtn) modeShootBtn.addEventListener('click', function(){ setGameMode('shoot'); });
 
   /* 시작 / 도감 / 뒤로 버튼 */
   const btnStart = document.getElementById('btn-start-game');
