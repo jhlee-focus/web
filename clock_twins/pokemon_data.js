@@ -4,62 +4,62 @@ var basicPokemon = [
   {
     "hour": 1,
     "name": "뮤츠",
-    "file": "img_pokemon/1세대/포켓몬이미지_0150_뮤츠.webp"
+    "file": "img_pokemon/gen_1/포켓몬이미지_0150_뮤츠.webp"
   },
   {
     "hour": 2,
     "name": "뮤",
-    "file": "img_pokemon/1세대/포켓몬이미지_0151_뮤.webp"
+    "file": "img_pokemon/gen_1/포켓몬이미지_0151_뮤.webp"
   },
   {
     "hour": 3,
     "name": "피카츄",
-    "file": "img_pokemon/1세대/포켓몬이미지_0025_피카츄.webp"
+    "file": "img_pokemon/gen_1/포켓몬이미지_0025_피카츄.webp"
   },
   {
     "hour": 4,
     "name": "리자몽",
-    "file": "img_pokemon/1세대/포켓몬이미지_0006_리자몽.webp"
+    "file": "img_pokemon/gen_1/포켓몬이미지_0006_리자몽.webp"
   },
   {
     "hour": 5,
     "name": "거북왕",
-    "file": "img_pokemon/1세대/포켓몬이미지_0009_거북왕.webp"
+    "file": "img_pokemon/gen_1/포켓몬이미지_0009_거북왕.webp"
   },
   {
     "hour": 6,
     "name": "이상해꽃",
-    "file": "img_pokemon/1세대/포켓몬이미지_0003_이상해꽃.webp"
+    "file": "img_pokemon/gen_1/포켓몬이미지_0003_이상해꽃.webp"
   },
   {
     "hour": 7,
     "name": "잠만보",
-    "file": "img_pokemon/1세대/포켓몬이미지_0143_잠만보.webp"
+    "file": "img_pokemon/gen_1/포켓몬이미지_0143_잠만보.webp"
   },
   {
     "hour": 8,
     "name": "라프라스",
-    "file": "img_pokemon/1세대/포켓몬이미지_0131_라프라스.webp"
+    "file": "img_pokemon/gen_1/포켓몬이미지_0131_라프라스.webp"
   },
   {
     "hour": 9,
     "name": "팬텀",
-    "file": "img_pokemon/1세대/포켓몬이미지_0094_팬텀.webp"
+    "file": "img_pokemon/gen_1/포켓몬이미지_0094_팬텀.webp"
   },
   {
     "hour": 10,
     "name": "후딘",
-    "file": "img_pokemon/1세대/포켓몬이미지_0065_후딘.webp"
+    "file": "img_pokemon/gen_1/포켓몬이미지_0065_후딘.webp"
   },
   {
     "hour": 11,
     "name": "니드킹",
-    "file": "img_pokemon/1세대/포켓몬이미지_0034_니드킹.webp"
+    "file": "img_pokemon/gen_1/포켓몬이미지_0034_니드킹.webp"
   },
   {
     "hour": 12,
     "name": "스라크",
-    "file": "img_pokemon/1세대/포켓몬이미지_0123_스라크.webp"
+    "file": "img_pokemon/gen_1/포켓몬이미지_0123_스라크.webp"
   }
 ];
 var pokemonGenIndex = [{"gen":1,"count":151},{"gen":2,"count":100},{"gen":3,"count":135},{"gen":4,"count":107},{"gen":5,"count":156},{"gen":6,"count":72},{"gen":7,"count":88},{"gen":8,"count":96},{"gen":9,"count":120}];

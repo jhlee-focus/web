@@ -777,7 +777,7 @@ function makeEvoCell(node, currentDex, currentName) {
   // 리전폼: '포켓몬도트_NNNN_라이츄(알로라).webp', 일반: '포켓몬도트_NNNN_라이츄.webp'.
   // Windows 파일시스템 호환을 위해 ':'은 '_'로 치환 (예: '타입:널' → '타입_널').
   var fileBase = split.base.replace(/:/g, '_');
-  img.src = 'img_pokemon/도트/포켓몬도트_' + pad4(dex) + '_' + fileBase
+  img.src = 'img_pokemon/dot/포켓몬도트_' + pad4(dex) + '_' + fileBase
     + (split.region ? '(' + split.region + ')' : '') + '.webp';
   img.alt = name;
   img.draggable = false;
