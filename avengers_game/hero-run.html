@@ -620,15 +620,35 @@ const WEAPON_SPEC = {
   telekinesis: { len: 17, wide: 17, spin: 0,  box: 'square' },  // 빨간 염동력 구체
   beam:        { len: 30, wide: 8,  spin: 0,  box: 'rect'   },  // 밝은 하늘색 에너지빔
   shield:      { len: 57, wide: 54, spin: 9,  box: 'square', boomerang: true },  // 캡틴 방패 — 원본 38×36 × SC(1.5)
-  hammer:      { len: 57, wide: 54, spin: 12, box: 'square', boomerang: true },  // 토르 망치 — 화면 크기는 캡틴 방패와 동일
+  hammer:      { len: 40, wide: 38, spin: 12, box: 'square', boomerang: true },  // 토르 망치 — 캡틴 방패(57×54)의 약 70%
   sword:       { len: 30, wide: 12, spin: 8,  box: 'square' },  // 가모라 검 (회전)
   knife:       { len: 22, wide: 8,  spin: 10, box: 'square' }   // 드랙스 칼 (회전)
 };
 
 /* 부메랑 무기 발사체 이미지 — base64 스프라이트가 아닌 외부 PNG */
 const shieldImg = new Image();
-shieldImg.src = '2d_game_assets/projectile_shield.png';
 const mjolnirImg = new Image();
+/* 부메랑 무기 알파 마스크 — 완전투명(alpha 0) 픽셀을 충돌에서 제외하기 위한 1bit 마스크.
+   { mask:Uint8Array, w, h } — 이미지 로드 완료 시 채워진다. */
+const boomerangMask = {};
+function buildImgMask(img){
+  const w = img.naturalWidth, h = img.naturalHeight;
+  if(!w || !h) return null;
+  const oc = document.createElement('canvas');
+  oc.width = w; oc.height = h;
+  const octx = oc.getContext('2d');
+  octx.drawImage(img, 0, 0);
+  const data = octx.getImageData(0, 0, w, h).data;
+  const mask = new Uint8Array(w * h);
+  for(let i = 0; i < w * h; i++){
+    mask[i] = data[i*4 + 3] > 0 ? 1 : 0;   // 조금이라도 불투명하면 충돌 대상
+  }
+  return { mask, w, h };
+}
+/* onload 는 src 설정 전에 등록 (캐시 시 즉시 로드 대비) */
+shieldImg.onload  = function(){ boomerangMask.shield = buildImgMask(shieldImg); };
+mjolnirImg.onload = function(){ boomerangMask.hammer = buildImgMask(mjolnirImg); };
+shieldImg.src  = '2d_game_assets/projectile_shield.png';
 mjolnirImg.src = '2d_game_assets/thor_mjolnir_mini.png';
 function updateBackBtn(){
   const btn = document.getElementById('restart-btn');
@@ -701,6 +721,39 @@ function bulletBox(b){
   }
   const horiz = b.vx !== 0;
   return horiz ? { w: ws.len, h: ws.wide } : { w: ws.wide, h: ws.len };
+}
+
+/* 부메랑 무기(방패/망치)의 회전·알파 마스크를 반영한 픽셀 충돌.
+   대상 사각형(rx,ry,rw,rh)과 겹치는 영역을 샘플링해, 무기 이미지의
+   불투명 픽셀이 하나라도 닿으면 true. 마스크 미준비 시 AABB 결과 반환. */
+function boomerangPixelHit(b, rx, ry, rw, rh){
+  const ws = WEAPON_SPEC[b.type] || WEAPON_SPEC.bullet;
+  const bb = bulletBox(b);
+  const bl = b.x - bb.w/2, bt = b.y - bb.h/2;
+  /* 1단계: AABB 교차 */
+  const ix0 = Math.max(bl, rx),          iy0 = Math.max(bt, ry);
+  const ix1 = Math.min(bl+bb.w, rx+rw),  iy1 = Math.min(bt+bb.h, ry+rh);
+  if(ix0 >= ix1 || iy0 >= iy1) return false;
+  /* 2단계: 회전 역변환 + 알파 마스크 */
+  const m = boomerangMask[b.type];
+  if(!m) return true;                        // 마스크 미준비 → AABB 결과
+  const rot = b.rot || 0;
+  const cos = Math.cos(rot), sin = Math.sin(rot);
+  const STEP = 3;
+  for(let wx = ix0; wx < ix1; wx += STEP){
+    for(let wy = iy0; wy < iy1; wy += STEP){
+      /* 월드 → 부메랑 중심 기준 → 회전 역변환(그릴 때 +rot 했으므로 -rot) */
+      const dx = wx - b.x, dy = wy - b.y;
+      const lx =  dx*cos + dy*sin;           // 로컬 표시좌표 (중심 0)
+      const ly = -dx*sin + dy*cos;
+      /* 표시좌표 → 이미지 픽셀좌표 */
+      const px = Math.floor((lx + ws.len/2)  / ws.len  * m.w);
+      const py = Math.floor((ly + ws.wide/2) / ws.wide * m.h);
+      if(px < 0 || px >= m.w || py < 0 || py >= m.h) continue;
+      if(m.mask[py * m.w + px]) return true;
+    }
+  }
+  return false;
 }
 
 /* 캐릭터별 무기 모양으로 발사체 1개 그리기 */
@@ -1246,8 +1299,7 @@ function updateAndDraw(dt){
         for(const e of enemies){
           if(e.dead || b.hitSet.has(e)) continue;
           const eSize = SPR * (e.scale||1);
-          if(bl + bb.w < e.x || bl > e.x + eSize ||
-             bt + bb.h < e.y || bt > e.y + eSize) continue;
+          if(!boomerangPixelHit(b, e.x, e.y, eSize, eSize)) continue;
           b.hitSet.add(e);
           e.hp = (e.hp||1) - 3;
           burst(b.x, b.y, '#4fc3f7', 6);
@@ -1266,8 +1318,7 @@ function updateAndDraw(dt){
         if(!b.returning){
           for(const blk of blocks){
             if(blk.hit) continue;
-            if(bl + bb.w < blk.x || bl > blk.x + blk.w ||
-               bt + bb.h < blk.y || bt > blk.y + blk.h) continue;
+            if(!boomerangPixelHit(b, blk.x, blk.y, blk.w, blk.h)) continue;
             b.returning = true;
             b.hitSet.clear();
             burst(b.x, b.y, '#ff9999', 5);
