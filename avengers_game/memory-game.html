@@ -396,8 +396,8 @@ function filenameToChar(filename) {
 }
 
 /* ── 이미지 목록 로딩 (두 단계 시도) ────────────────
-   1순위: fetch('이미지/') 로 폴더 직접 스캔 (Chrome file:// 환경)
-   2순위: <script src="이미지/images.js"> 로 미리 주입된 window.MCU_IMAGES
+   1순위: fetch('images/') 로 폴더 직접 스캔 (Chrome file:// 환경)
+   2순위: <script src="images/images.js"> 로 미리 주입된 window.MCU_IMAGES
 ─────────────────────────────────────────────────── */
 async function loadCharList() {
   // 1순위: 폴더 디렉토리 리스팅 시도
