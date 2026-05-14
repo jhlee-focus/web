@@ -612,21 +612,24 @@ const FIRE_INTERVAL = 0.42;  // 사격 간격 (초). 클수록 발사 속도 느
 
 /* 캐릭터별 발사체 사양
    len  : 진행방향 길이 / wide : 폭 / spin : 회전 속도(rad/s, 0이면 회전 없음)
-   box  : 'rect' = 진행방향 따라 눕는 직선 무기 / 'square' = 회전하는 무기(정사각 충돌) */
+   box  : 'rect' = 진행방향 따라 눕는 직선 무기 / 'square' = 회전하는 무기(정사각 충돌)
+   boomerang : true 면 캡틴 방패식 부메랑 (1개만, 빌런 통과 데미지3, 끝/장애물 반전 후 귀환) */
 const WEAPON_SPEC = {
   bullet:      { len: 14, wide: 5,  spin: 0,  box: 'rect'   },  // 금색 알약 (기존 총알 그대로)
   electric:    { len: 22, wide: 11, spin: 0,  box: 'rect'   },  // 청백색 번개
   telekinesis: { len: 17, wide: 17, spin: 0,  box: 'square' },  // 빨간 염동력 구체
   beam:        { len: 30, wide: 8,  spin: 0,  box: 'rect'   },  // 밝은 하늘색 에너지빔
-  shield:      { len: 57, wide: 54, spin: 9,  box: 'square' },  // 캡틴 방패 — 원본 38×36 × SC(1.5) = 캐릭터 스프라이트와 동일 축척
-  hammer:      { len: 26, wide: 26, spin: 12, box: 'square' },  // 토르 망치 (회전)
+  shield:      { len: 57, wide: 54, spin: 9,  box: 'square', boomerang: true },  // 캡틴 방패 — 원본 38×36 × SC(1.5)
+  hammer:      { len: 57, wide: 54, spin: 12, box: 'square', boomerang: true },  // 토르 망치 — 화면 크기는 캡틴 방패와 동일
   sword:       { len: 30, wide: 12, spin: 8,  box: 'square' },  // 가모라 검 (회전)
   knife:       { len: 22, wide: 8,  spin: 10, box: 'square' }   // 드랙스 칼 (회전)
 };
 
-/* 캡틴 아메리카 방패 발사체 — base64 스프라이트가 아닌 외부 PNG */
+/* 부메랑 무기 발사체 이미지 — base64 스프라이트가 아닌 외부 PNG */
 const shieldImg = new Image();
 shieldImg.src = '2d_game_assets/projectile_shield.png';
+const mjolnirImg = new Image();
+mjolnirImg.src = '2d_game_assets/thor_mjolnir_mini.png';
 function updateBackBtn(){
   const btn = document.getElementById('restart-btn');
   if(btn) btn.style.display = (state === 'playing') ? 'flex' : 'none';
@@ -765,14 +768,20 @@ function drawBullet(b){
       break;
     }
     case 'hammer': {
-      // 토르 망치 (회전) — 손잡이 + 머리
-      ctx.shadowBlur = 8; ctx.shadowColor = 'rgba(180,210,255,0.85)';
-      ctx.fillStyle = '#8d6e63';                       // 손잡이
-      ctx.fillRect(-2.5, -2, 5, L/2);
-      ctx.fillStyle = '#cfd8dc';                       // 망치 머리
-      ctx.beginPath(); ctx.roundRect(-Wd/2, -L/2, Wd, L*0.42, 3); ctx.fill();
-      ctx.fillStyle = '#90a4ae';
-      ctx.fillRect(-Wd/2, -L/2, Wd, 3);
+      // 토르 망치 이미지 (회전)
+      if(mjolnirImg.complete && mjolnirImg.naturalWidth){
+        ctx.shadowBlur = 8; ctx.shadowColor = 'rgba(180,210,255,0.85)';
+        ctx.drawImage(mjolnirImg, -L/2, -Wd/2, L, Wd);
+      } else {
+        // 로딩 전 fallback: 손잡이 + 머리 도형
+        ctx.shadowBlur = 8; ctx.shadowColor = 'rgba(180,210,255,0.85)';
+        ctx.fillStyle = '#8d6e63';
+        ctx.fillRect(-2.5, -2, 5, L/2);
+        ctx.fillStyle = '#cfd8dc';
+        ctx.beginPath(); ctx.roundRect(-Wd/2, -L/2, Wd, L*0.42, 3); ctx.fill();
+        ctx.fillStyle = '#90a4ae';
+        ctx.fillRect(-Wd/2, -L/2, Wd, 3);
+      }
       break;
     }
     case 'sword': {
@@ -817,9 +826,9 @@ function drawBullet(b){
   ctx.restore();
 }
 
-/* 캡틴 방패 부메랑 이동 — 던질 때 직진, 화면 끝/장애물에서 반전,
-   캡틴에게 돌아오면 b.dead 처리(다음 프레임 자동 재발사) */
-function updateShield(b, dt){
+/* 부메랑 무기 이동 (캡틴 방패 / 토르 망치 공용) — 던질 때 직진,
+   화면 끝/장애물에서 반전, 히어로에게 돌아오면 b.dead 처리(다음 프레임 자동 재발사) */
+function updateBoomerang(b, dt){
   if(!b.returning){
     b.x += b.vx*dt;
     b.y += b.vy*dt;
@@ -829,7 +838,7 @@ function updateShield(b, dt){
       b.hitSet.clear();   // 돌아오는 구간에서 빌런을 다시 때릴 수 있게
     }
   } else {
-    /* 캡틴 중심을 향해 귀환 */
+    /* 히어로 중심을 향해 귀환 */
     const tx = hero.x + SPR/2, ty = hero.y + SPR/2;
     const dx = tx - b.x, dy = ty - b.y;
     const dist = Math.hypot(dx, dy) || 1;
@@ -1178,16 +1187,17 @@ function updateAndDraw(dt){
   /* ── 사격 모드: 자동 사격 + 발사체 처리 ── */
   if(gameMode === 'shoot'){
     const wtype = HERO_WEAPON[_hd.name] || 'bullet';
+    const isBoomerang = !!(WEAPON_SPEC[wtype] && WEAPON_SPEC[wtype].boomerang);
 
-    if(wtype === 'shield'){
-      /* 캡틴 방패는 1개뿐 — 화면에 방패가 없을 때(돌아와 사라졌을 때)만 다시 던짐 */
-      if(!bullets.some(b => b.type === 'shield')){
+    if(isBoomerang){
+      /* 부메랑 무기(캡틴 방패 / 토르 망치)는 1개뿐 — 화면에 없을 때(돌아와 사라졌을 때)만 다시 던짐 */
+      if(!bullets.some(b => b.type === wtype)){
         let vx = 0, vy = -BULLET_SPD;
         if(hero.dir === DIR_LEFT){ vx = -BULLET_SPD; vy = 0; }
         else if(hero.dir === DIR_RIGHT){ vx = BULLET_SPD; vy = 0; }
         bullets.push({
           x: hero.x + SPR/2, y: hero.y + SPR/2,
-          vx, vy, dead:false, type:'shield', rot:0,
+          vx, vy, dead:false, type:wtype, rot:0,
           returning:false, hitSet:new Set()
         });
       }
@@ -1215,12 +1225,12 @@ function updateAndDraw(dt){
 
     /* 발사체 이동 + 회전 무기 회전 */
     for(const b of bullets){
-      if(b.type === 'shield'){
-        updateShield(b, dt);          // 부메랑 이동
+      const ws = WEAPON_SPEC[b.type];
+      if(ws && ws.boomerang){
+        updateBoomerang(b, dt);       // 부메랑 이동 (방패 / 망치)
       } else {
         b.x += b.vx*dt; b.y += b.vy*dt;
       }
-      const ws = WEAPON_SPEC[b.type];
       if(ws && ws.spin) b.rot = (b.rot || 0) + ws.spin * dt;
     }
 
@@ -1230,8 +1240,9 @@ function updateAndDraw(dt){
       const bb = bulletBox(b);
       const bl = b.x - bb.w/2, bt = b.y - bb.h/2;
 
-      if(b.type === 'shield'){
-        /* 방패: 빌런 통과 (멈추지 않음) + 데미지 3, 이번 구간 빌런당 1회 */
+      const bws = WEAPON_SPEC[b.type];
+      if(bws && bws.boomerang){
+        /* 부메랑 무기: 빌런 통과 (멈추지 않음) + 데미지 3, 이번 구간 빌런당 1회 */
         for(const e of enemies){
           if(e.dead || b.hitSet.has(e)) continue;
           const eSize = SPR * (e.scale||1);
@@ -1251,7 +1262,7 @@ function updateAndDraw(dt){
             popup(b.x, b.y, '-3');
           }
         }
-        /* 방패: 던지는 구간(returning=false)에서 장애물에 닿으면 그 지점에서 반전 */
+        /* 부메랑: 던지는 구간(returning=false)에서 장애물에 닿으면 그 지점에서 반전 */
         if(!b.returning){
           for(const blk of blocks){
             if(blk.hit) continue;
@@ -1298,10 +1309,11 @@ function updateAndDraw(dt){
       }
     }
 
-    /* 정리: 일반 발사체는 화면 밖이면 제거. 방패는 updateShield 가 귀환 완료 시 b.dead 설정. */
+    /* 정리: 일반 발사체는 화면 밖이면 제거. 부메랑 무기는 updateBoomerang 이 귀환 완료 시 b.dead 설정. */
     bullets = bullets.filter(b => {
       if(b.dead) return false;
-      if(b.type === 'shield') return true;
+      const ws = WEAPON_SPEC[b.type];
+      if(ws && ws.boomerang) return true;
       return b.x > -40 && b.x < W+40 && b.y > -40 && b.y < H+40;
     });
   }
