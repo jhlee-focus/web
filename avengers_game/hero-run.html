@@ -609,6 +609,24 @@ const BULLET_SPD = 640;
 const BULLET_LONG = 14;
 const BULLET_SHORT = 5;
 const FIRE_INTERVAL = 0.42;  // 사격 간격 (초). 클수록 발사 속도 느림
+
+/* 캐릭터별 발사체 사양
+   len  : 진행방향 길이 / wide : 폭 / spin : 회전 속도(rad/s, 0이면 회전 없음)
+   box  : 'rect' = 진행방향 따라 눕는 직선 무기 / 'square' = 회전하는 무기(정사각 충돌) */
+const WEAPON_SPEC = {
+  bullet:      { len: 14, wide: 5,  spin: 0,  box: 'rect'   },  // 금색 알약 (기존 총알 그대로)
+  electric:    { len: 22, wide: 11, spin: 0,  box: 'rect'   },  // 청백색 번개
+  telekinesis: { len: 17, wide: 17, spin: 0,  box: 'square' },  // 빨간 염동력 구체
+  beam:        { len: 30, wide: 8,  spin: 0,  box: 'rect'   },  // 밝은 하늘색 에너지빔
+  shield:      { len: 57, wide: 54, spin: 9,  box: 'square' },  // 캡틴 방패 — 원본 38×36 × SC(1.5) = 캐릭터 스프라이트와 동일 축척
+  hammer:      { len: 26, wide: 26, spin: 12, box: 'square' },  // 토르 망치 (회전)
+  sword:       { len: 30, wide: 12, spin: 8,  box: 'square' },  // 가모라 검 (회전)
+  knife:       { len: 22, wide: 8,  spin: 10, box: 'square' }   // 드랙스 칼 (회전)
+};
+
+/* 캡틴 아메리카 방패 발사체 — base64 스프라이트가 아닌 외부 PNG */
+const shieldImg = new Image();
+shieldImg.src = '2d_game_assets/projectile_shield.png';
 function updateBackBtn(){
   const btn = document.getElementById('restart-btn');
   if(btn) btn.style.display = (state === 'playing') ? 'flex' : 'none';
@@ -668,6 +686,159 @@ function drawCharScaled(img, x, y, dir, frame, scale){
   scale = scale || 1;
   const sz = SPR * scale;
   ctx.drawImage(img, frame*CELL, dir*CELL, CELL, CELL, x, y, sz, sz);
+}
+
+/* ── 발사체 (사격 모드) ──
+   b.x / b.y 는 발사체 "중심" 좌표 — 충돌·그리기 모두 중심 기준 */
+function bulletBox(b){
+  const ws = WEAPON_SPEC[b.type] || WEAPON_SPEC.bullet;
+  if(ws.box === 'square'){
+    const s = (ws.len + ws.wide) / 2;   // 회전 무기 → 평균 크기 정사각 충돌 박스
+    return { w: s, h: s };
+  }
+  const horiz = b.vx !== 0;
+  return horiz ? { w: ws.len, h: ws.wide } : { w: ws.wide, h: ws.len };
+}
+
+/* 캐릭터별 무기 모양으로 발사체 1개 그리기 */
+function drawBullet(b){
+  const ws = WEAPON_SPEC[b.type] || WEAPON_SPEC.bullet;
+  const horiz = b.vx !== 0;
+  ctx.save();
+  ctx.translate(b.x, b.y);
+  if(ws.spin){
+    ctx.rotate(b.rot || 0);            // 회전 무기: 빙글빙글
+  } else if(horiz){
+    ctx.rotate(Math.PI / 2);           // 직선 무기: 가로 발사 시 90° 눕힘
+  }
+  /* 이하 로컬 좌표 — 진행방향 = 세로, 길이 ws.len, 폭 ws.wide */
+  const L = ws.len, Wd = ws.wide;
+  switch(b.type){
+    case 'electric': {
+      // 청백색 지그재그 번개
+      ctx.shadowBlur = 12; ctx.shadowColor = '#7fdfff';
+      ctx.lineCap = 'round';
+      ctx.strokeStyle = '#dffaff'; ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(0, -L/2);
+      ctx.lineTo(-Wd/2, -L/6);
+      ctx.lineTo(Wd/2,  L/6);
+      ctx.lineTo(0,  L/2);
+      ctx.stroke();
+      ctx.strokeStyle = '#4fc3f7'; ctx.lineWidth = 1.4;
+      ctx.stroke();
+      break;
+    }
+    case 'telekinesis': {
+      // 빨간 염동력 구체
+      const r = Wd/2;
+      const g = ctx.createRadialGradient(0, 0, 0, 0, 0, r);
+      g.addColorStop(0,    '#ffe0e0');
+      g.addColorStop(0.45, '#ff4d4d');
+      g.addColorStop(1,    '#c20000');
+      ctx.shadowBlur = 14; ctx.shadowColor = '#ff3030';
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI*2); ctx.fill();
+      break;
+    }
+    case 'beam': {
+      // 밝은 하늘색 에너지빔 + 흰 코어
+      ctx.shadowBlur = 14; ctx.shadowColor = '#7ce0ff';
+      ctx.fillStyle = '#aef2ff';
+      ctx.beginPath(); ctx.roundRect(-Wd/2, -L/2, Wd, L, Wd/2); ctx.fill();
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath(); ctx.roundRect(-Wd/4, -L/2+2, Wd/2, L-4, Wd/4); ctx.fill();
+      break;
+    }
+    case 'shield': {
+      // 캡틴 방패 이미지 (회전)
+      if(shieldImg.complete && shieldImg.naturalWidth){
+        ctx.shadowBlur = 10; ctx.shadowColor = 'rgba(60,140,255,0.7)';
+        ctx.drawImage(shieldImg, -L/2, -Wd/2, L, Wd);
+      } else {
+        // 로딩 전 fallback: 파랑/빨강 원반
+        ctx.fillStyle = '#1565c0';
+        ctx.beginPath(); ctx.arc(0,0,L/2,0,Math.PI*2); ctx.fill();
+        ctx.fillStyle = '#e53935';
+        ctx.beginPath(); ctx.arc(0,0,L/4,0,Math.PI*2); ctx.fill();
+      }
+      break;
+    }
+    case 'hammer': {
+      // 토르 망치 (회전) — 손잡이 + 머리
+      ctx.shadowBlur = 8; ctx.shadowColor = 'rgba(180,210,255,0.85)';
+      ctx.fillStyle = '#8d6e63';                       // 손잡이
+      ctx.fillRect(-2.5, -2, 5, L/2);
+      ctx.fillStyle = '#cfd8dc';                       // 망치 머리
+      ctx.beginPath(); ctx.roundRect(-Wd/2, -L/2, Wd, L*0.42, 3); ctx.fill();
+      ctx.fillStyle = '#90a4ae';
+      ctx.fillRect(-Wd/2, -L/2, Wd, 3);
+      break;
+    }
+    case 'sword': {
+      // 가모라 검 (회전) — 날 + 가드 + 손잡이
+      ctx.shadowBlur = 8; ctx.shadowColor = 'rgba(200,230,255,0.85)';
+      ctx.fillStyle = '#e8eef2';                       // 날
+      ctx.beginPath();
+      ctx.moveTo(0, -L/2);
+      ctx.lineTo(Wd/2, -L/6);
+      ctx.lineTo(Wd/3, L/4);
+      ctx.lineTo(-Wd/3, L/4);
+      ctx.lineTo(-Wd/2, -L/6);
+      ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#b0772f';                       // 가드
+      ctx.fillRect(-Wd*0.7, L/4, Wd*1.4, 3);
+      ctx.fillStyle = '#5d4037';                       // 손잡이
+      ctx.fillRect(-2, L/4+3, 4, L/4);
+      break;
+    }
+    case 'knife': {
+      // 드랙스 칼 (회전)
+      ctx.shadowBlur = 6; ctx.shadowColor = 'rgba(220,220,220,0.75)';
+      ctx.fillStyle = '#dfe6ea';                       // 날
+      ctx.beginPath();
+      ctx.moveTo(0, -L/2);
+      ctx.lineTo(Wd/2, 0);
+      ctx.lineTo(-Wd/2, 0);
+      ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#cfd8dc';
+      ctx.fillRect(-Wd/2, 0, Wd, 2);
+      ctx.fillStyle = '#37474f';                       // 손잡이
+      ctx.fillRect(-2, 2, 4, L/2-2);
+      break;
+    }
+    default: {
+      // 'bullet' — 기존 금색 알약
+      ctx.shadowBlur = 12; ctx.shadowColor = '#FFA500';
+      ctx.fillStyle = '#FFD700';
+      ctx.beginPath(); ctx.roundRect(-Wd/2, -L/2, Wd, L, Math.min(Wd,L)/2); ctx.fill();
+    }
+  }
+  ctx.restore();
+}
+
+/* 캡틴 방패 부메랑 이동 — 던질 때 직진, 화면 끝/장애물에서 반전,
+   캡틴에게 돌아오면 b.dead 처리(다음 프레임 자동 재발사) */
+function updateShield(b, dt){
+  if(!b.returning){
+    b.x += b.vx*dt;
+    b.y += b.vy*dt;
+    /* 게임 영역 가장자리 도달 → 반전 */
+    if(b.x < 24 || b.x > W-24 || b.y < HUD_H+24 || b.y > H-BTM_H-24){
+      b.returning = true;
+      b.hitSet.clear();   // 돌아오는 구간에서 빌런을 다시 때릴 수 있게
+    }
+  } else {
+    /* 캡틴 중심을 향해 귀환 */
+    const tx = hero.x + SPR/2, ty = hero.y + SPR/2;
+    const dx = tx - b.x, dy = ty - b.y;
+    const dist = Math.hypot(dx, dy) || 1;
+    if(dist < 34){ b.dead = true; return; }   // 도착 → 제거 → 다음 프레임 재발사
+    b.vx = dx / dist * BULLET_SPD;
+    b.vy = dy / dist * BULLET_SPD;
+    b.x += b.vx*dt;
+    b.y += b.vy*dt;
+  }
 }
 
 /* cw/ch 배율을 반영한 히어로 전용 드로우
@@ -1004,67 +1175,135 @@ function updateAndDraw(dt){
   }
   enemies = enemies.filter(e => e.y < H + SPR * (e.scale||1) && !e.dead);
 
-  /* ── 사격 모드: 자동 사격 + 총알 처리 ── */
+  /* ── 사격 모드: 자동 사격 + 발사체 처리 ── */
   if(gameMode === 'shoot'){
-    fireTimer += dt;
-    if(fireTimer >= FIRE_INTERVAL){
-      fireTimer = 0;
-      /* 히어로 dir 기준으로 발사: DIR_LEFT/RIGHT 면 좌우, 아니면 정면(위) */
-      let vx = 0, vy = -BULLET_SPD;
-      let bx = hero.x + SPR/2 - BULLET_SHORT/2;
-      let by = hero.y;
-      if(hero.dir === DIR_LEFT){
-        vx = -BULLET_SPD; vy = 0;
-        bx = hero.x - BULLET_LONG;
-        by = hero.y + SPR/2 - BULLET_SHORT/2;
-      } else if(hero.dir === DIR_RIGHT){
-        vx = BULLET_SPD; vy = 0;
-        bx = hero.x + SPR;
-        by = hero.y + SPR/2 - BULLET_SHORT/2;
+    const wtype = HERO_WEAPON[_hd.name] || 'bullet';
+
+    if(wtype === 'shield'){
+      /* 캡틴 방패는 1개뿐 — 화면에 방패가 없을 때(돌아와 사라졌을 때)만 다시 던짐 */
+      if(!bullets.some(b => b.type === 'shield')){
+        let vx = 0, vy = -BULLET_SPD;
+        if(hero.dir === DIR_LEFT){ vx = -BULLET_SPD; vy = 0; }
+        else if(hero.dir === DIR_RIGHT){ vx = BULLET_SPD; vy = 0; }
+        bullets.push({
+          x: hero.x + SPR/2, y: hero.y + SPR/2,
+          vx, vy, dead:false, type:'shield', rot:0,
+          returning:false, hitSet:new Set()
+        });
       }
-      bullets.push({ x:bx, y:by, vx, vy, dead:false });
+    } else {
+      /* 일반 발사체 — fireTimer 기반 자동 사격 */
+      fireTimer += dt;
+      if(fireTimer >= FIRE_INTERVAL){
+        fireTimer = 0;
+        /* 히어로 dir 기준 발사 방향 — b.x/b.y 는 발사체 중심 좌표 */
+        let vx = 0, vy = -BULLET_SPD;
+        let bx = hero.x + SPR/2;
+        let by = hero.y;
+        if(hero.dir === DIR_LEFT){
+          vx = -BULLET_SPD; vy = 0;
+          bx = hero.x;
+          by = hero.y + SPR/2;
+        } else if(hero.dir === DIR_RIGHT){
+          vx = BULLET_SPD; vy = 0;
+          bx = hero.x + SPR;
+          by = hero.y + SPR/2;
+        }
+        bullets.push({ x:bx, y:by, vx, vy, dead:false, type:wtype, rot:0 });
+      }
     }
-    /* 총알 이동 */
-    for(const b of bullets){ b.x += b.vx*dt; b.y += b.vy*dt; }
-    /* 총알 vs 빌런 / 장애물 충돌 */
+
+    /* 발사체 이동 + 회전 무기 회전 */
+    for(const b of bullets){
+      if(b.type === 'shield'){
+        updateShield(b, dt);          // 부메랑 이동
+      } else {
+        b.x += b.vx*dt; b.y += b.vy*dt;
+      }
+      const ws = WEAPON_SPEC[b.type];
+      if(ws && ws.spin) b.rot = (b.rot || 0) + ws.spin * dt;
+    }
+
+    /* 발사체 vs 빌런 / 장애물 충돌 (중심 좌표 → 좌상단 변환) */
     for(const b of bullets){
       if(b.dead) continue;
-      const isHoriz = b.vx !== 0;
-      const bw = isHoriz ? BULLET_LONG : BULLET_SHORT;
-      const bh = isHoriz ? BULLET_SHORT : BULLET_LONG;
-      /* 빌런 hp 차감 */
-      for(const e of enemies){
-        if(e.dead) continue;
-        const eSize = SPR * (e.scale||1);
-        if(b.x + bw < e.x || b.x > e.x + eSize ||
-           b.y + bh < e.y || b.y > e.y + eSize) continue;
-        b.dead = true;
-        e.hp = (e.hp||1) - 1;
-        burst(b.x+bw/2, b.y+bh/2, '#FFD700', 5);
-        if(e.hp <= 0){
-          e.dead = true;
-          const pts = e.score || 1;
-          score += pts;
-          if(score > hiScore){ hiScore = score; localStorage.setItem('mcu_hs_run', hiScore); }
-          burst(e.x+eSize/2, e.y+eSize/2, '#FFD700', 18);
-          popup(e.x+eSize/2, e.y, '+' + pts + ' ⭐');
-        } else {
-          popup(b.x+bw/2, b.y, '-1');
+      const bb = bulletBox(b);
+      const bl = b.x - bb.w/2, bt = b.y - bb.h/2;
+
+      if(b.type === 'shield'){
+        /* 방패: 빌런 통과 (멈추지 않음) + 데미지 3, 이번 구간 빌런당 1회 */
+        for(const e of enemies){
+          if(e.dead || b.hitSet.has(e)) continue;
+          const eSize = SPR * (e.scale||1);
+          if(bl + bb.w < e.x || bl > e.x + eSize ||
+             bt + bb.h < e.y || bt > e.y + eSize) continue;
+          b.hitSet.add(e);
+          e.hp = (e.hp||1) - 3;
+          burst(b.x, b.y, '#4fc3f7', 6);
+          if(e.hp <= 0){
+            e.dead = true;
+            const pts = e.score || 1;
+            score += pts;
+            if(score > hiScore){ hiScore = score; localStorage.setItem('mcu_hs_run', hiScore); }
+            burst(e.x+eSize/2, e.y+eSize/2, '#FFD700', 18);
+            popup(e.x+eSize/2, e.y, '+' + pts + ' ⭐');
+          } else {
+            popup(b.x, b.y, '-3');
+          }
         }
-        break;
-      }
-      if(b.dead) continue;
-      /* 총알이 장애물에 막힘 */
-      for(const blk of blocks){
-        if(blk.hit) continue;
-        if(b.x + bw < blk.x || b.x > blk.x + blk.w ||
-           b.y + bh < blk.y || b.y > blk.y + blk.h) continue;
-        b.dead = true;
-        burst(b.x+bw/2, b.y+bh/2, '#ff9999', 4);
-        break;
+        /* 방패: 던지는 구간(returning=false)에서 장애물에 닿으면 그 지점에서 반전 */
+        if(!b.returning){
+          for(const blk of blocks){
+            if(blk.hit) continue;
+            if(bl + bb.w < blk.x || bl > blk.x + blk.w ||
+               bt + bb.h < blk.y || bt > blk.y + blk.h) continue;
+            b.returning = true;
+            b.hitSet.clear();
+            burst(b.x, b.y, '#ff9999', 5);
+            break;
+          }
+        }
+      } else {
+        /* 일반 발사체: 빌런/장애물에 맞으면 소멸, 데미지 1 */
+        for(const e of enemies){
+          if(e.dead) continue;
+          const eSize = SPR * (e.scale||1);
+          if(bl + bb.w < e.x || bl > e.x + eSize ||
+             bt + bb.h < e.y || bt > e.y + eSize) continue;
+          b.dead = true;
+          e.hp = (e.hp||1) - 1;
+          burst(b.x, b.y, '#FFD700', 5);
+          if(e.hp <= 0){
+            e.dead = true;
+            const pts = e.score || 1;
+            score += pts;
+            if(score > hiScore){ hiScore = score; localStorage.setItem('mcu_hs_run', hiScore); }
+            burst(e.x+eSize/2, e.y+eSize/2, '#FFD700', 18);
+            popup(e.x+eSize/2, e.y, '+' + pts + ' ⭐');
+          } else {
+            popup(b.x, b.y, '-1');
+          }
+          break;
+        }
+        if(b.dead) continue;
+        /* 발사체가 장애물에 막힘 */
+        for(const blk of blocks){
+          if(blk.hit) continue;
+          if(bl + bb.w < blk.x || bl > blk.x + blk.w ||
+             bt + bb.h < blk.y || bt > blk.y + blk.h) continue;
+          b.dead = true;
+          burst(b.x, b.y, '#ff9999', 4);
+          break;
+        }
       }
     }
-    bullets = bullets.filter(b => !b.dead && b.x > -40 && b.x < W+40 && b.y > -40 && b.y < H+40);
+
+    /* 정리: 일반 발사체는 화면 밖이면 제거. 방패는 updateShield 가 귀환 완료 시 b.dead 설정. */
+    bullets = bullets.filter(b => {
+      if(b.dead) return false;
+      if(b.type === 'shield') return true;
+      return b.x > -40 && b.x < W+40 && b.y > -40 && b.y < H+40;
+    });
   }
 
   // 타이머
@@ -1120,20 +1359,9 @@ function updateAndDraw(dt){
     }
   }
 
-  /* ── 총알 (사격 모드) ── */
+  /* ── 발사체 (사격 모드) — 캐릭터별 무기 모양 ── */
   if(gameMode === 'shoot'){
-    for(const b of bullets){
-      const isHoriz = b.vx !== 0;
-      const bw = isHoriz ? BULLET_LONG : BULLET_SHORT;
-      const bh = isHoriz ? BULLET_SHORT : BULLET_LONG;
-      ctx.save();
-      ctx.shadowBlur = 12; ctx.shadowColor = '#FFA500';
-      ctx.fillStyle = '#FFD700';
-      ctx.beginPath();
-      ctx.roundRect(b.x, b.y, bw, bh, Math.min(bw,bh)/2);
-      ctx.fill();
-      ctx.restore();
-    }
+    for(const b of bullets) drawBullet(b);
   }
 
   /* ── 파티클 ── */
@@ -1278,6 +1506,22 @@ const HERO_INFO = {
     blurb: '샘 윌슨. EXO-7 윙수트로 비행하는 공중전 전문가. 스티브 로저스의 뒤를 잇는 새로운 캡틴 아메리카가 된다.',
     aliases: ['샘 윌슨', '샘', '윌슨']
   }
+};
+
+/* 캐릭터별 사격 모드 발사체 타입 (WEAPON_SPEC 키) */
+const HERO_WEAPON = {
+  '가모라':       'sword',        // 갓슬레이어 검
+  '네뷸라':       'electric',     // 전류 배턴
+  '드랙스':       'knife',        // 칼
+  '로켓':         'bullet',
+  '블랙위도우':   'electric',
+  '스칼렛위치':   'telekinesis',  // 염동력 (빨간 구체)
+  '스타로드':     'electric',
+  '아이언맨':     'beam',         // 에너지빔 (밝은 하늘색)
+  '윈터솔저':     'bullet',
+  '캡틴아메리카': 'shield',       // 방패 (projectile_shield.png)
+  '토르':         'hammer',       // 망치
+  '팔콘':         'bullet'
 };
 
 /* 히어로 상세 오버레이 — solar.html dex-overlay 패턴
