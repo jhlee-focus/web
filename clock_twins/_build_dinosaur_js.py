@@ -15,7 +15,7 @@ DATA = [
     ("005","엘라스모사우루스","Elasmosaurus",3,"수장룡","육식","백악기 후기",14,2,"E",
      "목이 몸보다 더 긴 바다 공룡이에요. 긴 목으로 물고기를 쑥 잡았어요."),
     ("006","파브로사우루스","Fabrosaurus",2,"공룡","초식","쥐라기 전기",1,0.02,"F",
-     "강아지만큼 작은 초식 공룡이에요. 두 발로 빠르게 뛰어다녔어요."),
+     "강아지만큼 작은 초식 공룡이에요. 그림은 같은 공룡일지도 모르는 친척 레소토사우루스에서 빌려왔어요."),
     ("007","갈리미무스","Gallimimus",3,"공룡","잡식","백악기 후기",6,0.4,"G",
      "타조처럼 길고 가는 다리로 빠르게 달렸어요. 이빨 없는 부리가 있었어요."),
     ("008","하드로사우루스","Hadrosaurus",3,"공룡","초식","백악기 후기",10,4,"H",
@@ -51,7 +51,7 @@ DATA = [
     ("023","완나노사우루스","Wannanosaurus",3,"공룡","초식","백악기 후기",0.6,0.005,"W",
      "고양이만큼 작은 공룡이에요. 그림은 큰 사촌 파키케팔로사우루스인데, 단단한 머리로 부딪치는 모습은 비슷해요."),
     ("024","제노타르소사우루스","Xenotarsosaurus",3,"공룡","육식","백악기 후기",6,1,"X",
-     "남아메리카에서 살던 사냥꾼이에요. 발목 뼈가 특별하게 생겨서 이런 이름이 됐어요."),
+     "남아메리카에서 살던 사냥꾼이에요. 그림은 가까운 친척 카르노타우루스에서 빌려왔어요. 머리 위 작은 뿔이 닮았어요."),
     ("025","양추아노사우루스","Yangchuanosaurus",2,"공룡","육식","쥐라기 후기",10,3,"Y",
      "중국에서 살던 큰 육식 공룡이에요. 알로사우루스랑 친척이고 비슷하게 생겼어요."),
     ("026","지공고사우루스","Zigongosaurus",2,"공룡","초식","쥐라기 후기",20,15,"Z",
@@ -138,20 +138,32 @@ print(f"dinosaur_data.js written: basic 12 + all {len(DATA)}")
 
 credits = """# 공룡 시계 이미지·설명 출처
 
-이 디렉터리의 모든 이미지는 `build_dinosaur_data.py`로 받은 결과물입니다.
-출처는 두 곳이며 모두 CC BY-SA 3.0 라이선스로 사용합니다.
+이 디렉터리의 모든 이미지는 `build_dinosaur_data.py` + 수동 픽으로 받은 결과물입니다.
+출처는 두 곳(dino.fandom + jurassicpark.fandom)이며 모두 CC BY-SA 3.0 라이선스로 사용합니다.
 
-## 1. dino.fandom.com (대부분, ~41종)
+## 1. dino.fandom.com (대부분, ~37종)
 
 `https://dino.fandom.com/wiki/{Species}` 페이지의 인포박스 메인 이미지.
 라이선스: **CC BY-SA 3.0**. 페이지 본문 첫 문단은 7세 친화 한국어로 가공해
 `dinosaur_data.js`의 `blurb` 필드에 사용했습니다.
 
-## 2. 대체 이미지 (3종 — 가까운 친척 종으로 비주얼 대체)
+## 2. jurassicpark.fandom.com (2종 — 영화 리얼리스틱 렌더)
 
-해당 종은 dino.fandom.com에 페이지가 없거나 Wikipedia의 이미지가 두개골/박물관 전시 같이
-어린이용으로 부적절해, 같은 과/가까운 친척의 일러스트로 대체했습니다. blurb에 사촌임을 명시.
+도감 인상을 더 실사형으로 보강하기 위해 Jurassic World Rebirth 영화 공식 투명 PNG 렌더로 교체:
 
+- **스피노사우루스 (`Spinosaurus`)** — `Spinosaurus_Rebirth_Render.webp` (jurassicpark.fandom.com).
+  주황 줄무늬 돛 + 입을 벌린 포즈의 실사형 CGI 렌더.
+- **벨로키랍토르 (`Velociraptor`)** — `Velociraptor_Rebirth.webp` (jurassicpark.fandom.com).
+  깃털 없는 영화판 무지개 눈 디자인의 실사형 CGI 렌더.
+
+## 3. 대체 이미지 (5종 — 가까운 친척 종으로 비주얼 대체)
+
+해당 종은 wiki 이미지가 두개골/박물관 전시/사이즈 차트같이 어린이용으로 부적절하거나,
+2D 일러스트만 존재해 실사형 인상을 주지 못했습니다. 같은 과/가까운 친척의 일러스트로
+대체했고 blurb에 친척 관계를 명시했습니다.
+
+- **파브로사우루스 (`Fabrosaurus`)** — 동의어로 추정되는 **레소토사우루스(Lesothosaurus)**
+  실사형 CGI 렌더 (dino.fandom.com). Fabrosaurus는 *nomen dubium*이며 같은 동물일 가능성이 큽니다.
 - **지공고사우루스 (`Zigongosaurus`)** — 같은 마멘치사우루스과(Mamenchisauridae)의
   **마멘치사우루스(Mamenchisaurus)** 이미지 (dino.fandom.com). 두 종은 같은 과의 중국 출신
   대형 용각류로 외형이 비슷합니다.
@@ -161,12 +173,16 @@ credits = """# 공룡 시계 이미지·설명 출처
 - **완나노사우루스 (`Wannanosaurus`)** — 같은 파키케팔로사우루스과(Pachycephalosauridae)의
   **파키케팔로사우루스(Pachycephalosaurus)** 이미지 (dino.fandom.com). 둘 다 두꺼운 머리로
   부딪치며 살았던 친척입니다.
+- **제노타르소사우루스 (`Xenotarsosaurus`)** — 같은 아벨리사우루스과(Abelisauridae)의
+  **카르노타우루스(Carnotaurus)** 실사형 CGI 렌더 (dino.fandom.com / Jurassic World).
+  둘 다 짧은 앞다리와 작은 머리 뿔을 가진 남미 수각류입니다.
 
 ## 재생성 방법
 
 ```sh
 cd clock_twins/
 python build_dinosaur_data.py
+# 그 후 4종(006/019/022/024)은 수동 픽 → _apply_picks.py 로 덮어쓰기
 ```
 
 원본 PNG/JPG는 `img_dinosaur_src/`에 캐시되며 (gitignored), 변환 결과만
