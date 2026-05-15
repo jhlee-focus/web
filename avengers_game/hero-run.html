@@ -634,22 +634,33 @@ const boomerangMask = {};
 function buildImgMask(img){
   const w = img.naturalWidth, h = img.naturalHeight;
   if(!w || !h) return null;
-  const oc = document.createElement('canvas');
-  oc.width = w; oc.height = h;
-  const octx = oc.getContext('2d');
-  octx.drawImage(img, 0, 0);
-  const data = octx.getImageData(0, 0, w, h).data;
-  const mask = new Uint8Array(w * h);
-  for(let i = 0; i < w * h; i++){
-    mask[i] = data[i*4 + 3] > 0 ? 1 : 0;   // 조금이라도 불투명하면 충돌 대상
+  try {
+    const oc = document.createElement('canvas');
+    oc.width = w; oc.height = h;
+    const octx = oc.getContext('2d');
+    octx.drawImage(img, 0, 0);
+    const data = octx.getImageData(0, 0, w, h).data;   // tainted canvas 면 예외
+    const mask = new Uint8Array(w * h);
+    for(let i = 0; i < w * h; i++){
+      mask[i] = data[i*4 + 3] > 0 ? 1 : 0;   // 조금이라도 불투명하면 충돌 대상
+    }
+    return { mask, w, h };
+  } catch(e) {
+    /* tainted canvas 등으로 getImageData 차단 시 마스크 없이 진행
+       → boomerangPixelHit 가 원형 근사로 fallback. (현재는 base64 인라인이라 발생 안 함) */
+    return null;
   }
-  return { mask, w, h };
 }
 /* onload 는 src 설정 전에 등록 (캐시 시 즉시 로드 대비) */
 shieldImg.onload  = function(){ boomerangMask.shield = buildImgMask(shieldImg); };
 mjolnirImg.onload = function(){ boomerangMask.hammer = buildImgMask(mjolnirImg); };
-shieldImg.src  = '2d_game_assets/projectile_shield.png';
-mjolnirImg.src = '2d_game_assets/thor_mjolnir_mini.png';
+shieldImg.src  = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACYAAAAkCAYAAADl9UilAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAGHaVRYdFhNTDpjb20uYWRvYmUueG1wAAAAAAA8P3hwYWNrZXQgYmVnaW49J++7vycgaWQ9J1c1TTBNcENlaGlIenJlU3pOVGN6a2M5ZCc/Pg0KPHg6eG1wbWV0YSB4bWxuczp4PSJhZG9iZTpuczptZXRhLyI+PHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj48cmRmOkRlc2NyaXB0aW9uIHJkZjphYm91dD0idXVpZDpmYWY1YmRkNS1iYTNkLTExZGEtYWQzMS1kMzNkNzUxODJmMWIiIHhtbG5zOnRpZmY9Imh0dHA6Ly9ucy5hZG9iZS5jb20vdGlmZi8xLjAvIj48dGlmZjpPcmllbnRhdGlvbj4xPC90aWZmOk9yaWVudGF0aW9uPjwvcmRmOkRlc2NyaXB0aW9uPjwvcmRmOlJERj48L3g6eG1wbWV0YT4NCjw/eHBhY2tldCBlbmQ9J3cnPz4slJgLAAAA5ElEQVRYR+2YQQrCMBBFWw/gcbpS0HWph3Hvyr2HMbhW0JXH8QK66jBOM8kkxvIXeVAIA6Gf/0hp2zZ5vOUgQisHMRZygAJssFjFXmXn1UaOguweNzkaUe8P2xhsMF+VpE9TNtyvchTErbdy1DRTxV9ZYBuDDWZWyfVxNcflntacw+tEa21vVVmSsb5sfc/LQGtO1zta52iFbQw2mFnlP6gqS2IO1vWOrlRy9pqDzQ1ssJ9PpaZHe/By6qksSX3tSQU2mFklx3JaOfVjZA58Kjn1F4EENphaZQSv4gDJ94FtDDbYB00GWnYzvDfiAAAAAElFTkSuQmCC';  /* 인라인: file:// 에서도 same-origin → getImageData(알파마스크) 가능 */
+mjolnirImg.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAF9SURBVDhPnVJBSwJRGHyH5+YuuxKo+9zSoDT1JEa7gXrQIOgSFLu38FIS0U1Bz26abrAgBF07ZIfoP9Sx/tbEt+UhMZQdGPiYmW8e+94y9oM1IcS7ZVlYhbqufzDGor+7TBNCfGazWfT7fUwmE/i+v5Dkua6LXC4HIcQXYyzGIpHIfqlUgmma6HQ6GA6HQWgRyaMMZWmHc25RwV65XEa9Xke73V5aQBnK0g4dzjjn5qKC8XgMz/MC0ryogHN+wCRJ2qXvz+fz6Ha7GI1GGAwGaLVaaDabAWkmjbxer4dCoRDcgyRJ+eAWFUW5INFxHNRqNVQqFTQaDRzbNk4cJ5hJI48yxWIRiqJczl4hgCzLp/F4/FbTNJdoGMbzVWYLhyIFwzCmM50ysiyf/Vn+D+eKims1hnl9ZUxTm3gz0uELLmPrsFUtfIGX0PEkNsIX3CgqbCkavmA7ncHRTjZcga7rD/e+jzvfp2d8nPeXIpFIvNDPU61WkUwmX+f9Gb4BApfsin8SN38AAAAASUVORK5CYII=';  /* 인라인: file:// 에서도 same-origin → getImageData(알파마스크) 가능 */
+
+/* 캡틴 아메리카 — 방패를 던진 동안 쓰는 "방패 없는" 스프라이트.
+   기존 캡틴 스프라이트와 동일 레이아웃(288×384, 3프레임×4방향) */
+const capNoShieldImg = new Image();
+capNoShieldImg.src = '2d_game_assets/capamerica-noshield.png';
 function updateBackBtn(){
   const btn = document.getElementById('restart-btn');
   if(btn) btn.style.display = (state === 'playing') ? 'flex' : 'none';
@@ -736,7 +747,15 @@ function boomerangPixelHit(b, rx, ry, rw, rh){
   if(ix0 >= ix1 || iy0 >= iy1) return false;
   /* 2단계: 회전 역변환 + 알파 마스크 */
   const m = boomerangMask[b.type];
-  if(!m) return true;                        // 마스크 미준비 → AABB 결과
+  if(!m){
+    /* 마스크 미준비(로딩 전 / tainted canvas) → AABB 대신 원형 근사로 fallback.
+       빈 모서리까지 충돌하는 AABB 보다 훨씬 정확. */
+    const r = Math.min(ws.len, ws.wide) / 2 * 0.9;
+    const cx = Math.max(rx, Math.min(b.x, rx + rw));   // 대상 사각형에서 b 중심에 가장 가까운 점
+    const cy = Math.max(ry, Math.min(b.y, ry + rh));
+    const ddx = b.x - cx, ddy = b.y - cy;
+    return (ddx*ddx + ddy*ddy) <= r*r;
+  }
   const rot = b.rot || 0;
   const cos = Math.cos(rot), sin = Math.sin(rot);
   const STEP = 3;
@@ -1437,7 +1456,14 @@ function updateAndDraw(dt){
 
   /* ── 히어로 (무적 중 깜빡) ── */
   if(hero.inv <= 0 || Math.floor(hero.inv*8)%2 === 0){
-    if(SP[_hd.key]) drawHero(SP[_hd.key], hero.x, hero.y, hero.dir, hero.frame, _hd.cw, _hd.ch);
+    let heroImg = SP[_hd.key];
+    /* 캡틴 아메리카: 사격 모드에서 방패가 날아가 있는 동안은 "방패 없는" 스프라이트 */
+    if(_hd.key === '캡틴아메리카' && gameMode === 'shoot'
+       && capNoShieldImg.complete && capNoShieldImg.naturalWidth
+       && bullets.some(b => b.type === 'shield')){
+      heroImg = capNoShieldImg;
+    }
+    if(heroImg) drawHero(heroImg, hero.x, hero.y, hero.dir, hero.frame, _hd.cw, _hd.ch);
     else { ctx.fillStyle='#4488ff'; ctx.fillRect(hero.x,hero.y,SPR,SPR); }
   }
   // 히어로 이름
