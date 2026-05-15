@@ -226,8 +226,32 @@
     .hiscore-text {
       color: rgba(255,215,0,0.65);
       font-size: 0.85rem; font-weight: 700;
-      margin-top: 2px; min-height: 1.1em;
+      min-height: 1.1em;
     }
+    .hiscore-row {
+      display: inline-flex; align-items: center; gap: 8px;
+      margin-top: 2px;
+      min-height: 1.4em;
+    }
+    .hiscore-reset {
+      font-family: inherit;
+      font-size: 0.72rem; font-weight: 700;
+      color: rgba(255,255,255,0.55);
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.18);
+      border-radius: 999px;
+      padding: 3px 10px;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+      letter-spacing: 0.3px;
+    }
+    .hiscore-reset:hover {
+      background: rgba(237,29,36,0.18);
+      color: #fff;
+      border-color: rgba(237,29,36,0.55);
+    }
+    .hiscore-reset:active { transform: translateY(1px); }
+    .hiscore-reset[hidden] { display: none !important; }
 
     /* ══════════════════════════════════════
        도감 화면
@@ -437,7 +461,10 @@
       <button type="button" class="btn-primary" id="btn-start-game">▶  게임 시작</button>
       <button type="button" class="btn-secondary" id="btn-open-dex">📖  히어로 도감</button>
     </div>
-    <div class="hiscore-text" id="hiscore-text"></div>
+    <div class="hiscore-row">
+      <span id="hiscore-text" class="hiscore-text"></span>
+      <button type="button" id="hiscore-reset" class="hiscore-reset" hidden aria-label="최고 점수 초기화">↻ 초기화</button>
+    </div>
   </div>
 
   <!-- ── 도감 화면 (초기 숨김 — 도감 버튼 누를 때만 표시) -->
@@ -1748,8 +1775,10 @@ function updatePreview(){
 
 function updateHiScoreText(){
   const el = document.getElementById('hiscore-text');
-  if(!el) return;
-  el.textContent = hiScore > 0 ? '🏆 최고 점수: ' + hiScore : '';
+  const rst = document.getElementById('hiscore-reset');
+  if(el) el.textContent = hiScore > 0 ? '🏆 최고 점수: ' + hiScore : '';
+  /* 초기화 버튼은 기록이 있을 때만 노출 */
+  if(rst) rst.hidden = !(hiScore > 0);
 }
 
 /* ── 히어로 도감 ── */
@@ -1986,6 +2015,15 @@ window.addEventListener('load', function(){
   /* 히어로 상세 오버레이 — 어디든 클릭 시 닫힘 (solar.html 패턴) */
   const heroOv = document.getElementById('hero-overlay');
   if(heroOv) heroOv.addEventListener('click', closeHeroOverlay);
+
+  /* 최고 점수 초기화 버튼 */
+  const btnHiReset = document.getElementById('hiscore-reset');
+  if(btnHiReset) btnHiReset.addEventListener('click', function(){
+    if(!confirm('최고 점수를 초기화할까요?')) return;
+    hiScore = 0;
+    try { localStorage.removeItem('mcu_hs_run'); } catch(e) {}
+    updateHiScoreText();
+  });
 
   /* 초기 화면 */
   updatePreview();
