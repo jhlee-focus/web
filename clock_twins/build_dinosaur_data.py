@@ -110,18 +110,85 @@ def fetch_page(en_name):
 
 
 def extract_infobox_image(html):
-    """Find the first <img> inside an .portable-infobox aside."""
-    m = re.search(
-        r'<aside[^>]*portable-infobox[^>]*>.*?<img[^>]+(?:data-src|src)="([^"]+)"',
-        html,
-        re.DOTALL | re.IGNORECASE,
-    )
-    if not m:
+    """Find the main <img> inside the infobox table.
+    dino.fandom uses classic <table class="infobox"> markup:
+      <th><img>name-banner.png</img></th>     <- skip
+      <td><img>actual_photo.png</img></td>    <- want this
+    Strategy: collect imgs inside the infobox table, reject obviously bad ones
+    (name banners, scale charts, skull-only, museum exhibits, etc.), return first usable.
+    """
+    # 파일명 거부 패턴 (정규식). 다음 중 하나라도 매칭되면 스킵.
+    BAD_PATTERNS = [
+        re.compile(r"name\.\w+$", re.IGNORECASE),         # *name.png
+        re.compile(r"\bname\b", re.IGNORECASE),
+        re.compile(r"\b(logo|wordmark|icon|edit[-_]ltr|edit[-_]rtl)\b", re.IGNORECASE),
+        re.compile(r"\b(scale|size|sizes|comparison)\b", re.IGNORECASE),
+        re.compile(r"\b(skull|skeleton|fossil|fossils|bones|tooth|teeth)\b", re.IGNORECASE),
+        re.compile(r"\b(graph|chart|map|diagram)\b", re.IGNORECASE),
+        re.compile(r"paleozoological|paleontolog", re.IGNORECASE),
+        re.compile(r"\bmuseum\b", re.IGNORECASE),
+        re.compile(r"\bquestion[-_]book", re.IGNORECASE),
+        re.compile(r"\bcommons[-_]logo", re.IGNORECASE),
+        # JW detail page hero banner — 가로 길고 텍스트 오버레이 들어있을 가능성 ↑
+        re.compile(r"-detail-header", re.IGNORECASE),
+        re.compile(r"_header_copia", re.IGNORECASE),
+        re.compile(r"\bheader\b", re.IGNORECASE),
+    ]
+
+    def is_bad(filename):
+        # filename only (no path)
+        for pat in BAD_PATTERNS:
+            if pat.search(filename):
+                return True
+        return False
+
+    def extract_fn(url):
+        url_clean = url.replace("&amp;", "&")
+        fn = re.search(r"/([^/]+\.(?:png|jpg|jpeg|webp|gif))", url_clean, re.IGNORECASE)
+        if not fn:
+            return None
+        # URL-decode (e.g., %281%29 → (1)) so Special:FilePath redirect works correctly.
+        return urllib.parse.unquote(fn.group(1))
+
+    def candidate_from_imgs(imgs):
+        # Pass 1: skip bad filenames
+        for url in imgs:
+            file_part = extract_fn(url)
+            if not file_part:
+                continue
+            if is_bad(file_part):
+                continue
+            return file_part
+        # Pass 2: accept any image (last resort)
+        for url in imgs:
+            file_part = extract_fn(url)
+            if file_part:
+                return file_part
         return None
-    url = m.group(1).replace("&amp;", "&")
-    # extract filename from URL like .../images/x/yz/Foo.png/revision/latest/...
-    fn = re.search(r"/([^/]+\.(?:png|jpg|jpeg|webp|gif))", url, re.IGNORECASE)
-    return fn.group(1) if fn else None
+
+    # 1) Try classic <table class="infobox">
+    m = re.search(r'<table[^>]*\binfobox\b[^>]*>(.*?)</table>', html, re.DOTALL | re.IGNORECASE)
+    if m:
+        box = m.group(1)
+        imgs = re.findall(r'<img[^>]+(?:data-src|src)="([^"]+)"', box)
+        result = candidate_from_imgs(imgs)
+        if result:
+            return result
+
+    # 2) Fallback: portable-infobox aside (modern fandom)
+    m2 = re.search(r'<aside[^>]*portable-infobox[^>]*>(.*?)</aside>', html, re.DOTALL | re.IGNORECASE)
+    if m2:
+        box = m2.group(1)
+        imgs = re.findall(r'<img[^>]+(?:data-src|src)="([^"]+)"', box)
+        result = candidate_from_imgs(imgs)
+        if result:
+            return result
+
+    # 3) 마지막 폴백: 페이지 본문 전체에서 첫 적합 이미지
+    # — dino.fandom의 일부 페이지(Diplodocus 등)는 infobox 없이 <figure class="thumb">만 있음.
+    # 첫 figure는 이름 배너인 경우가 많아 필터로 거른 뒤 다음을 선택.
+    all_imgs = re.findall(r'<img[^>]+(?:data-src|src)="([^"]+)"', html)
+    return candidate_from_imgs(all_imgs)
 
 
 def extract_intro_paragraph(html):
@@ -249,11 +316,13 @@ def main():
                 print(f"    download: {img_filename}  ({size_kb} KB)")
             else:
                 print(f"    cached:   {src_file.name}")
-            time.sleep(1.5)  # Cloudflare rate-limit 회피
+            time.sleep(4.0)  # Cloudflare rate-limit 회피 — 큰 폭으로 늘려 ~3분 짜리 안전 진행
 
             out_file = OUT_DIR / f"DN-{no}_{ko}.webp"
             to_webp_square(src_file, out_file)
             print(f"    -> {out_file.name}  ({out_file.stat().st_size // 1024} KB)")
+            # 종별로 즉시 저장 — Cloudflare 차단되더라도 진행분 보존
+            desc_file.write_text(json.dumps(descriptions, ensure_ascii=False, indent=2), encoding="utf-8")
         except Exception as e:
             print(f"    FAIL: {e}")
             failures.append((no, ko, en, str(e)))

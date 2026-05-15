@@ -9,17 +9,20 @@
 라이선스: **CC BY-SA 3.0**. 페이지 본문 첫 문단은 7세 친화 한국어로 가공해
 `dinosaur_data.js`의 `blurb` 필드에 사용했습니다.
 
-## 2. en.wikipedia.org (보완, 2종)
+## 2. 대체 이미지 (3종 — 가까운 친척 종으로 비주얼 대체)
 
-dino.fandom.com에 페이지가 없는 종은 영어 위키백과에서 받음. 라이선스 동일.
-- 작사르토사우루스 (`Jaxartosaurus`) — Wikipedia
-- 완나노사우루스 (`Wannanosaurus`) — Wikipedia
+해당 종은 dino.fandom.com에 페이지가 없거나 Wikipedia의 이미지가 두개골/박물관 전시 같이
+어린이용으로 부적절해, 같은 과/가까운 친척의 일러스트로 대체했습니다. blurb에 사촌임을 명시.
 
-## 3. 대체 이미지 (1종)
-
-- 지공고사우루스 (`Zigongosaurus`) — 같은 마멘치사우루스과(Mamenchisauridae)의
-  마멘치사우루스(Mamenchisaurus) 이미지로 대체 (dino.fandom.com). 두 종은 같은
-  과의 중국 출신 대형 용각류로 외형이 비슷합니다.
+- **지공고사우루스 (`Zigongosaurus`)** — 같은 마멘치사우루스과(Mamenchisauridae)의
+  **마멘치사우루스(Mamenchisaurus)** 이미지 (dino.fandom.com). 두 종은 같은 과의 중국 출신
+  대형 용각류로 외형이 비슷합니다.
+- **작사르토사우루스 (`Jaxartosaurus`)** — 같은 람베오사우루스과(Lambeosaurinae)의
+  **코리토사우루스(Corythosaurus)** 이미지 (dino.fandom.com). 둘 다 머리에 볏을 가진
+  하드로사우르과 친척입니다.
+- **완나노사우루스 (`Wannanosaurus`)** — 같은 파키케팔로사우루스과(Pachycephalosauridae)의
+  **파키케팔로사우루스(Pachycephalosaurus)** 이미지 (dino.fandom.com). 둘 다 두꺼운 머리로
+  부딪치며 살았던 친척입니다.
 
 ## 재생성 방법
 
