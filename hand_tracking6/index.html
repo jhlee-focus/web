@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ko">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
-<title>Cat's Cradle — Neon Hand Tracking</title>
+<title>줄놀이 — 네온 손동작 트래킹</title>
 <style>
   html, body {
     margin: 0;
@@ -14,7 +14,7 @@
     color: #9ff;
     font-family: 'Courier New', Consolas, monospace;
   }
-  /* Hidden source <video>; we paint frames manually onto the p5 canvas. */
+  /* 숨겨진 원본 <video>; p5 캔버스에 프레임을 직접 그려서 사용한다. */
   #cam { display: none; }
   #status {
     position: fixed;
@@ -86,7 +86,7 @@
     background: transparent;
     color: #8dd;
     cursor: pointer;
-    font: 700 11px/1 'Courier New', Consolas, monospace;
+    font: 700 11px/1 'Courier New', Consolas, monospace, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
     letter-spacing: 0.1em;
     padding: 9px 13px;
     text-shadow: 0 0 7px #0ff8;
@@ -118,20 +118,20 @@
 </head>
 <body>
 <!--
-  Run locally:    python -m http.server 8000
-  Then visit:     http://localhost:8000/index.html
-  (Opening this file via file:// blocks getUserMedia in most browsers.)
+  로컬 실행:    python -m http.server 8000
+  접속 주소:    http://localhost:8000/index.html
+  (file:// 프로토콜로 직접 열면 대부분의 브라우저가 getUserMedia를 차단한다.)
 -->
-<div id="status">INITIALIZING CAMERA…</div>
+<div id="status">카메라 준비 중…</div>
 <div id="hud" aria-live="polite">
-  <span class="hud-item"><span id="leftDot" class="hud-dot"></span>L</span>
-  <span class="hud-item"><span id="rightDot" class="hud-dot"></span>R</span>
-  <span id="fpsReadout" class="hud-item">-- FPS</span>
-  <span id="perfReadout" class="hud-item">HI</span>
+  <span class="hud-item"><span id="leftDot" class="hud-dot"></span>좌</span>
+  <span class="hud-item"><span id="rightDot" class="hud-dot"></span>우</span>
+  <span id="fpsReadout" class="hud-item">-- 프레임</span>
+  <span id="perfReadout" class="hud-item">높음</span>
 </div>
-<div id="modeControls" role="group" aria-label="Visualization mode">
-  <button type="button" class="active" data-mode="strings" aria-pressed="true">STRINGS</button>
-  <button type="button" data-mode="sphere" aria-pressed="false">SPHERE</button>
+<div id="modeControls" role="group" aria-label="시각화 모드">
+  <button type="button" class="active" data-mode="strings" aria-pressed="true">줄놀이</button>
+  <button type="button" data-mode="sphere" aria-pressed="false">구체</button>
 </div>
 <video id="cam" playsinline autoplay muted></video>
 
@@ -141,27 +141,33 @@
 
 <script>
 /* ===========================================================
-   Cat's Cradle — neon hand-tracking instrument
-   p5.js (global mode) + MediaPipe Hands
+   줄놀이 — 네온 손동작 트래킹 인스트루먼트
+   p5.js (글로벌 모드) + MediaPipe Hands
    =========================================================== */
 
 let videoEl;
 let latestResults = null;
 
-const FINGERTIPS = [4, 8, 12, 16, 20]; // thumb, index, middle, ring, pinky
-const SPHERE_FINGERS = [8, 12, 16, 20]; // index..pinky tips anchor the sphere
-const D_MIN = 60;   // px — fully-taut threshold
-const D_MAX = 700;  // px — fully-stretched threshold
+const FINGERTIPS = [4, 8, 12, 16, 20]; // 엄지, 검지, 중지, 약지, 새끼
+const SPHERE_FINGERS = [8, 12, 16, 20]; // 검지~새끼 끝점이 구체를 잡아준다
+const D_MIN = 60;   // px — 줄이 완전히 팽팽해지는 임계값
+const D_MAX = 700;  // px — 줄이 끝까지 늘어났다고 간주하는 임계값
 const SPHERE_D_MIN = 90;
 const SPHERE_D_MAX = 760;
 const SPHERE_R_MIN = 42;
 const SPHERE_R_MAX = 300;
 
-// Touch / particle-burst tuning
-const TOUCH_DIST    = 38;   // px — fingers count as "touching" below this
-const TOUCH_RELEASE = 70;   // px — must move beyond this to re-arm a burst
-const BURST_PARTICLES = 20; // particles per fingertip touch burst
-const MAX_PARTICLES = 320;  // hard cap so the array doesn't grow without bound
+// 한 손만 인식될 때 행성(소형 구체)에 쓰는 임계값
+const SOLO_SPREAD_MIN = 25;   // px — 손가락이 모인 정도(평균 반경 최소)
+const SOLO_SPREAD_MAX = 160;  // px — 손가락이 활짝 펴진 정도(평균 반경 최대)
+const SOLO_R_MIN = 30;
+const SOLO_R_MAX = 170;
+
+// 손끝 충돌 / 파티클 버스트 튜닝값
+const TOUCH_DIST    = 38;   // px — 이 거리보다 가까우면 "닿은" 것으로 본다
+const TOUCH_RELEASE = 70;   // px — 이 거리 이상으로 떨어져야 다음 버스트가 다시 발동한다
+const BURST_PARTICLES = 20; // 손끝 한 쌍이 닿을 때마다 터지는 파티클 수
+const MAX_PARTICLES = 320;  // 파티클 배열이 무한히 커지지 않도록 잡는 상한
 
 const PERF_PROFILES = {
   high:     { burstScale: 1.00, particleCapScale: 1.00, glowScale: 1.00, particleGlow: 18 },
@@ -169,7 +175,7 @@ const PERF_PROFILES = {
   low:      { burstScale: 0.50, particleCapScale: 0.50, glowScale: 0.45, particleGlow: 7 },
 };
 
-// One "in-contact" flag per matching fingertip pair (thumb..pinky).
+// 손끝 쌍(엄지~새끼)별 "현재 닿아 있는 중"이라는 플래그.
 const contactState = [false, false, false, false, false];
 let particles = [];
 let pulseLevel = 0;
@@ -211,7 +217,7 @@ async function initMediaPipe() {
     });
     hands.setOptions({
       maxNumHands: 2,
-      modelComplexity: 0,         // fast model — fingertips don't need #1
+      modelComplexity: 0,         // 빠른 모델 — 손끝 추적엔 #1까지 필요 없다
       minDetectionConfidence: 0.6,
       minTrackingConfidence: 0.5,
     });
@@ -224,10 +230,10 @@ async function initMediaPipe() {
     });
     await camera.start();
 
-    status.textContent = 'SHOW BOTH HANDS';
+    status.textContent = '양손을 비춰 주세요';
     setTimeout(() => { status.style.opacity = '0.18'; }, 3500);
   } catch (err) {
-    status.textContent = 'CAMERA ERROR: ' + (err.message || err);
+    status.textContent = '카메라 오류: ' + (err.message || err);
     status.style.color = '#ff5577';
     status.style.opacity = '0.95';
     console.error(err);
@@ -249,8 +255,8 @@ function draw() {
     ? latestResults.multiHandedness
     : [];
 
-  // MediaPipe's "Left/Right" label is from the camera's POV.
-  // Because we mirror the video on screen, the on-screen label is flipped.
+  // MediaPipe의 "Left/Right" 라벨은 카메라 시점 기준이다.
+  // 화면에서는 영상을 좌우 반전해서 보여주므로 라벨도 뒤집어 매핑한다.
   const handMap = { Left: null, Right: null };
   for (let i = 0; i < allHands.length; i++) {
     const raw = handedness[i] && handedness[i].label;
@@ -268,28 +274,33 @@ function draw() {
     return;
   }
 
-  // 1. Glowing dots on every joint of every visible hand.
+  // 1. 인식된 손 모든 관절에 발광 점.
   for (let i = 0; i < allHands.length; i++) drawHandDots(allHands[i]);
 
-  // 2. Elastic strings between matching fingertips of left & right.
+  // 2. 모드별 메인 시각화 + 손끝 충돌 감지.
   if (handMap.Left && handMap.Right) {
+    // 양손 다 잡혔을 때는 어떤 모드든 손끝 충돌을 감지해서 버스트를 띄운다.
+    detectFingertipCollisions(handMap.Left, handMap.Right);
     if (visualMode === 'sphere') {
-      resetContactState();
       drawWireSphereBetweenHands(handMap.Left, handMap.Right);
     } else {
       drawCradleStrings(handMap.Left, handMap.Right);
     }
   } else {
-    // Lost a hand → re-arm every pair so the next touch fires a fresh burst.
+    // 한 손을 놓치면 다음 접촉이 새 버스트로 잡히도록 모든 쌍을 재무장한다.
     resetContactState();
+    // 구체 모드에서 한 손만 보일 때는 손가락들 사이에 작은 행성을 띄운다.
+    if (visualMode === 'sphere' && (handMap.Left || handMap.Right)) {
+      drawWireSphereForSingleHand(handMap.Left || handMap.Right);
+    }
   }
 
-  // 3. Particles always update on top of everything else.
+  // 3. 파티클은 항상 다른 그림 위에서 갱신·렌더한다.
   updateAndDrawParticles();
   drawScreenPulse();
 }
 
-/* ----- helpers ------------------------------------------------ */
+/* ----- 보조 함수 ---------------------------------------------- */
 
 function initHud() {
   statusEl = document.getElementById('status');
@@ -359,25 +370,25 @@ function updateHud(leftSeen, rightSeen) {
 
   if (leftDotEl) leftDotEl.classList.toggle('active', leftSeen);
   if (rightDotEl) rightDotEl.classList.toggle('active', rightSeen);
-  if (fpsReadoutEl) fpsReadoutEl.textContent = `${fpsBucket} FPS`;
+  if (fpsReadoutEl) fpsReadoutEl.textContent = `${fpsBucket} 프레임`;
   if (perfReadoutEl) {
-    const labels = { high: 'HI', balanced: 'BAL', low: 'LOW' };
-    perfReadoutEl.textContent = labels[perfMode] || 'HI';
+    const labels = { high: '높음', balanced: '보통', low: '낮음' };
+    perfReadoutEl.textContent = labels[perfMode] || '높음';
   }
 
   if (!statusEl) return;
 
   if (leftSeen && rightSeen) {
-    statusEl.textContent = 'BOTH HANDS LOCKED';
+    statusEl.textContent = '양손 인식 완료';
     statusEl.style.opacity = '0.18';
   } else if (leftSeen) {
-    statusEl.textContent = 'SHOW RIGHT HAND';
+    statusEl.textContent = '오른손을 비춰 주세요';
     statusEl.style.opacity = '0.72';
   } else if (rightSeen) {
-    statusEl.textContent = 'SHOW LEFT HAND';
+    statusEl.textContent = '왼손을 비춰 주세요';
     statusEl.style.opacity = '0.72';
   } else {
-    statusEl.textContent = 'SHOW BOTH HANDS';
+    statusEl.textContent = '양손을 비춰 주세요';
     statusEl.style.opacity = '0.72';
   }
 }
@@ -386,12 +397,36 @@ function resetContactState() {
   for (let i = 0; i < contactState.length; i++) contactState[i] = false;
 }
 
-// Mirrored projection: MediaPipe gives normalised (x,y) in the un-mirrored
-// frame; we flip x at draw time so the user sees a selfie-style view.
+// 좌우 매칭된 손끝 쌍이 닿는 순간(상승 에지)에 한 번씩 버스트를 발동한다.
+// strings/sphere 두 모드에서 공통으로 호출된다.
+function detectFingertipCollisions(leftHand, rightHand) {
+  for (let f = 0; f < FINGERTIPS.length; f++) {
+    const idx = FINGERTIPS[f];
+    const ax = projX(leftHand[idx]);
+    const ay = projY(leftHand[idx]);
+    const bx = projX(rightHand[idx]);
+    const by = projY(rightHand[idx]);
+    const d = dist(ax, ay, bx, by);
+
+    if (d < TOUCH_DIST && !contactState[f]) {
+      contactState[f] = true;
+      const t = constrain((d - D_MIN) / (D_MAX - D_MIN), 0, 1);
+      // 줄놀이 모드의 색조 곡선과 같은 식 — cyan→magenta→yellow.
+      const hue = (180 + t * (410 - 180)) % 360;
+      spawnBurst((ax + bx) / 2, (ay + by) / 2, hue);
+      triggerScreenPulse(hue);
+    } else if (d > TOUCH_RELEASE) {
+      contactState[f] = false;
+    }
+  }
+}
+
+// 거울 투영: MediaPipe는 반전되지 않은 프레임 기준의 정규화 (x,y)를 주고,
+// 화면 출력 시 우리가 x를 뒤집어서 셀카처럼 보이게 만든다.
 function getVideoCoverRect() {
   const vw = videoEl.videoWidth  || 1280;
   const vh = videoEl.videoHeight || 720;
-  const s  = Math.max(width / vw, height / vh); // cover-fit
+  const s  = Math.max(width / vw, height / vh); // cover 핏
   const dw = vw * s, dh = vh * s;
   const dx = (width  - dw) / 2;
   const dy = (height - dh) / 2;
@@ -421,7 +456,7 @@ function drawMirroredWebcam() {
 
 function drawDimOverlay() {
   noStroke();
-  fill(230, 35, 4, 0.40);   // deep blue-black wash to make neon pop
+  fill(230, 35, 4, 0.40);   // 깊은 푸른빛 검정 워시 — 네온이 더 도드라지도록
   rect(0, 0, width, height);
 }
 
@@ -445,7 +480,7 @@ function drawHandDots(landmarks) {
     fill(hue, 85, 100, 0.95);
     circle(x, y, r);
 
-    // Inner bright core
+    // 안쪽 밝은 코어
     ctx.shadowBlur = 4;
     fill(hue, 20, 100, 1);
     circle(x, y, r * 0.4);
@@ -468,26 +503,14 @@ function drawCradleStrings(leftHand, rightHand) {
     const d = dist(ax, ay, bx, by);
     const t = constrain((d - D_MIN) / (D_MAX - D_MIN), 0, 1);
 
-    // Hue sweep cyan(180°) → magenta(300°) → yellow(50°, taken as 410° to keep monotonic)
+    // 색조 곡선: cyan(180°) → magenta(300°) → yellow(50°, 단조 증가를 위해 410°로 잡음)
     const hue = (180 + t * (410 - 180)) % 360;
-
-    // ----- Touch detection: spawn one burst on the rising edge ----- //
-    const midX = (ax + bx) / 2;
-    const midY = (ay + by) / 2;
-    if (d < TOUCH_DIST && !contactState[f]) {
-      contactState[f] = true;
-      // Bursts inherit the current string's hue, plus a sibling palette splash.
-      spawnBurst(midX, midY, hue);
-      triggerScreenPulse(hue);
-    } else if (d > TOUCH_RELEASE) {
-      contactState[f] = false;
-    }
     const sat = 95, bri = 100;
 
-    // Taut strings draw thicker; over-stretched ones taper to a thread.
+    // 팽팽한 줄은 굵게, 늘어진 줄은 가늘게 점점 가늘어진다.
     const w = lerp(5, 1.2, t);
 
-    // Slack rope sags more when hands are close; taut when far apart.
+    // 손이 가까울수록 줄이 더 처지고, 멀수록 팽팽하게 곧아진다.
     const sag = (1 - t) * 70;
     const cx = (ax + bx) / 2;
     const cy = (ay + by) / 2 + sag;
@@ -504,6 +527,22 @@ function drawWireSphereBetweenHands(leftHand, rightHand) {
   const maxRadius = Math.min(SPHERE_R_MAX, Math.min(width, height) * 0.38);
   const radius = lerp(SPHERE_R_MIN, maxRadius, t);
   const hue = (185 + t * 145 + frameCount * 0.35) % 360;
+
+  drawWireSphere(bridge.x, bridge.y, radius, hue, bridge);
+}
+
+// 한 손만 보일 때: 그 손의 손가락(검지~새끼) 가운데에 행성처럼 작은 구체를 띄운다.
+// 손가락이 모일수록 작아지고, 활짝 펴면 커진다.
+function drawWireSphereForSingleHand(hand) {
+  const bridge = getSingleHandBridge(hand);
+  const t = constrain(
+    (bridge.distance - SOLO_SPREAD_MIN) / (SOLO_SPREAD_MAX - SOLO_SPREAD_MIN),
+    0, 1
+  );
+  const maxRadius = Math.min(SOLO_R_MAX, Math.min(width, height) * 0.28);
+  const radius = lerp(SOLO_R_MIN, maxRadius, t);
+  // 양손 구체와 구분되는 따뜻한 행성 색조: 호박색→오렌지→로즈
+  const hue = (28 + t * 78 + frameCount * 0.4) % 360;
 
   drawWireSphere(bridge.x, bridge.y, radius, hue, bridge);
 }
@@ -546,6 +585,48 @@ function getFingerBridge(leftHand, rightHand) {
     rightX,
     rightY,
     distance: distance / SPHERE_FINGERS.length,
+  };
+}
+
+// 단일 손 → 행성 위치/기울기를 만든다.
+// - 중심: 검지~새끼 끝점 4개의 평균(centroid)
+// - distance: 평균 반경(centroid에서 각 손끝까지 거리의 평균) — 손가락이 펴진 정도
+// - leftXY/rightXY: 검지/새끼 끝점을 좌/우 끝으로 써서 손 기울기를 그대로 반영
+function getSingleHandBridge(hand) {
+  let cx = 0;
+  let cy = 0;
+  const tips = [];
+
+  for (let i = 0; i < SPHERE_FINGERS.length; i++) {
+    const idx = SPHERE_FINGERS[i];
+    const x = projX(hand[idx]);
+    const y = projY(hand[idx]);
+    tips.push({ x, y });
+    cx += x;
+    cy += y;
+  }
+  cx /= SPHERE_FINGERS.length;
+  cy /= SPHERE_FINGERS.length;
+
+  let spread = 0;
+  for (let i = 0; i < tips.length; i++) {
+    spread += dist(tips[i].x, tips[i].y, cx, cy);
+  }
+  spread /= tips.length;
+
+  const indexX = projX(hand[8]);
+  const indexY = projY(hand[8]);
+  const pinkyX = projX(hand[20]);
+  const pinkyY = projY(hand[20]);
+
+  return {
+    x: cx,
+    y: cy,
+    leftX: indexX,
+    leftY: indexY,
+    rightX: pinkyX,
+    rightY: pinkyY,
+    distance: spread,
   };
 }
 
@@ -644,7 +725,7 @@ function drawWireSphere(x, y, radius, hue, bridge) {
     });
   }
 
-  // A brighter seam makes the left-right spin readable instead of symmetrical.
+  // 더 밝은 한 줄을 추가해서 좌우 회전 방향을 한눈에 알아볼 수 있게 만든다.
   drawProjectedSphereCurve((u) => spherePoint(0, -HALF_PI + u * TWO_PI), {
     samples,
     radius,
@@ -827,10 +908,10 @@ function drawScreenPulse() {
   pulseLevel *= Math.pow(0.82, (deltaTime || 16.67) / 16.67);
 }
 
-/* ----- particle burst on fingertip touch ---------------------- */
+/* ----- 손끝 접촉 시 파티클 버스트 ------------------------------ */
 
 function spawnBurst(x, y, baseHue) {
-  // Cap total particle count so a furious tapper can't blow the budget.
+  // 미친 듯이 두드릴 때도 파티클이 무한히 늘지 않도록 총량을 캡한다.
   const profile = getPerfProfile();
   const countTarget = Math.max(8, Math.round(BURST_PARTICLES * profile.burstScale));
   const budget = getParticleCap() - particles.length;
@@ -839,9 +920,8 @@ function spawnBurst(x, y, baseHue) {
   const COUNT = Math.min(countTarget, budget);
   for (let i = 0; i < COUNT; i++) {
     const ang = Math.random() * Math.PI * 2;
-    const sp  = 2.0 + Math.random() * 7.5;     // 2 → 9.5 px/frame
-    // Slight hue jitter around the string's current hue, plus an occasional
-    // palette flash (cyan / magenta / yellow) for visual contrast.
+    const sp  = 2.0 + Math.random() * 7.5;     // 2 → 9.5 px/프레임
+    // 줄 색조 주변으로 살짝 흔들고, 가끔(25%) cyan/magenta/yellow 팔레트로 튄다.
     const palette = [180, 300, 50];
     const useFlash = Math.random() < 0.25;
     const hue = useFlash
@@ -852,7 +932,7 @@ function spawnBurst(x, y, baseHue) {
       x, y,
       vx: Math.cos(ang) * sp,
       vy: Math.sin(ang) * sp,
-      life: 1.0,                                // 1 → 0 over ~45 frames
+      life: 1.0,                                // 약 45프레임에 걸쳐 1 → 0
       decay: 0.020 + Math.random() * 0.015,
       hue,
       size: 3 + Math.random() * 6,
@@ -873,7 +953,7 @@ function updateAndDrawParticles() {
 
   for (let i = particles.length - 1; i >= 0; i--) {
     const p = particles[i];
-    // Verlet-ish step: drag + gentle gravity for a "spark" feel.
+    // 베를레 비슷한 적분: 약한 마찰 + 가벼운 중력 → "불꽃" 같은 느낌.
     p.x  += p.vx;
     p.y  += p.vy;
     p.vx *= 0.93;
