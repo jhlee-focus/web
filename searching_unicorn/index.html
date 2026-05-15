@@ -1,0 +1,1025 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <title>숨은 유니콘 찾기</title>
+  <style>
+    :root {
+      --bg:           #1a1410;
+      --bg-stage:     #2d2620;
+      --bg-stage-2:   #38302a;
+      --border:       #443a30;
+      --text:         #f0e8d8;
+      --text-dim:     #b0a890;
+      --accent:       #ffd76b;
+      --accent-glow:  #ffc94a;
+      --danger:       #e8553b;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI",
+                   "Noto Sans KR", "Apple SD Gothic Neo", sans-serif;
+      -webkit-font-smoothing: antialiased;
+      overflow: hidden;
+      height: 100dvh;
+      width: 100vw;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
+      height: 100dvh;
+    }
+
+    /* ─── 헤더 ─── */
+    header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 12px 18px;
+      border-bottom: 1px solid var(--border);
+      background: linear-gradient(180deg, #1f1812 0%, var(--bg) 100%);
+      z-index: 5;
+      flex: 0 0 auto;
+    }
+    .home-btn {
+      color: var(--text-dim);
+      text-decoration: none;
+      font-size: 13px;
+      padding: 6px 10px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      transition: background .15s, color .15s;
+    }
+    .home-btn:hover, .home-btn:active {
+      background: var(--bg-stage);
+      color: var(--text);
+    }
+    .title-block {
+      flex: 1;
+      min-width: 0;
+    }
+    .title-block h1 {
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .title-block h1 .emoji { font-size: 18px; }
+    .title-block p {
+      font-size: 11px;
+      color: var(--text-dim);
+      margin-top: 1px;
+    }
+    .stats {
+      display: flex;
+      gap: 10px;
+      font-variant-numeric: tabular-nums;
+    }
+    .stat {
+      font-size: 13px;
+      padding: 6px 11px;
+      background: var(--bg-stage);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      min-width: 78px;
+      justify-content: center;
+    }
+    .stat .lbl { color: var(--text-dim); font-size: 10px; }
+    .stat .val { font-weight: 700; color: var(--accent); }
+    .stat.best .val { color: var(--text); }
+
+    /* ─── 스테이지 (게임 영역) ─── */
+    .stage-wrap {
+      flex: 1 1 auto;
+      position: relative;
+      overflow: hidden;
+      background:
+        radial-gradient(ellipse 80% 50% at 50% 50%,
+                        var(--bg-stage-2) 0%,
+                        var(--bg-stage) 70%,
+                        #221d18 100%);
+    }
+    .stage-wrap.shake { animation: shake .35s; }
+    @keyframes shake {
+      0%, 100% { transform: translate(0,0); }
+      20%      { transform: translate(-8px, 3px); }
+      40%      { transform: translate(7px, -4px); }
+      60%      { transform: translate(-5px, 2px); }
+      80%      { transform: translate(4px, -2px); }
+    }
+
+    #stage {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    /* 말 그룹 호버/액티브 (데스크톱) */
+    .horse {
+      cursor: pointer;
+    }
+    .horse .hit-zone {
+      pointer-events: all;
+    }
+    @media (hover: hover) {
+      .horse:hover { filter: brightness(1.15); }
+    }
+    /* 정답으로 판정된 유니콘 — 글로우 */
+    .horse--found {
+      filter: drop-shadow(0 0 14px var(--accent-glow))
+              drop-shadow(0 0 22px var(--accent-glow));
+    }
+    .horse--found .horn {
+      fill: #fff8c8 !important;
+    }
+
+    /* ─── 시작 오버레이 ─── */
+    .overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 18px;
+      padding: 24px;
+      text-align: center;
+      z-index: 20;
+      background: rgba(26, 20, 16, 0.92);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+    }
+    .overlay.hide { display: none; }
+    .overlay .big-emoji {
+      font-size: 64px;
+      filter: drop-shadow(0 0 18px var(--accent-glow));
+    }
+    .overlay h2 {
+      font-size: clamp(20px, 5vw, 32px);
+      font-weight: 800;
+      letter-spacing: -0.01em;
+    }
+    .overlay p {
+      font-size: 14px;
+      color: var(--text-dim);
+      line-height: 1.6;
+      max-width: 460px;
+    }
+    .btn {
+      padding: 14px 36px;
+      font-size: 16px;
+      font-weight: 800;
+      letter-spacing: 0.02em;
+      border: none;
+      border-radius: 999px;
+      cursor: pointer;
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-glow) 100%);
+      color: #2b1f08;
+      box-shadow: 0 6px 18px rgba(255, 200, 64, 0.35);
+      transition: transform .12s ease;
+      font-family: inherit;
+    }
+    .btn:active { transform: scale(.94); }
+    .btn.secondary {
+      background: rgba(255,255,255,0.08);
+      color: var(--text);
+      border: 1px solid var(--border);
+      box-shadow: none;
+    }
+
+    /* 카운트다운 */
+    .countdown {
+      position: absolute;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 25;
+      background: rgba(26, 20, 16, 0.7);
+      pointer-events: none;
+    }
+    .countdown.show { display: flex; }
+    .countdown .num {
+      font-size: clamp(80px, 22vw, 180px);
+      font-weight: 900;
+      color: var(--accent);
+      text-shadow: 0 0 40px var(--accent-glow);
+      animation: cdPop .55s ease-out;
+    }
+    @keyframes cdPop {
+      0%   { transform: scale(1.6); opacity: 0; }
+      30%  { transform: scale(1);   opacity: 1; }
+      100% { transform: scale(.7);  opacity: 0; }
+    }
+
+    /* 승리 모달 */
+    .win {
+      position: absolute;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 30;
+      background: rgba(0, 0, 0, 0.78);
+      animation: fadeIn .3s ease;
+      padding: 20px;
+    }
+    .win.show { display: flex; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    .win-box {
+      background: linear-gradient(135deg, #2a1f10 0%, #3d2d18 100%);
+      border: 2px solid var(--accent);
+      border-radius: 24px;
+      padding: 32px 36px;
+      text-align: center;
+      box-shadow: 0 0 50px rgba(255, 200, 64, 0.4),
+                  0 20px 60px rgba(0,0,0,0.6);
+      animation: zoomIn .45s cubic-bezier(.34,1.56,.64,1);
+      max-width: 92vw;
+    }
+    @keyframes zoomIn {
+      from { transform: scale(.55); opacity: 0; }
+      to   { transform: scale(1);   opacity: 1; }
+    }
+    .win-emoji {
+      font-size: 56px;
+      display: block;
+      margin-bottom: 6px;
+      filter: drop-shadow(0 0 16px var(--accent-glow));
+    }
+    .win-time {
+      font-size: clamp(34px, 8vw, 54px);
+      font-weight: 900;
+      color: var(--accent);
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.02em;
+      line-height: 1.05;
+      margin-bottom: 8px;
+    }
+    .win-time .unit {
+      font-size: 0.55em;
+      color: var(--text-dim);
+      font-weight: 600;
+      margin-left: 4px;
+    }
+    .win-line {
+      font-size: 15px;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+    .win-badge {
+      display: inline-block;
+      margin: 8px 0 12px;
+      padding: 6px 14px;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      background: var(--accent);
+      color: #2b1f08;
+      border-radius: 999px;
+      text-transform: uppercase;
+    }
+    .win-badge.hidden { display: none; }
+    .win-actions {
+      margin-top: 18px;
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    /* ─── 난이도 선택 카드 ─── */
+    .diff-row {
+      display: flex;
+      gap: 10px;
+      margin-top: 6px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .diff-card {
+      border: 2px solid var(--border);
+      background: var(--bg-stage);
+      color: var(--text);
+      padding: 14px 18px;
+      border-radius: 18px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      min-width: 96px;
+      font-family: inherit;
+      transition: transform .12s ease, border-color .15s, background .15s;
+    }
+    .diff-card:hover, .diff-card:focus-visible {
+      border-color: var(--accent);
+      background: var(--bg-stage-2);
+      outline: none;
+    }
+    .diff-card:active { transform: scale(.95); }
+    .diff-card .emoji { font-size: 28px; line-height: 1; }
+    .diff-card .lbl   { font-size: 16px; font-weight: 800; }
+    .diff-card .meta  { font-size: 11px; color: var(--text-dim); }
+    .diff-card .card-best {
+      margin-top: 4px;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--accent);
+      font-variant-numeric: tabular-nums;
+      letter-spacing: 0.02em;
+    }
+    .diff-card .card-best.empty {
+      color: var(--text-dim);
+      font-weight: 500;
+    }
+    .diff-card.current {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(255, 200, 64, 0.18);
+    }
+    .diff-card.current::after {
+      content: '↻ 다시';
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--accent);
+      letter-spacing: 0.04em;
+    }
+    /* win-actions 안에서는 약간 더 압축, 베스트 숨김 */
+    .win-actions .diff-card { padding: 10px 14px; min-width: 78px; border-radius: 14px; }
+    .win-actions .diff-card .emoji { font-size: 22px; }
+    .win-actions .diff-card .lbl   { font-size: 13px; }
+    .win-actions .diff-card .meta,
+    .win-actions .diff-card .card-best { display: none; }
+    .win-actions .diff-card.current::after { font-size: 9px; }
+
+    /* ─── 기록 초기화 버튼 ─── */
+    .reset-btn {
+      margin-top: 4px;
+      background: transparent;
+      border: 1px dashed var(--border);
+      color: var(--text-dim);
+      padding: 7px 16px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      transition: color .15s, border-color .15s;
+    }
+    .reset-btn:hover,
+    .reset-btn:focus-visible {
+      color: var(--danger);
+      border-color: var(--danger);
+      border-style: solid;
+      outline: none;
+    }
+    .reset-btn:active { transform: scale(.96); }
+
+    /* ─── 정답 시 걸어 나오는 유니콘 GIF ─── */
+    /* 위치/크기/transition은 JS가 인라인 스타일로 제어한다.
+       (CSS 클래스 규칙은 인라인 opacity와 충돌하므로 최소화) */
+    #walkingUnicorn {
+      position: absolute;
+      pointer-events: none;
+      z-index: 28;          /* sparkle(stage 내부)보다 위, win 모달(30)보다 아래 */
+      display: none;
+      opacity: 0;
+      user-select: none;
+      -webkit-user-drag: none;
+      transform-origin: center center;
+      will-change: transform, opacity;
+      image-rendering: -webkit-optimize-contrast;
+      filter: drop-shadow(0 0 12px rgba(255, 215, 107, 0.55))
+              drop-shadow(0 0 22px rgba(255, 201, 74, 0.35));
+    }
+
+    /* 모바일 헤더 압축 */
+    @media (max-width: 540px) {
+      header { padding: 10px 12px; gap: 8px; }
+      .home-btn { padding: 5px 8px; font-size: 12px; }
+      .title-block h1 { font-size: 14px; }
+      .title-block p { display: none; }
+      .stat { min-width: 64px; padding: 5px 8px; font-size: 12px; }
+      .stat .lbl { font-size: 9px; }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <a class="home-btn" href="../index.html">← 홈</a>
+    <button class="home-btn" type="button" id="toStartBtn" title="게임 첫 화면으로">↺ 처음</button>
+    <div class="title-block">
+      <h1><span class="emoji">🦄</span> 숨은 유니콘 찾기</h1>
+      <p>말 무리 사이의 뿔 1개짜리 유니콘을 빠르게 찾아 클릭</p>
+    </div>
+    <div class="stats">
+      <div class="stat">
+        <span class="lbl" id="curDiffLbl">—</span>
+      </div>
+      <div class="stat">
+        <span class="lbl">⏱</span>
+        <span class="val" id="curTime">0.00</span>
+      </div>
+      <div class="stat best">
+        <span class="lbl">🏆</span>
+        <span class="val" id="bestTime">—</span>
+      </div>
+    </div>
+  </header>
+
+  <div class="stage-wrap" id="stageWrap">
+    <svg id="stage" xmlns="http://www.w3.org/2000/svg"
+         preserveAspectRatio="xMidYMid meet"
+         aria-label="말 무리"></svg>
+
+    <!-- 정답 발견 시 걸어나오는 유니콘 GIF -->
+    <img id="walkingUnicorn" src="walking_unicorn.gif" alt="" aria-hidden="true"
+         draggable="false" decoding="async">
+
+
+    <!-- 시작 오버레이 -->
+    <div class="overlay" id="startOverlay">
+      <div class="big-emoji">🦄</div>
+      <h2>유니콘은 어디에?</h2>
+      <p>수많은 말 사이에 단 한 마리, <b>뿔 1개</b>를 가진 유니콘이 숨어 있어요.<br>
+         난이도를 골라 시작하세요. 오답은 +1초!</p>
+      <div class="diff-row" id="startDiffRow">
+        <button class="diff-card" data-diff="easy">
+          <span class="emoji">🌱</span>
+          <span class="lbl">하 · 쉬움</span>
+          <span class="meta">크게 · 적게</span>
+          <span class="card-best empty" id="cardBest_easy">🏆 —</span>
+        </button>
+        <button class="diff-card" data-diff="medium">
+          <span class="emoji">⭐</span>
+          <span class="lbl">중 · 보통</span>
+          <span class="meta">중간</span>
+          <span class="card-best empty" id="cardBest_medium">🏆 —</span>
+        </button>
+        <button class="diff-card" data-diff="hard">
+          <span class="emoji">🔥</span>
+          <span class="lbl">상 · 어려움</span>
+          <span class="meta">작게 · 많이</span>
+          <span class="card-best empty" id="cardBest_hard">🏆 —</span>
+        </button>
+      </div>
+      <button class="reset-btn" type="button" id="resetBestBtn">🗑 기록 초기화</button>
+    </div>
+
+    <!-- 카운트다운 -->
+    <div class="countdown" id="countdown">
+      <div class="num" id="cdNum">3</div>
+    </div>
+
+    <!-- 승리 모달 -->
+    <div class="win" id="winOverlay">
+      <div class="win-box">
+        <span class="win-emoji">🦄</span>
+        <div class="win-time"><span id="winTime">0.00</span><span class="unit">초</span></div>
+        <div class="win-line" id="winLine">유니콘을 찾았어요!</div>
+        <div class="win-badge hidden" id="winBadge">🏆 신기록!</div>
+        <div class="win-actions" id="winDiffRow">
+          <button class="diff-card" data-diff="easy">
+            <span class="emoji">🌱</span>
+            <span class="lbl">하</span>
+          </button>
+          <button class="diff-card" data-diff="medium">
+            <span class="emoji">⭐</span>
+            <span class="lbl">중</span>
+          </button>
+          <button class="diff-card" data-diff="hard">
+            <span class="emoji">🔥</span>
+            <span class="lbl">상</span>
+          </button>
+          <button class="btn secondary" type="button" id="winToStartBtn">↺ 처음으로</button>
+          <a class="btn secondary" href="../index.html">홈으로</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="horses.js"></script>
+  <script>
+  (function () {
+    'use strict';
+
+    const SVG_NS = 'http://www.w3.org/2000/svg';
+    const HORSE_W = window.HorsesArt.HORSE_W;   // 60
+    const HORSE_H = window.HorsesArt.HORSE_H;   // 40
+    const PALETTES = window.HorsesArt.PALETTES;
+
+    const stageWrap    = document.getElementById('stageWrap');
+    const stage        = document.getElementById('stage');
+    const startOverlay = document.getElementById('startOverlay');
+    const startDiffRow = document.getElementById('startDiffRow');
+    const winDiffRow   = document.getElementById('winDiffRow');
+    const countdown    = document.getElementById('countdown');
+    const cdNum        = document.getElementById('cdNum');
+    const curTimeEl    = document.getElementById('curTime');
+    const curDiffLbl   = document.getElementById('curDiffLbl');
+    const bestEl       = document.getElementById('bestTime');
+    const winOverlay   = document.getElementById('winOverlay');
+    const winTimeEl    = document.getElementById('winTime');
+    const winLineEl    = document.getElementById('winLine');
+    const winBadge     = document.getElementById('winBadge');
+
+    /* ─── 난이도 설정 ───────────────────────────────
+       targetHorsePx: 화면에서 보이는 말 한 마리의 가로 픽셀
+       count: 배치할 말 총 마릿수 (유니콘 포함)
+       dt = desktop(hover 가능), mb = mobile(터치)
+       ─────────────────────────────────────────── */
+    const DIFFICULTY = {
+      easy:   { label: '하 · 쉬움',   short: '🌱 하', dtPx: 110, mbPx: 80, dtCount: 25,  mbCount: 16 },
+      medium: { label: '중 · 보통',   short: '⭐ 중', dtPx: 76,  mbPx: 60, dtCount: 50,  mbCount: 32 },
+      hard:   { label: '상 · 어려움', short: '🔥 상', dtPx: 54,  mbPx: 44, dtCount: 100, mbCount: 60 }
+    };
+
+    const state = {
+      difficulty: 'medium',
+      running: false,
+      t0: 0,
+      penaltyMs: 0,
+      rafId: null,
+      cdTimer: null,
+      unicornId: null,
+      foundEl: null,
+      best: { easy: null, medium: null, hard: null },
+      finishing: false
+    };
+
+    /* ─── 베스트 타임 (난이도별 저장, localStorage 차단 환경 폴백) ─── */
+    function bestKey(d) { return 'unicornBest_' + d; }
+    function loadBestFor(d) {
+      try {
+        const v = localStorage.getItem(bestKey(d));
+        return v ? parseFloat(v) : null;
+      } catch { return null; }
+    }
+    function saveBestFor(d, t) {
+      try { localStorage.setItem(bestKey(d), String(t)); } catch {}
+    }
+    function loadLastDiff() {
+      try { return localStorage.getItem('unicornDiff') || 'medium'; } catch { return 'medium'; }
+    }
+    function saveLastDiff(d) {
+      try { localStorage.setItem('unicornDiff', d); } catch {}
+    }
+    function fmt(ms) { return (ms / 1000).toFixed(2); }
+
+    function renderBest() {
+      const b = state.best[state.difficulty];
+      bestEl.textContent = b != null ? fmt(b) : '—';
+      renderCardBests();
+    }
+    function renderCardBests() {
+      ['easy', 'medium', 'hard'].forEach(d => {
+        const el = document.getElementById('cardBest_' + d);
+        if (!el) return;
+        const b = state.best[d];
+        if (b == null) {
+          el.textContent = '🏆 —';
+          el.classList.add('empty');
+        } else {
+          el.textContent = '🏆 ' + fmt(b) + '초';
+          el.classList.remove('empty');
+        }
+      });
+    }
+    function renderCurrentDiff() {
+      curDiffLbl.textContent = DIFFICULTY[state.difficulty].short;
+      // diff-card에 current 클래스 적용
+      document.querySelectorAll('.diff-card').forEach(c => {
+        c.classList.toggle('current', c.dataset.diff === state.difficulty);
+      });
+    }
+    function resetAllBest() {
+      if (!confirm('모든 난이도의 베스트 기록을 초기화할까요?\n(되돌릴 수 없습니다)')) return;
+      ['easy', 'medium', 'hard'].forEach(d => {
+        try { localStorage.removeItem(bestKey(d)); } catch {}
+        state.best[d] = null;
+      });
+      renderBest();
+    }
+
+    /* ─── 스테이지 측정 → 말 개수 & viewBox 결정 (난이도별) ─── */
+    function computeStage() {
+      const cfg = DIFFICULTY[state.difficulty];
+      const w = stageWrap.clientWidth;
+      const h = stageWrap.clientHeight;
+      const isTouchOnly = matchMedia('(hover: none)').matches;
+      const isSmall = Math.min(w, h) < 600;
+      const isMobile = isTouchOnly || isSmall;
+
+      const targetHorsePx = isMobile ? cfg.mbPx : cfg.dtPx;
+      const count         = isMobile ? cfg.mbCount : cfg.dtCount;
+      const pxPerVb = targetHorsePx / HORSE_W;
+      const vbW = Math.max(360, Math.round(w / pxPerVb));
+      const vbH = Math.max(360, Math.round(h / pxPerVb));
+
+      return { vbW, vbH, count, isMobile };
+    }
+
+    /* ─── AABB 겹침 방지 배치 ─── */
+    function tryPlace(occupied, w, h, vbW, vbH, pad = 4) {
+      for (let i = 0; i < 50; i++) {
+        const x = Math.random() * (vbW - w);
+        const y = Math.random() * (vbH - h);
+        let ok = true;
+        for (let j = 0; j < occupied.length; j++) {
+          const o = occupied[j];
+          if (x < o.x + o.w + pad && x + w + pad > o.x &&
+              y < o.y + o.h + pad && y + h + pad > o.y) {
+            ok = false; break;
+          }
+        }
+        if (ok) {
+          occupied.push({ x, y, w, h });
+          return { x, y };
+        }
+      }
+      return null;
+    }
+
+    /* ─── 말 무리 생성 ─── */
+    function spawnHorses() {
+      // SVG 비우기
+      while (stage.firstChild) stage.removeChild(stage.firstChild);
+
+      const { vbW, vbH, count } = computeStage();
+      stage.setAttribute('viewBox', `0 0 ${vbW} ${vbH}`);
+
+      const occupied = [];
+      const placed = [];
+
+      // 유니콘 인덱스 결정 — 가장자리 너무 가까운 슬롯 회피용으로 후처리
+      const targetUnicornIdx = Math.floor(count * (0.2 + Math.random() * 0.6));
+
+      for (let i = 0; i < count; i++) {
+        // 회전 & 거울 변환 후 바운딩 박스가 약간 커지므로 살짝 여유
+        const scale = 0.9 + Math.random() * 0.25;
+        const w = HORSE_W * scale + 6;
+        const h = HORSE_H * scale + 6;
+        const pos = tryPlace(occupied, w, h, vbW, vbH);
+        if (!pos) continue;
+        placed.push({ pos, scale, idx: i });
+      }
+
+      if (placed.length === 0) return;
+
+      // 유니콘 선정 — 가장자리 5% 안쪽인 슬롯 우선
+      const margin = Math.min(vbW, vbH) * 0.05;
+      const insideSlots = placed.filter(p =>
+        p.pos.x > margin && p.pos.y > margin &&
+        p.pos.x + HORSE_W * p.scale < vbW - margin &&
+        p.pos.y + HORSE_H * p.scale < vbH - margin);
+      const candidatePool = insideSlots.length > 5 ? insideSlots : placed;
+      const unicornSlot = candidatePool[
+        Math.min(targetUnicornIdx, candidatePool.length - 1)
+      ] || candidatePool[Math.floor(Math.random() * candidatePool.length)];
+
+      state.unicornId = unicornSlot.idx;
+      state.foundEl = null;
+
+      // 실제 렌더 (z-order: 작은 y가 먼저 = 위에서부터 → 아래쪽 말이 위로 겹침 → 자연스러움)
+      // 유니콘은 항상 맨 위에 렌더 (뿔이 다른 말에 가려지지 않도록)
+      placed.sort((a, b) => {
+        if (a.idx === state.unicornId) return 1;
+        if (b.idx === state.unicornId) return -1;
+        return a.pos.y - b.pos.y;
+      });
+
+      for (const p of placed) {
+        const isUnicorn = p.idx === state.unicornId;
+        const color = PALETTES[Math.floor(Math.random() * PALETTES.length)];
+        const horseG = window.HorsesArt.createHorse({
+          id: p.idx,
+          color,
+          isUnicorn
+        });
+
+        // 유니콘은 회전 제한 (난이도 유지)
+        const maxRot = isUnicorn ? 12 : 22;
+        const rot = (Math.random() * 2 - 1) * maxRot;
+        const mirror = Math.random() < 0.45 ? -1 : 1;
+
+        const cx = HORSE_W / 2;
+        const cy = HORSE_H / 2;
+
+        // wrap <g> with transform (translate → rotate → scale → translate(-center))
+        const wrap = document.createElementNS(SVG_NS, 'g');
+        const sx = p.scale * mirror;
+        const sy = p.scale;
+        const finalCx = p.pos.x + cx * p.scale;
+        const finalCy = p.pos.y + cy * p.scale;
+        wrap.setAttribute(
+          'transform',
+          `translate(${finalCx.toFixed(1)}, ${finalCy.toFixed(1)}) rotate(${rot.toFixed(1)}) scale(${sx.toFixed(3)}, ${sy.toFixed(3)}) translate(${-cx}, ${-cy})`
+        );
+        // 스테이지 좌표계 기준 중심점 + scale 저장 (sparkle / 걷는 유니콘 위치 계산용)
+        wrap.dataset.cx = finalCx.toFixed(1);
+        wrap.dataset.cy = finalCy.toFixed(1);
+        wrap.dataset.scale = p.scale.toFixed(3);
+        wrap.appendChild(horseG);
+        wrap.addEventListener('click', onHorseClick, { passive: true });
+        wrap.addEventListener('touchstart', onHorseTouch, { passive: false });
+        stage.appendChild(wrap);
+      }
+    }
+
+    /* ─── 클릭 / 터치 ─── */
+    function onHorseTouch(ev) {
+      // 모바일에서 click 지연/더블탭 줌 방지
+      ev.preventDefault();
+      handleHorseInteraction(ev.currentTarget);
+    }
+    function onHorseClick(ev) {
+      handleHorseInteraction(ev.currentTarget);
+    }
+    function handleHorseInteraction(wrapEl) {
+      if (!state.running || state.finishing) return;
+      const horseG = wrapEl.querySelector('.horse');
+      if (!horseG) return;
+      const id = parseInt(horseG.getAttribute('data-id'), 10);
+      const isUnicorn = horseG.getAttribute('data-unicorn') === '1';
+
+      if (isUnicorn) {
+        winFlow(wrapEl, horseG);
+      } else {
+        wrongFlow();
+      }
+    }
+
+    function wrongFlow() {
+      state.penaltyMs += 1000;
+      stageWrap.classList.remove('shake');
+      // reflow trick to restart animation
+      void stageWrap.offsetWidth;
+      stageWrap.classList.add('shake');
+    }
+
+    function winFlow(wrapEl, horseG) {
+      state.finishing = true;
+      stopTimer();
+      horseG.classList.add('horse--found');
+      state.foundEl = wrapEl;
+
+      // sparkle — 짧게 (걷는 유니콘이 메인 연출이므로 보조 역할)
+      const cx = parseFloat(wrapEl.dataset.cx) || 0;
+      const cy = parseFloat(wrapEl.dataset.cy) || 0;
+      const sparkle = window.HorsesArt.createSparkle({
+        cx, cy, count: 10, duration: 900
+      });
+      stage.appendChild(sparkle);
+
+      // 걷는 유니콘 GIF — 찾은 위치에서 화면 중앙으로 걸어오며 점점 커짐
+      startWalkingUnicorn(wrapEl);
+
+      const elapsed = currentElapsed();
+      // 1.4s 트랜지션 + 약간의 여유 → 1.7s 후 승리 모달
+      setTimeout(() => showWin(elapsed), 1700);
+    }
+
+    /* ─── 걸어 나오는 유니콘 ─────────────────────────
+       찾은 SVG 말의 화면 좌표를 구해서 같은 위치/크기로 GIF 띄우고,
+       transform translate + scale로 화면 중앙까지 걸어오면서 커지게 한다.
+       ──────────────────────────────────────────── */
+    const walkingUnicorn = document.getElementById('walkingUnicorn');
+
+    function startWalkingUnicorn(wrapEl) {
+      const wu = walkingUnicorn;
+      if (!wu) return;
+
+      const vbCx = parseFloat(wrapEl.dataset.cx);
+      const vbCy = parseFloat(wrapEl.dataset.cy);
+      const horseScale = parseFloat(wrapEl.dataset.scale) || 1;
+
+      const stageRect = stageWrap.getBoundingClientRect();
+      const vb = stage.viewBox.baseVal;
+      if (!vb || !vb.width) return;
+
+      // viewBox → stageWrap 픽셀 좌표 변환 (preserveAspectRatio=meet 고려)
+      const scaleFit = Math.min(stageRect.width / vb.width, stageRect.height / vb.height);
+      const renderW  = vb.width * scaleFit;
+      const renderH  = vb.height * scaleFit;
+      const offsetX  = (stageRect.width  - renderW) / 2;
+      const offsetY  = (stageRect.height - renderH) / 2;
+      const foundX   = offsetX + vbCx * scaleFit;
+      const foundY   = offsetY + vbCy * scaleFit;
+
+      // 시작 크기 — 찾은 유니콘과 동일
+      const startSizePx = HORSE_W * horseScale * scaleFit;
+      // 종료 크기 — 스테이지 짧은 변의 50% (너무 안 커지면 임팩트 약함, 너무 크면 답답)
+      const maxFinalSize = Math.min(stageRect.width, stageRect.height) * 0.5;
+      // 최소 3배는 커지도록 (작은 모바일에서도 와닿게)
+      const targetSize = Math.max(startSizePx * 3, Math.min(maxFinalSize, startSizePx * 4.5));
+      const finalScale = targetSize / startSizePx;
+
+      const centerX = stageRect.width / 2;
+      const centerY = stageRect.height / 2;
+      const dx = centerX - foundX;
+      const dy = centerY - foundY;
+
+      // 진행 방향에 맞춰 좌우 미러링 (GIF 원본이 오른쪽을 보고 있다고 가정)
+      const mirror = dx >= 0 ? 1 : -1;
+
+      // 1) 초기 상태 — transition 끄고 위치/크기/투명도 즉시 적용
+      wu.classList.add('walking');
+      wu.style.transition = 'none';
+      wu.style.width  = startSizePx + 'px';
+      wu.style.height = 'auto';
+      wu.style.left   = (foundX - startSizePx / 2) + 'px';
+      wu.style.top    = (foundY - startSizePx / 2) + 'px';
+      wu.style.opacity = '0';
+      wu.style.transform = `translate(0px, 0px) scale(${mirror}, 1)`;
+      wu.style.display = 'block';
+
+      // 2) 강제 reflow로 위 스타일 commit
+      void wu.offsetWidth;
+
+      // 3) transition 활성화 + 목표값 인라인 적용 → 브라우저가 보간
+      wu.style.transition = 'transform 1.4s cubic-bezier(0.32, 0.72, 0.32, 1), opacity 0.35s ease';
+      wu.style.opacity = '1';
+      wu.style.transform = `translate(${dx.toFixed(1)}px, ${dy.toFixed(1)}px) ` +
+                           `scale(${(mirror * finalScale).toFixed(3)}, ${finalScale.toFixed(3)})`;
+    }
+
+    function hideWalkingUnicorn() {
+      const wu = walkingUnicorn;
+      if (!wu) return;
+      wu.classList.remove('walking');
+      wu.style.transition = 'none';
+      wu.style.opacity = '0';
+      wu.style.display = 'none';
+      wu.style.transform = '';
+    }
+
+    /* ─── 타이머 ─── */
+    function currentElapsed() {
+      return (performance.now() - state.t0) + state.penaltyMs;
+    }
+    function tick() {
+      if (!state.running) return;
+      const e = currentElapsed();
+      curTimeEl.textContent = fmt(e);
+      state.rafId = requestAnimationFrame(tick);
+    }
+    function startTimer() {
+      state.t0 = performance.now();
+      state.penaltyMs = 0;
+      state.running = true;
+      state.finishing = false;
+      curTimeEl.textContent = '0.00';
+      tick();
+    }
+    function stopTimer() {
+      state.running = false;
+      if (state.rafId) cancelAnimationFrame(state.rafId);
+      state.rafId = null;
+    }
+
+    /* ─── 카운트다운 → 게임 시작 ─── */
+    function runCountdown(cb) {
+      const seq = ['3', '2', '1', 'GO!'];
+      let i = 0;
+      countdown.classList.add('show');
+      cdNum.textContent = seq[i];
+      const step = () => {
+        i++;
+        if (i >= seq.length) {
+          countdown.classList.remove('show');
+          state.cdTimer = null;
+          cb();
+          return;
+        }
+        // 애니메이션 재시작
+        cdNum.textContent = seq[i];
+        cdNum.style.animation = 'none';
+        void cdNum.offsetWidth;
+        cdNum.style.animation = '';
+      };
+      const intervalMs = 600;
+      // 기존 카운트다운이 진행 중이면 정리
+      if (state.cdTimer) clearInterval(state.cdTimer);
+      state.cdTimer = setInterval(() => {
+        step();
+        if (i >= seq.length) {
+          clearInterval(state.cdTimer);
+          state.cdTimer = null;
+        }
+      }, intervalMs);
+    }
+
+    function newGame() {
+      winOverlay.classList.remove('show');
+      startOverlay.classList.add('hide');
+      hideWalkingUnicorn();
+      spawnHorses();
+      runCountdown(() => { startTimer(); });
+    }
+
+    /* ─── 게임 첫 화면으로 돌아가기 ─── */
+    function toStartScreen() {
+      // 진행 중 타이머/카운트다운/페널티 모두 정리
+      stopTimer();
+      if (state.cdTimer) { clearInterval(state.cdTimer); state.cdTimer = null; }
+      state.finishing = false;
+      state.penaltyMs = 0;
+      state.unicornId = null;
+      state.foundEl = null;
+      // 스테이지 비우기
+      while (stage.firstChild) stage.removeChild(stage.firstChild);
+      // 오버레이 상태 복원
+      winOverlay.classList.remove('show');
+      countdown.classList.remove('show');
+      startOverlay.classList.remove('hide');
+      hideWalkingUnicorn();
+      // 표시 초기화
+      curTimeEl.textContent = '0.00';
+    }
+
+    function showWin(elapsedMs) {
+      const d = state.difficulty;
+      const sec = elapsedMs / 1000;
+      winTimeEl.textContent = sec.toFixed(2);
+      const prev = state.best[d];
+      const isNew = prev == null || elapsedMs < prev;
+      const diffLabel = DIFFICULTY[d].label;
+      if (isNew) {
+        state.best[d] = elapsedMs;
+        saveBestFor(d, elapsedMs);
+        renderBest();
+        winLineEl.textContent = prev == null
+          ? `[${diffLabel}] 첫 클리어! 이게 당신의 베스트`
+          : `[${diffLabel}] 이전 ${(prev/1000).toFixed(2)}초보다 빨라요!`;
+        winBadge.classList.remove('hidden');
+      } else {
+        winLineEl.textContent = `[${diffLabel}] 베스트 ${(prev/1000).toFixed(2)}초 — 더 빠르게!`;
+        winBadge.classList.add('hidden');
+      }
+      // 현재 난이도 강조 갱신
+      renderCurrentDiff();
+      winOverlay.classList.add('show');
+    }
+
+    /* ─── 이벤트 바인딩 ─── */
+    function onDiffClick(ev) {
+      const card = ev.target.closest('.diff-card');
+      if (!card) return;
+      const d = card.dataset.diff;
+      if (!DIFFICULTY[d]) return;
+      state.difficulty = d;
+      saveLastDiff(d);
+      renderBest();
+      renderCurrentDiff();
+      newGame();
+    }
+    startDiffRow.addEventListener('click', onDiffClick);
+    winDiffRow.addEventListener('click', onDiffClick);
+
+    // 처음으로 (게임 첫 화면) 버튼 — 헤더 + 승리 모달
+    document.getElementById('toStartBtn').addEventListener('click', toStartScreen);
+    document.getElementById('winToStartBtn').addEventListener('click', toStartScreen);
+
+    // 기록 초기화 버튼
+    document.getElementById('resetBestBtn').addEventListener('click', resetAllBest);
+
+    // 키보드: space = 현재 난이도로 다시 / 새 게임
+    document.addEventListener('keydown', (e) => {
+      if (e.code !== 'Space') return;
+      if (winOverlay.classList.contains('show') ||
+          !startOverlay.classList.contains('hide')) {
+        e.preventDefault();
+        newGame();
+      }
+    });
+
+    /* ─── 초기화 ─── */
+    state.best.easy   = loadBestFor('easy');
+    state.best.medium = loadBestFor('medium');
+    state.best.hard   = loadBestFor('hard');
+    state.difficulty  = loadLastDiff();
+    if (!DIFFICULTY[state.difficulty]) state.difficulty = 'medium';
+    renderBest();
+    renderCurrentDiff();
+  })();
+  </script>
+
+</body>
+</html>
