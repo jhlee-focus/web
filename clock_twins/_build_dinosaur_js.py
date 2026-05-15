@@ -3,7 +3,7 @@ import json
 from pathlib import Path
 
 # (no, name_ko, en, gen, kind, tier, period, length_m, weight_t_or_null, abc, blurb)
-# abc field follows the actual lyrics of 핑크퐁 공룡 ABC song (Eoxa_YxOpuo).
+# abc field follows the actual lyrics of 주니토니 알파벳 공룡 song (wA5penhto5s).
 DATA = [
     # ── 코어 (PR #67~80): 시대별 보기 + 12시 시계 자리에 쓰임 ──
     ("001","안킬로사우루스","Ankylosaurus",3,"공룡","초식","백악기 후기",8,6,None,
@@ -204,7 +204,7 @@ credits = """# 공룡 시계 이미지·설명 출처
 
 ## 알파벳송 매핑 (26종)
 
-핑크퐁 [공룡 ABC](https://www.youtube.com/watch?v=Eoxa_YxOpuo) 가사 순서:
+주니토니 [알파벳 공룡](https://www.youtube.com/watch?v=wA5penhto5s) 가사 순서:
 
 A 알로사우루스 · B 브라키오사우루스 · C 콤프소그나투스 · D 디메트로돈 · E 에드몬토니아 ·
 F 파브로사우루스 · G 기가노토사우루스 · H 힙실로포돈 · I 이구아노돈 · J 작사르토사우루스 ·

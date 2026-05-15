@@ -38,7 +38,7 @@
 
 ## 알파벳송 매핑 (26종)
 
-핑크퐁 [공룡 ABC](https://www.youtube.com/watch?v=Eoxa_YxOpuo) 가사 순서:
+주니토니 [알파벳 공룡](https://www.youtube.com/watch?v=wA5penhto5s) 가사 순서:
 
 A 알로사우루스 · B 브라키오사우루스 · C 콤프소그나투스 · D 디메트로돈 · E 에드몬토니아 ·
 F 파브로사우루스 · G 기가노토사우루스 · H 힙실로포돈 · I 이구아노돈 · J 작사르토사우루스 ·
