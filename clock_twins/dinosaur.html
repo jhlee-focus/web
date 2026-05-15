@@ -499,11 +499,12 @@
     backdrop-filter: blur(6px);
     white-space: nowrap;
   }
-  .info-chip.kind-공룡   { background: linear-gradient(135deg, #2e5f3e, #81c784); }
-  .info-chip.kind-익룡   { background: linear-gradient(135deg, #0288d1, #4fc3f7); }
-  .info-chip.kind-수장룡 { background: linear-gradient(135deg, #1565c0, #5e35b1); }
-  .info-chip.kind-어룡   { background: linear-gradient(135deg, #00838f, #4dd0e1); }
-  .info-chip.period      { background: linear-gradient(135deg, #6f5536, #ffb74d); color: #1b3d2b; }
+  .info-chip.kind-공룡    { background: linear-gradient(135deg, #2e5f3e, #81c784); }
+  .info-chip.kind-익룡    { background: linear-gradient(135deg, #0288d1, #4fc3f7); }
+  .info-chip.kind-수장룡  { background: linear-gradient(135deg, #1565c0, #5e35b1); }
+  .info-chip.kind-어룡    { background: linear-gradient(135deg, #00838f, #4dd0e1); }
+  .info-chip.kind-공룡친척 { background: linear-gradient(135deg, #8d6e63, #d7a86e); color: #1b3d2b; }
+  .info-chip.period       { background: linear-gradient(135deg, #6f5536, #ffb74d); color: #1b3d2b; }
   .info-chip.spec        { background: linear-gradient(135deg, #d84315, #ff8a65); }
   .blurb {
     color: #fff;
@@ -694,6 +695,7 @@ function makeTierBadge(tier, fontSize) {
   return b;
 }
 var GEN_LABELS = {
+  0: '🟪 페름기',
   1: '🟫 트라이아스기',
   2: '🟢 쥐라기',
   3: '🟥 백악기'
