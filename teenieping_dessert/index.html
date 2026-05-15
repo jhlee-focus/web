@@ -978,6 +978,57 @@
     box-shadow: none;
   }
 
+  /* Flavor select screen */
+  #screen-flavor-select {
+    align-items: center;
+    gap: 12px;
+    overflow-y: auto;
+  }
+  #screen-flavor-select h2 {
+    font-size: 24px;
+    margin-bottom: 4px;
+    flex-shrink: 0;
+  }
+  .flavor-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    width: 100%;
+    padding: 8px 4px 16px;
+  }
+  .flavor-card {
+    padding: 10px 6px;
+    background: white;
+    border-radius: 18px;
+    box-shadow: var(--shadow);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    border: 3px solid transparent;
+    transition: all 0.15s;
+  }
+  .flavor-card:active { transform: scale(0.95); border-color: var(--primary); }
+  .flavor-card img {
+    width: 90px; height: 90px;
+    object-fit: contain;
+    image-rendering: pixelated;
+  }
+  .flavor-card .name {
+    font-size: 13px;
+    font-weight: 800;
+    text-align: center;
+    line-height: 1.2;
+    word-break: keep-all;
+  }
+  .flavor-card.red    { background: #FFF2F2; }
+  .flavor-card.yellow { background: #FFFBE6; }
+  .flavor-card.green  { background: #F0FFF1; }
+  .flavor-card.red    .name { color: #C0392B; }
+  .flavor-card.yellow .name { color: #C29A00; }
+  .flavor-card.green  .name { color: #1E8449; }
+
   /* Ingredient wrong-state highlight */
   .ingredient-btn.wrong {
     border-color: #E74C3C !important;
@@ -1107,6 +1158,12 @@
     <div class="screen" id="screen-dessert-select">
       <h2>무엇을 만들까?</h2>
       <div class="dessert-grid" id="dessert-grid"></div>
+    </div>
+
+    <!-- 2b. Flavor select screen (gummy bear, etc.) -->
+    <div class="screen" id="screen-flavor-select">
+      <h2 id="flavor-select-title">무슨 맛으로 만들까?</h2>
+      <div class="flavor-grid" id="flavor-grid"></div>
     </div>
 
     <!-- 3. Ingredients screen -->
@@ -1359,8 +1416,18 @@ const INGREDIENTS = {
   white_chocolate: { name: '화이트초콜릿', emoji: '🤍', img: 'img_assets/ingredients_pixel/Condiment_pixel/white_chocolate_01.png' },
   cocoa_powder: { name: '코코아가루', emoji: '🍫', img: 'img_assets/ingredients_pixel/Condiment_pixel/cocoa_powder_01.png' },
   pistachio: { name: '피스타치오', emoji: '🥜', img: 'img_assets/ingredients_pixel/Green_pixel/pistachio_01.png' },
-  vanilla: { name: '바닐라', emoji: '🌼', img: 'img_assets/ingredients_pixel/Condiment_pixel/vanilla_extract_01.png' }
+  vanilla: { name: '바닐라', emoji: '🌼', img: 'img_assets/ingredients_pixel/Condiment_pixel/vanilla_extract_01.png' },
+  // Gummy bear additions
+  strawberry_juice: { name: '딸기주스', emoji: '🍓', img: 'img_assets/ingredients_pixel/Condiment_pixel/strawberry_juice_01.png' },
+  lemonade:         { name: '레몬주스', emoji: '🍋', img: 'img_assets/ingredients_pixel/Condiment_pixel/lemonade_01.png' },
+  lime_juice:       { name: '청포도주스', emoji: '🥝', img: 'img_assets/ingredients_pixel/Condiment_pixel/lime_juice_01.png' },
+  gelatin:          { name: '젤라틴', emoji: '🍮', img: 'img_assets/ingredients_pixel/Condiment_pixel/gelatin_powder_01.png' },
+  water:            { name: '물',     emoji: '💧', img: 'img_assets/ingredients_pixel/Condiment_pixel/water_bottle_01.png' }
 };
+
+// Placeholder ingredient key used by flavor-variant desserts (gummy bear).
+// Resolved at runtime via getEffectiveIngredients() to the chosen flavor's juice.
+const FLAVOR_JUICE_PLACEHOLDER = 'gummy_juice';
 
 const TOPPING_EMOJI = {
   // 과일
@@ -1455,6 +1522,7 @@ const DESSERTS = {
     finalImg: 'img_assets/foods_pixel/103_dubai_cookie_2.png',
     ingredients: ['marshmallow', 'butter', 'cocoa_powder', 'milk'],
     skipBake: true,
+    mixHint: '마시멜로우가 살살 녹게 그릇을 톡톡 저어줘!',
     needFilling: true,
     fillingItems: ['kataifi', 'pistachio', 'white_chocolate'],
     fillingResultImg: 'img_assets/foods_pixel/107_dubai_cookie_base.png',
@@ -1516,6 +1584,33 @@ const DESSERTS = {
     },
     needChocochip: false,
     toppings: ['heart', 'sparkle', 'star', 'pink_heart', 'flower', 'cherry', 'sprinkles', 'rainbow']
+  },
+  gummy_bear: {
+    name: '곰돌이 젤리',
+    // Card image (dex / dessert-select): show all three colors at once
+    finalImg: 'img_assets/foods_pixel/113_gummybear_3colors.png',
+    // Per-flavor result images are picked at runtime via getFinalImg()
+    flavorSelect: true,
+    flavorVariants: {
+      red:    { juice: 'strawberry_juice', label: '빨강 딸기맛',  emoji: '🍓', finalImg: 'img_assets/foods_pixel/110_gummybear_red.png',    liquidImg: 'img_assets/foods_pixel/114_jelly_liquid_red.png' },
+      yellow: { juice: 'lemonade',         label: '노랑 레몬맛',  emoji: '🍋', finalImg: 'img_assets/foods_pixel/111_gummybear_yellow.png', liquidImg: 'img_assets/foods_pixel/115_jelly_liquid_yellow.png' },
+      green:  { juice: 'lime_juice',       label: '초록 청포도맛', emoji: '🥝', finalImg: 'img_assets/foods_pixel/112_gummybear_green.png',  liquidImg: 'img_assets/foods_pixel/116_jelly_liquid_green.png' }
+    },
+    ingredients: [FLAVOR_JUICE_PLACEHOLDER, 'sugar', 'gelatin', 'water'],
+    skipBake: true,
+    mixHint: '말랑말랑 게이지가 가득 찰 때까지 빙글빙글 저어줘!',
+    // Fill the bear mold BEFORE chilling in the fridge.
+    addonBeforeCool: true,
+    addonStep: {
+      // baseImg = empty silicon mold; img (drop icon) = colored jelly liquid (set at runtime)
+      baseImg: 'img_assets/tools_pixel/Bear Mold Triple.png',
+      img: 'img_assets/foods_pixel/114_jelly_liquid_red.png', // overridden by flavor at runtime
+      label: '곰돌이 틀에 붓기',
+      requiredCount: 3
+    },
+    needCool: true,
+    needChocochip: false,
+    toppings: ['heart', 'sparkle', 'star', 'pink_heart', 'sprinkles', 'flower', 'rainbow', 'candy']
   }
 };
 
@@ -1545,7 +1640,9 @@ const state = {
   guideSrc: '', // set right after this object is created
   idleTimer: null,
   selectedTopping: null,
-  decorateNudgeCount: 0
+  decorateNudgeCount: 0,
+  gummyFlavor: null, // 'red' | 'yellow' | 'green' (set in flavor-select screen)
+  addonDone: false   // tracks whether addonStep has run already (for addonBeforeCool flow)
 };
 state.guideSrc = TEENIEPINGS[state.guideName];
 
@@ -1554,6 +1651,27 @@ state.guideSrc = TEENIEPINGS[state.guideName];
 // ============================================================
 const $  = sel => document.querySelector(sel);
 const $$ = sel => document.querySelectorAll(sel);
+
+// Returns the result image to display for the current dessert.
+// For flavor-variant desserts (gummy bear) returns the picked color's image.
+function getFinalImg(dessert) {
+  if (dessert && dessert.flavorVariants && state.gummyFlavor
+      && dessert.flavorVariants[state.gummyFlavor]) {
+    return dessert.flavorVariants[state.gummyFlavor].finalImg;
+  }
+  return dessert ? dessert.finalImg : '';
+}
+
+// Resolves a dessert's ingredient list, substituting flavor placeholders.
+function getEffectiveIngredients(dessert) {
+  if (!dessert || !dessert.ingredients) return [];
+  if (!dessert.flavorVariants || !state.gummyFlavor) return dessert.ingredients;
+  const variant = dessert.flavorVariants[state.gummyFlavor];
+  if (!variant) return dessert.ingredients;
+  return dessert.ingredients.map(k =>
+    k === FLAVOR_JUICE_PLACEHOLDER ? variant.juice : k
+  );
+}
 
 function showScreen(id) {
   $$('.screen').forEach(s => s.classList.remove('active'));
@@ -1941,6 +2059,8 @@ function goHome() {
   state.currentDessert = null;
   state.selectedIngredients = [];
   state.placedToppings = [];
+  state.gummyFlavor = null;
+  state.addonDone = false;
   pickRandomBackground();
   showScreen('screen-start');
   playGuideGreeting();
@@ -2177,7 +2297,13 @@ function setupDessertSelect() {
       state.currentDessert = key;
       state.selectedIngredients = [];
       state.placedToppings = [];
-      startIngredientsScreen();
+      state.gummyFlavor = null;
+      state.addonDone = false;
+      if (DESSERTS[key].flavorSelect) {
+        startFlavorSelectScreen();
+      } else {
+        startIngredientsScreen();
+      }
     };
     card.onclick = activate;
     card.addEventListener('keydown', e => {
@@ -2195,20 +2321,64 @@ function setupDessertSelect() {
 }
 
 // ============================================================
+// SCREEN: FLAVOR SELECT (gummy bear, etc.)
+// ============================================================
+function startFlavorSelectScreen() {
+  showScreen('screen-flavor-select');
+  const dessert = DESSERTS[state.currentDessert];
+  const variants = (dessert && dessert.flavorVariants) || {};
+  const grid = $('#flavor-grid');
+  grid.innerHTML = '';
+
+  Object.entries(variants).forEach(([flavor, v]) => {
+    const card = document.createElement('div');
+    card.className = 'flavor-card ' + flavor;
+    card.dataset.flavor = flavor;
+    card.setAttribute('role', 'button');
+    card.setAttribute('tabindex', '0');
+    card.setAttribute('aria-label', `${v.label} ${dessert.name}`);
+    card.innerHTML = `
+      <img src="${v.finalImg}" alt="" onerror="this.style.opacity='0.2'" />
+      <div class="name">${v.emoji} ${v.label}</div>
+    `;
+    const activate = () => {
+      Sounds.pop();
+      state.gummyFlavor = flavor;
+      startIngredientsScreen();
+    };
+    card.onclick = activate;
+    card.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        activate();
+      }
+    });
+    grid.appendChild(card);
+  });
+
+  say('어떤 맛으로 만들고 싶어? 빨강·노랑·초록 중에서 골라줘!');
+  setIdleHint(() => {
+    const first = $('#flavor-grid .flavor-card');
+    if (first) showGuideFinger(first);
+  });
+}
+
+// ============================================================
 // SCREEN: INGREDIENTS
 // ============================================================
 function startIngredientsScreen() {
   showScreen('screen-ingredients');
   const dessert = DESSERTS[state.currentDessert];
+  const effective = getEffectiveIngredients(dessert);
   const palette = $('#ingredient-palette');
   palette.innerHTML = '';
   const inBowl = $('#ingredients-in-bowl');
   inBowl.innerHTML = '';
 
-  // Build palette: dessert ingredients + 2 distractors
+  // Build palette: dessert ingredients (resolved) + 2 distractors
   const allKeys = Object.keys(INGREDIENTS).filter(k => k !== 'choco_chip' && k !== 'cream');
-  const distractors = allKeys.filter(k => !dessert.ingredients.includes(k)).slice(0, 2);
-  const paletteKeys = [...dessert.ingredients, ...distractors];
+  const distractors = allKeys.filter(k => !effective.includes(k)).slice(0, 2);
+  const paletteKeys = [...effective, ...distractors];
   // shuffle
   paletteKeys.sort(() => Math.random() - 0.5);
 
@@ -2225,12 +2395,13 @@ function startIngredientsScreen() {
   });
 
   renderProgressDots();
-  const firstIng = INGREDIENTS[dessert.ingredients[0]].name;
+  const firstIng = INGREDIENTS[effective[0]].name;
   say(`${dessert.name}를 만들어보자! 먼저 ${firstIng}부터 골라줘!`);
 
   setIdleHint(() => {
     const dessert = DESSERTS[state.currentDessert];
-    const next = dessert.ingredients[state.selectedIngredients.length];
+    const eff = getEffectiveIngredients(dessert);
+    const next = eff[state.selectedIngredients.length];
     if (!next) return;
     const btn = palette.querySelector(`[data-ing="${next}"]`);
     if (btn) {
@@ -2242,7 +2413,7 @@ function startIngredientsScreen() {
 
 function renderProgressDots() {
   const dots = $('#progress-dots');
-  const total = DESSERTS[state.currentDessert].ingredients.length;
+  const total = getEffectiveIngredients(DESSERTS[state.currentDessert]).length;
   dots.innerHTML = '';
   for (let i = 0; i < total; i++) {
     const d = document.createElement('div');
@@ -2253,7 +2424,8 @@ function renderProgressDots() {
 
 function onIngredientTap(ingKey, btn) {
   const dessert = DESSERTS[state.currentDessert];
-  const expected = dessert.ingredients[state.selectedIngredients.length];
+  const effective = getEffectiveIngredients(dessert);
+  const expected = effective[state.selectedIngredients.length];
   if (ingKey !== expected) {
     Sounds.errorBuzz();
     // Persistent red highlight on the wrong button (until user picks correctly)
@@ -2303,13 +2475,13 @@ function onIngredientTap(ingKey, btn) {
 
   renderProgressDots();
 
-  if (state.selectedIngredients.length === dessert.ingredients.length) {
+  if (state.selectedIngredients.length === effective.length) {
     say('잘했어! 이제 섞어보자!');
     setTimeout(() => {
       startMixScreen();
     }, 1400);
   } else {
-    const nextKey = dessert.ingredients[state.selectedIngredients.length];
+    const nextKey = effective[state.selectedIngredients.length];
     say(`${INGREDIENTS[nextKey].name}을(를) 골라줘!`);
     setIdleHint(() => {
       const next = $(`#ingredient-palette [data-ing="${nextKey}"]`);
@@ -2331,9 +2503,10 @@ function startMixScreen() {
   let count = 0;
   gauge.style.width = '0%';
   const dessert = DESSERTS[state.currentDessert];
-  const mixVerb = dessert.skipBake
-    ? '마시멜로우가 살살 녹게 그릇을 톡톡 저어줘!'
-    : '그릇을 톡톡 눌러서 잘 섞어줘! 5번이면 충분해~';
+  const mixVerb = dessert.mixHint
+    || (dessert.skipBake
+        ? '그릇을 톡톡 저어서 살살 녹여줘!'
+        : '그릇을 톡톡 눌러서 잘 섞어줘! 5번이면 충분해~');
   say(mixVerb);
 
   stack.onclick = () => {
@@ -2363,10 +2536,14 @@ function proceedAfterMix() {
 
 function proceedAfterBake() {
   const dessert = DESSERTS[state.currentDessert];
+  // Special flow (gummy bear): fill the mold BEFORE chilling in the fridge.
+  if (dessert.addonBeforeCool && dessert.addonStep && !state.addonDone) {
+    return startAddAddonScreen();
+  }
   if (dessert.needCool) return startCoolScreen();
   if (dessert.needCoating) return startCoatingScreen();
   if (dessert.needCream) return startCreamScreen();
-  if (dessert.addonStep) return startAddAddonScreen();
+  if (dessert.addonStep && !state.addonDone) return startAddAddonScreen();
   return startDecorateScreen();
 }
 
@@ -2562,17 +2739,25 @@ function startCoolScreen() {
   showScreen('screen-cool');
   const fridge = $('#fridge-img');
   const wrap = $('#fridge-wrap');
-  say('치즈케이크는 차갑게 식혀야 더 맛있어! 냉장고를 톡 눌러줘~');
+  const dessert = DESSERTS[state.currentDessert];
+  // Friendlier message for gummy bear ("mold → fridge"); generic message otherwise.
+  if (dessert && dessert.addonBeforeCool) {
+    say('이제 곰돌이 틀을 냉장고에 넣어 차갑게 굳히자! 냉장고를 톡!');
+  } else {
+    say('차갑게 식혀야 더 맛있어! 냉장고를 톡 눌러줘~');
+  }
 
   fridge.onclick = () => {
     Sounds.glide();
     fridge.onclick = null;
     wrap.classList.add('cooling');
-    say('차갑게 식고 있어... 조금만 기다려줘!');
+    say('차갑게 굳고 있어... 조금만 기다려줘!');
     setTimeout(() => {
       wrap.classList.remove('cooling');
-      const dessert = DESSERTS[state.currentDessert];
-      if (dessert.needCream) startCreamScreen();
+      const d = DESSERTS[state.currentDessert];
+      // After chilling, run any remaining steps.
+      if (d.needCream) startCreamScreen();
+      else if (d.addonStep && !state.addonDone) startAddAddonScreen();
       else startDecorateScreen();
     }, AUTO_DURATION_MS);
   };
@@ -2625,10 +2810,18 @@ function startAddAddonScreen() {
   const addon = dessert.addonStep;
   if (!addon) { startDecorateScreen(); return; }
 
-  // Base = cream-applied bread (creamBaseImg) so user sees their cream stay
-  $('#addon-base').src = dessert.creamBaseImg || dessert.finalImg;
+  // Drop icon: prefer the flavor's liquid image (gummy bear); else the addon.img default.
+  let dropImg = addon.img;
+  if (dessert.flavorVariants && state.gummyFlavor
+      && dessert.flavorVariants[state.gummyFlavor]
+      && dessert.flavorVariants[state.gummyFlavor].liquidImg) {
+    dropImg = dessert.flavorVariants[state.gummyFlavor].liquidImg;
+  }
+
+  // Base image priority: explicit addon.baseImg (e.g. bear mold) → creamBaseImg → final result.
+  $('#addon-base').src = addon.baseImg || dessert.creamBaseImg || getFinalImg(dessert);
   $('#addon-base').alt = dessert.name;
-  $('#addon-icon-img').src = addon.img;
+  $('#addon-icon-img').src = dropImg;
 
   const canvas = $('#addon-canvas');
   // Clear previous addons
@@ -2641,7 +2834,7 @@ function startAddAddonScreen() {
 
   say(required === 1
     ? `이제 빨갛고 예쁜 ${addon.label} 1개를 살짝 올려줘!`
-    : `${addon.label}을(를) ${required}개 차례차례 올려줘!`);
+    : `${addon.label}! ${required}번 톡톡 부어줘~`);
 
   canvas.onclick = e => {
     if (count >= required) return;
@@ -2650,7 +2843,7 @@ function startAddAddonScreen() {
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
     const item = document.createElement('img');
-    item.src = addon.img;
+    item.src = dropImg;
     item.className = 'placed-addon';
     item.style.left = x + 'px';
     item.style.top = y + 'px';
@@ -2660,8 +2853,17 @@ function startAddAddonScreen() {
     if (count >= required) {
       Sounds.pop();
       canvas.onclick = null;
-      say('잘 올렸어!');
-      setTimeout(() => startDecorateScreen(), 700);
+      say('잘 부었어!');
+      setTimeout(() => {
+        state.addonDone = true;
+        // If this addon step was the "fill mold before chilling" type,
+        // continue to the fridge; otherwise jump to decorate.
+        if (dessert.addonBeforeCool && dessert.needCool) {
+          startCoolScreen();
+        } else {
+          startDecorateScreen();
+        }
+      }, 700);
     }
   };
 
@@ -2680,8 +2882,8 @@ function startDecorateScreen() {
   state.selectedTopping = null;
   state.decorateNudgeCount = 0;
 
-  // Set base dessert image
-  $('#decorate-base').src = dessert.finalImg;
+  // Set base dessert image (flavor-aware)
+  $('#decorate-base').src = getFinalImg(dessert);
 
   // Clear previous toppings
   $$('#decorate-canvas .placed-topping').forEach(el => el.remove());
@@ -2775,7 +2977,7 @@ function startCompleteScreen() {
   const wrap = $('#final-canvas-wrap');
   // Clear previous
   $$('#final-canvas-wrap .placed-topping').forEach(el => el.remove());
-  $('#final-img').src = dessert.finalImg;
+  $('#final-img').src = getFinalImg(dessert);
   $('#final-img').style.display = 'block';
 
   // Replay placed toppings (scaled to final canvas size)
@@ -2837,13 +3039,22 @@ function startCompleteScreen() {
     Sounds.pop();
     state.selectedIngredients = [];
     state.placedToppings = [];
-    startIngredientsScreen();
+    state.addonDone = false;
+    // Re-pick flavor when re-making a flavor-variant dessert (gummy bear)
+    if (DESSERTS[state.currentDessert] && DESSERTS[state.currentDessert].flavorSelect) {
+      state.gummyFlavor = null;
+      startFlavorSelectScreen();
+    } else {
+      startIngredientsScreen();
+    }
   };
   $('#again-other-btn').onclick = () => {
     Sounds.pop();
     state.currentDessert = null;
     state.selectedIngredients = [];
     state.placedToppings = [];
+    state.gummyFlavor = null;
+    state.addonDone = false;
     showScreen('screen-dessert-select');
     setupDessertSelect();
   };
@@ -2933,7 +3144,7 @@ async function captureCompletedDessert() {
   const imgX = (W - 360) / 2;
   const imgY = 175;
   const imgSize = 360;
-  const finalImgEl = await loadImage(dessert.finalImg);
+  const finalImgEl = await loadImage(getFinalImg(dessert));
   if (finalImgEl) {
     ctx.imageSmoothingEnabled = false;
     ctx.drawImage(finalImgEl, imgX, imgY, imgSize, imgSize);
