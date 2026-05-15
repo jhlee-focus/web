@@ -26,20 +26,14 @@
     text-align: center;
   }
   .cards {
-    display: flex;
-    flex-direction: row;
+    /* 4개 카드 — 데스크톱·태블릿은 1×4, 좁은 화면은 2×2 그리드로 자동 폴백 */
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
     gap: clamp(12px, 2.5vw, 28px);
-    align-items: stretch;
-    justify-content: center;
-    flex-wrap: nowrap;
     width: 100%;
     max-width: 1100px;
   }
   .card {
-    /* 항상 1×3 가로 배치. 카드 크기는 뷰포트 너비/높이에 적응. */
-    flex: 1 1 0;
-    max-width: 340px;
-    min-width: 0;
     aspect-ratio: 1 / 1;
     /* 가로 길고 세로 짧은 화면(모바일 가로 등)에서도 잘리지 않도록 상한 */
     max-height: 60vh;
@@ -77,6 +71,9 @@
   .card.solar { --card-bg: linear-gradient(160deg, #1a237e, #311b92 60%, #1a1340); }
   .card.solar { box-shadow: 0 8px 28px rgba(13,27,61,0.35), inset 0 0 0 2px rgba(255,213,79,0.5); }
   .card.solar:hover { box-shadow: 0 16px 40px rgba(13,27,61,0.55), inset 0 0 0 2px rgba(255,213,79,0.8); }
+  .card.dinosaur { --card-bg: linear-gradient(160deg, #1b3d2b, #2e5f3e 35%, #5c3a14 80%, #3a2812); }
+  .card.dinosaur { box-shadow: 0 8px 28px rgba(27,61,43,0.4), inset 0 0 0 2px rgba(255,183,77,0.5); }
+  .card.dinosaur:hover { box-shadow: 0 16px 40px rgba(27,61,43,0.6), inset 0 0 0 2px rgba(255,183,77,0.85); }
   .card img {
     width: 50%;
     aspect-ratio: 1;
@@ -95,6 +92,8 @@
   .card.pokemon .card-label { color: #d32f2f; }
   .card.solar .card-label { color: #ffd54f; text-shadow: 0 0 12px rgba(255,213,79,0.5), 0 1px 3px rgba(0,0,0,0.4); }
   .card.solar .card-sub { color: rgba(255,213,79,0.75); }
+  .card.dinosaur .card-label { color: #ffb74d; text-shadow: 0 0 12px rgba(255,183,77,0.5), 0 1px 3px rgba(0,0,0,0.4); }
+  .card.dinosaur .card-sub { color: rgba(255,183,77,0.78); }
   .card-sub {
     font-size: clamp(12px, 1.6vw, 14px);
     color: rgba(0,0,0,0.55);
@@ -115,18 +114,14 @@
     90% { opacity: 0.18; }
     100% { transform: translateY(-10vh) rotate(360deg); opacity: 0; }
   }
-  @media (max-width: 520px) {
-    .cards { flex-direction: column; align-items: center; }
-    .card {
-      /* column 방향에서 flex-basis 0이면 카드 높이가 0으로 무너지므로 auto로 복원 */
-      flex: 0 0 auto;
-      aspect-ratio: 3 / 2;
-      max-width: 92vw;
-      min-width: 0;
-      width: 100%;
-      max-height: none;
-    }
-    .card img { width: 38%; }
+  /* 좁은 화면: 1×4 그리드가 너무 좁아져서 2×2로 폴백 */
+  @media (max-width: 700px) {
+    .cards { grid-template-columns: repeat(2, 1fr); max-width: 95vw; }
+    .card { aspect-ratio: 1 / 1; max-height: none; }
+    .card img { width: 50%; }
+  }
+  @media (max-width: 420px) {
+    .card img { width: 42%; }
   }
 </style>
 </head>
@@ -148,11 +143,16 @@
     <div class="card-label">태양계 시계</div>
     <div class="card-sub">별과 행성이 그리는 시간</div>
   </a>
+  <a class="card dinosaur" href="dinosaur.html">
+    <img src="img_dinosaur/DN-020_티라노사우루스.webp" alt="공룡 시계" draggable="false">
+    <div class="card-label">공룡 시계</div>
+    <div class="card-sub">쿵쾅쿵쾅, 공룡들이 살아나</div>
+  </a>
 </div>
 <script>
   // 떠다니는 하트 + 포켓볼 + 별/행성 이모지
-  var symbols = ['💗','💖','💕','✨','⚪','🔴','🪐','🌟','⭐','☄️','💫'];
-  for (var i = 0; i < 16; i++) {
+  var symbols = ['💗','💖','💕','✨','⚪','🔴','🪐','🌟','⭐','☄️','💫','🦖','🦕','🌿','🦴'];
+  for (var i = 0; i < 18; i++) {
     var el = document.createElement('div');
     el.className = 'floating';
     el.textContent = symbols[Math.floor(Math.random() * symbols.length)];

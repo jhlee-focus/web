@@ -3,3 +3,10 @@
 
 # Solar clock: 원본 이미지(NASA/Wikimedia)는 빌드 산출물(.webp)만 커밋
 clock_twins/img_solar_src/
+
+# Dinosaur clock: 원본 이미지(dino.fandom.com/Wikipedia)는 빌드 산출물(.webp)만 커밋
+clock_twins/img_dinosaur_src/
+
+# Python bytecode caches
+__pycache__/
+*.pyc
