@@ -1622,18 +1622,13 @@ const DESSERTS = {
         addonOverride: { baseImg: 'img_assets/tools_pixel/Bear Mold Single.png', requiredCount: 1 }
       },
       all: {
-        // "3종 다 만들기" — 빨강/노랑/초록 한 번에
+        // "3종 다 만들기" — 빨강/노랑/초록을 각각 풀 레시피로 한 번씩 만듦.
+        // 실제 라운드 동작은 state.gummyMultiRound가 담당하고, 이 variant는
+        // (1) 플레이버 선택 화면의 카드 표시, (2) 모든 라운드 완료 후의 최종 결과(3색 합본)
+        // 두 가지에만 쓰임. 라운드 도중에는 state.gummyFlavor가 실제 색(red/yellow/green)이 됨.
         label: '3종 다 만들기', emoji: '🌈',
         finalImg: 'img_assets/foods_pixel/113_gummybear_3colors.png',
-        liquidImg: 'img_assets/foods_pixel/117_jelly_liquid_3colors.png',
-        // 별도 재료 목록(전 색의 주스 + 공통 4종)
-        ingredients: ['strawberry_juice', 'lemonade', 'lime_juice', 'sugar', 'gelatin', 'water'],
-        // 3구 트레이에 색을 차례차례 부어줌 (탭마다 다른 색 방울)
-        addonOverride: {
-          baseImg: 'img_assets/tools_pixel/Bear Mold Triple.png',
-          requiredCount: 3,
-          multiColors: ['red', 'yellow', 'green']
-        }
+        liquidImg: 'img_assets/foods_pixel/117_jelly_liquid_3colors.png'
       }
     },
     ingredients: [FLAVOR_JUICE_PLACEHOLDER, 'sugar', 'gelatin', 'water'],
@@ -1681,8 +1676,11 @@ const state = {
   idleTimer: null,
   selectedTopping: null,
   decorateNudgeCount: 0,
-  gummyFlavor: null, // 'red' | 'yellow' | 'green' (set in flavor-select screen)
-  addonDone: false   // tracks whether addonStep has run already (for addonBeforeCool flow)
+  gummyFlavor: null, // 'red' | 'yellow' | 'green' | 'all' (set in flavor-select screen)
+  addonDone: false,  // tracks whether addonStep has run already (for addonBeforeCool flow)
+  // When the user picks 곰돌이 젤리 "3종 다 만들기", we sequentially run
+  // a full recipe (재료→섞기→틀→냉장고) for each color, one at a time.
+  gummyMultiRound: null // null | { sequence: ['red','yellow','green'], index: 0 }
 };
 state.guideSrc = TEENIEPINGS[state.guideName];
 
@@ -2106,6 +2104,7 @@ function goHome() {
   state.placedToppings = [];
   state.gummyFlavor = null;
   state.addonDone = false;
+  state.gummyMultiRound = null;
   pickRandomBackground();
   showScreen('screen-start');
   playGuideGreeting();
@@ -2344,6 +2343,7 @@ function setupDessertSelect() {
       state.placedToppings = [];
       state.gummyFlavor = null;
       state.addonDone = false;
+      state.gummyMultiRound = null;
       if (DESSERTS[key].flavorSelect) {
         startFlavorSelectScreen();
       } else {
@@ -2388,7 +2388,16 @@ function startFlavorSelectScreen() {
     `;
     const activate = () => {
       Sounds.pop();
-      state.gummyFlavor = flavor;
+      if (flavor === 'all') {
+        // Multi-round mode: make red, yellow, green one after another (full recipe each).
+        state.gummyMultiRound = { sequence: ['red', 'yellow', 'green'], index: 0 };
+        state.gummyFlavor = 'red';
+      } else {
+        state.gummyMultiRound = null;
+        state.gummyFlavor = flavor;
+      }
+      state.selectedIngredients = [];
+      state.addonDone = false;
       startIngredientsScreen();
     };
     card.onclick = activate;
@@ -2441,7 +2450,15 @@ function startIngredientsScreen() {
 
   renderProgressDots();
   const firstIng = INGREDIENTS[effective[0]].name;
-  say(`${dessert.name}를 만들어보자! 먼저 ${firstIng}부터 골라줘!`);
+  // Round-aware message for the gummy bear "3종 다 만들기" sequence
+  if (state.gummyMultiRound && state.gummyFlavor) {
+    const r = state.gummyMultiRound;
+    const colorLabel = (dessert.flavorVariants[state.gummyFlavor] || {}).label || state.gummyFlavor;
+    const ordinal = ['첫 번째', '두 번째', '마지막'][r.index] || `${r.index + 1}번째`;
+    say(`${ordinal}는 ${colorLabel}! 먼저 ${firstIng}부터 골라줘! (${r.index + 1}/${r.sequence.length})`);
+  } else {
+    say(`${dessert.name}를 만들어보자! 먼저 ${firstIng}부터 골라줘!`);
+  }
 
   setIdleHint(() => {
     const dessert = DESSERTS[state.currentDessert];
@@ -2786,7 +2803,10 @@ function startCoolScreen() {
   const wrap = $('#fridge-wrap');
   const dessert = DESSERTS[state.currentDessert];
   // Friendlier message for gummy bear ("mold → fridge"); generic message otherwise.
-  if (dessert && dessert.addonBeforeCool) {
+  if (state.gummyMultiRound && state.gummyFlavor) {
+    const colorLabel = (dessert.flavorVariants[state.gummyFlavor] || {}).label || '';
+    say(`${colorLabel} 곰돌이를 냉장고에 넣어 차갑게 굳히자! 냉장고를 톡!`);
+  } else if (dessert && dessert.addonBeforeCool) {
     say('이제 곰돌이 틀을 냉장고에 넣어 차갑게 굳히자! 냉장고를 톡!');
   } else {
     say('차갑게 식혀야 더 맛있어! 냉장고를 톡 눌러줘~');
@@ -2799,6 +2819,8 @@ function startCoolScreen() {
     say('차갑게 굳고 있어... 조금만 기다려줘!');
     setTimeout(() => {
       wrap.classList.remove('cooling');
+      // Multi-round (gummy bear "3종 다 만들기"): may need another full round before decorate.
+      if (proceedAfterRound()) return;
       const d = DESSERTS[state.currentDessert];
       // After chilling, run any remaining steps.
       if (d.needCream) startCreamScreen();
@@ -2808,6 +2830,33 @@ function startCoolScreen() {
   };
 
   setIdleHint(() => showGuideFinger(fridge));
+}
+
+// If we're in gummy-bear "3종 다 만들기" mode, advance to the next color round.
+// Returns true if the next round was started (so the caller should not continue
+// to decorate); false if all rounds are done and the caller should proceed normally
+// (with state.gummyFlavor set to 'all' so decorate/complete show the 3-color image).
+function proceedAfterRound() {
+  if (!state.gummyMultiRound) return false;
+  const r = state.gummyMultiRound;
+  r.index += 1;
+  if (r.index < r.sequence.length) {
+    const justDone = r.sequence[r.index - 1];
+    const nextColor = r.sequence[r.index];
+    const dessert = DESSERTS[state.currentDessert];
+    const justLabel = (dessert.flavorVariants[justDone] || {}).label || justDone;
+    const nextLabel = (dessert.flavorVariants[nextColor] || {}).label || nextColor;
+    state.gummyFlavor = nextColor;
+    state.selectedIngredients = [];
+    state.addonDone = false;
+    say(`와! ${justLabel} 완성! 이번엔 ${nextLabel}이야~`);
+    setTimeout(() => startIngredientsScreen(), 1500);
+    return true;
+  }
+  // All rounds done — present the final 3-color result
+  state.gummyMultiRound = null;
+  state.gummyFlavor = 'all';
+  return false;
 }
 
 // ============================================================
@@ -3105,6 +3154,7 @@ function startCompleteScreen() {
     state.selectedIngredients = [];
     state.placedToppings = [];
     state.addonDone = false;
+    state.gummyMultiRound = null;
     // Re-pick flavor when re-making a flavor-variant dessert (gummy bear)
     if (DESSERTS[state.currentDessert] && DESSERTS[state.currentDessert].flavorSelect) {
       state.gummyFlavor = null;
@@ -3120,6 +3170,7 @@ function startCompleteScreen() {
     state.placedToppings = [];
     state.gummyFlavor = null;
     state.addonDone = false;
+    state.gummyMultiRound = null;
     showScreen('screen-dessert-select');
     setupDessertSelect();
   };
