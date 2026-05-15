@@ -2455,7 +2455,7 @@ function startIngredientsScreen() {
     const r = state.gummyMultiRound;
     const colorLabel = (dessert.flavorVariants[state.gummyFlavor] || {}).label || state.gummyFlavor;
     const ordinal = ['첫 번째', '두 번째', '마지막'][r.index] || `${r.index + 1}번째`;
-    say(`${ordinal}는 ${colorLabel}! 먼저 ${firstIng}부터 골라줘! (${r.index + 1}/${r.sequence.length})`);
+    say(`${ordinal} 젤리액은 ${colorLabel}! 먼저 ${firstIng}부터 골라줘! (${r.index + 1}/${r.sequence.length})`);
   } else {
     say(`${dessert.name}를 만들어보자! 먼저 ${firstIng}부터 골라줘!`);
   }
@@ -2598,7 +2598,21 @@ function proceedAfterMix() {
 
 function proceedAfterBake() {
   const dessert = DESSERTS[state.currentDessert];
-  // Special flow (gummy bear): fill the mold BEFORE chilling in the fridge.
+  // GUMMY BEAR "3종 다 만들기": rounds 1..N-1 only need ingredients+mix.
+  // They skip the mold and the fridge entirely and jump straight to the next
+  // color's recipe. Only the FINAL round triggers the shared 3-cavity mold
+  // (Triple) + one shared fridge step.
+  if (state.gummyMultiRound) {
+    const r = state.gummyMultiRound;
+    const isFinalRound = r.index >= r.sequence.length - 1;
+    if (!isFinalRound) {
+      // skip mold+cool for non-final rounds
+      if (advanceToNextRound()) return;
+    }
+    // Final round: fall through; startAddAddonScreen will detect multiRound
+    // and use the Triple mold + multiColors for the shared pour-into-mold step.
+  }
+  // Special flow (gummy bear single, etc.): fill the mold BEFORE chilling in the fridge.
   if (dessert.addonBeforeCool && dessert.addonStep && !state.addonDone) {
     return startAddAddonScreen();
   }
@@ -2803,9 +2817,9 @@ function startCoolScreen() {
   const wrap = $('#fridge-wrap');
   const dessert = DESSERTS[state.currentDessert];
   // Friendlier message for gummy bear ("mold → fridge"); generic message otherwise.
-  if (state.gummyMultiRound && state.gummyFlavor) {
-    const colorLabel = (dessert.flavorVariants[state.gummyFlavor] || {}).label || '';
-    say(`${colorLabel} 곰돌이를 냉장고에 넣어 차갑게 굳히자! 냉장고를 톡!`);
+  if (state.gummyMultiRound) {
+    // Cool only runs ONCE in the new 3종 flow — after the shared Triple mold is full.
+    say('빨강·노랑·초록 곰돌이를 한꺼번에 냉장고에 넣어 차갑게 굳히자! 냉장고를 톡!');
   } else if (dessert && dessert.addonBeforeCool) {
     say('이제 곰돌이 틀을 냉장고에 넣어 차갑게 굳히자! 냉장고를 톡!');
   } else {
@@ -2819,8 +2833,8 @@ function startCoolScreen() {
     say('차갑게 굳고 있어... 조금만 기다려줘!');
     setTimeout(() => {
       wrap.classList.remove('cooling');
-      // Multi-round (gummy bear "3종 다 만들기"): may need another full round before decorate.
-      if (proceedAfterRound()) return;
+      // GUMMY BEAR 3종: shared fridge is the last step before decorate; flip identity to 'all'.
+      finishMultiRoundIfDone();
       const d = DESSERTS[state.currentDessert];
       // After chilling, run any remaining steps.
       if (d.needCream) startCreamScreen();
@@ -2832,31 +2846,44 @@ function startCoolScreen() {
   setIdleHint(() => showGuideFinger(fridge));
 }
 
-// If we're in gummy-bear "3종 다 만들기" mode, advance to the next color round.
-// Returns true if the next round was started (so the caller should not continue
-// to decorate); false if all rounds are done and the caller should proceed normally
-// (with state.gummyFlavor set to 'all' so decorate/complete show the 3-color image).
-function proceedAfterRound() {
+// GUMMY BEAR "3종 다 만들기" — round helpers
+//
+// New flow:
+//   Round 1 (red):    ingredients → mix → (no mold, no fridge) → advance
+//   Round 2 (yellow): ingredients → mix → (no mold, no fridge) → advance
+//   Round 3 (green):  ingredients → mix → shared Triple mold (3 colors) → fridge → decorate
+//
+// advanceToNextRound() is called BETWEEN rounds (after mix on non-final rounds).
+// finishMultiRoundIfDone() is called AFTER the shared fridge step on the final round
+// to flip the identity to 'all' so the decorate/complete screens show the 3-color result.
+
+function advanceToNextRound() {
   if (!state.gummyMultiRound) return false;
   const r = state.gummyMultiRound;
-  r.index += 1;
-  if (r.index < r.sequence.length) {
-    const justDone = r.sequence[r.index - 1];
-    const nextColor = r.sequence[r.index];
-    const dessert = DESSERTS[state.currentDessert];
-    const justLabel = (dessert.flavorVariants[justDone] || {}).label || justDone;
-    const nextLabel = (dessert.flavorVariants[nextColor] || {}).label || nextColor;
-    state.gummyFlavor = nextColor;
-    state.selectedIngredients = [];
-    state.addonDone = false;
-    say(`와! ${justLabel} 완성! 이번엔 ${nextLabel}이야~`);
-    setTimeout(() => startIngredientsScreen(), 1500);
-    return true;
-  }
-  // All rounds done — present the final 3-color result
+  const nextIdx = r.index + 1;
+  if (nextIdx >= r.sequence.length) return false;
+
+  const dessert = DESSERTS[state.currentDessert];
+  const justColor = r.sequence[r.index];
+  const justLabel = (dessert.flavorVariants[justColor] || {}).label || justColor;
+  const nextColor = r.sequence[nextIdx];
+  const nextLabel = (dessert.flavorVariants[nextColor] || {}).label || nextColor;
+
+  r.index = nextIdx;
+  state.gummyFlavor = nextColor;
+  state.selectedIngredients = [];
+  state.addonDone = false;
+  say(`와! ${justLabel} 젤리액 완성! 이번엔 ${nextLabel} 차례야~`);
+  setTimeout(() => startIngredientsScreen(), 1500);
+  return true;
+}
+
+function finishMultiRoundIfDone() {
+  if (!state.gummyMultiRound) return;
+  // All rounds + shared mold + shared fridge are done at this point.
+  // Switch identity to 'all' so decorate/complete + share canvas use the 3-color image.
   state.gummyMultiRound = null;
   state.gummyFlavor = 'all';
-  return false;
 }
 
 // ============================================================
@@ -2904,12 +2931,30 @@ function startAddAddonScreen() {
   const baseAddon = dessert.addonStep;
   if (!baseAddon) { startDecorateScreen(); return; }
 
-  // Merge flavor variant's addonOverride (e.g. single-cavity mold for 1-flavor,
-  // triple-cavity mold + multiColors for "all 3").
+  // Merge flavor variant's addonOverride (single-cavity mold for 1-flavor)
   const variant = (dessert.flavorVariants && state.gummyFlavor)
     ? dessert.flavorVariants[state.gummyFlavor]
     : null;
-  const addon = Object.assign({}, baseAddon, (variant && variant.addonOverride) || {});
+  // Multi-round final pass: ignore the single-cavity variant override and use
+  // the shared Triple mold with one cavity per color (multiColors).
+  let runtimeOverride = null;
+  if (state.gummyMultiRound) {
+    const r = state.gummyMultiRound;
+    const isFinalRound = r.index >= r.sequence.length - 1;
+    if (isFinalRound) {
+      runtimeOverride = {
+        baseImg: 'img_assets/tools_pixel/Bear Mold Triple.png',
+        requiredCount: r.sequence.length,
+        multiColors: r.sequence.slice()
+      };
+    }
+  }
+  const addon = Object.assign(
+    {},
+    baseAddon,
+    (variant && variant.addonOverride) || {},
+    runtimeOverride || {}
+  );
 
   // Helper: pick the drop image for the n-th tap (0-indexed).
   // multiColors → cycle through per-flavor liquidImg.
