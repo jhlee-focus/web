@@ -380,6 +380,17 @@
     font-size: 11px;
     margin-top: 1px;
   }
+  .dex-item .dex-en {
+    font-style: italic;
+    color: rgba(255,229,179,0.62);
+    font-size: 10px;
+    margin-top: 1px;
+    max-width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    letter-spacing: 0.2px;
+  }
   /* 도감 확대 오버레이 */
   .dex-overlay {
     position: fixed;
@@ -410,6 +421,16 @@
     margin-top: 14px;
     text-shadow: 0 2px 12px rgba(0,0,0,0.8);
     font-size: clamp(20px, 4vmin, 32px);
+    animation: popIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .dex-overlay-en {
+    color: rgba(255,229,179,0.72);
+    font-style: italic;
+    font-weight: 600;
+    margin-top: 4px;
+    font-size: clamp(13px, 2.4vmin, 17px);
+    text-shadow: 0 1px 8px rgba(0,0,0,0.6);
+    letter-spacing: 0.3px;
     animation: popIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
   }
   .info-chips {
@@ -572,7 +593,7 @@
 <div id="dexWrap" class="dex-wrap" style="display:none">
   <div class="sort-tabs">
     <button id="btnSortPeriod" class="sort-tab active">🦴 시대별 보기</button>
-    <button id="btnSortAlpha" class="sort-tab">🔤 알파벳 순서</button>
+    <button id="btnSortAlpha" class="sort-tab">🎵 알파벳송 순서</button>
   </div>
   <div class="dex-search-row">
     <input type="text" id="dexSearchInput" class="dex-search-input"
@@ -745,15 +766,16 @@ function buildDex() {
       container.appendChild(section);
     });
   } else {
-    // 알파벳 정렬 — 단일 그리드, en 필드 기준
-    var list = allCharacters.slice().sort(function (a, b) {
-      var ae = (a.en || '').toLowerCase();
-      var be = (b.en || '').toLowerCase();
-      return (ae > be) - (ae < be);
-    });
+    // 알파벳송 순서 — 핑크퐁 공룡 ABC 26종만, abc 필드(A-Z) 기준 정렬
+    var list = allCharacters.filter(function (c) { return !!c.abc; })
+      .sort(function (a, b) {
+        var aa = (a.abc || '').toUpperCase();
+        var bb = (b.abc || '').toUpperCase();
+        return (aa > bb) - (aa < bb);
+      });
     var title = document.createElement('div');
     title.className = 'dex-section-title';
-    title.innerHTML = '🔤 알파벳 순서 <span class="count">(' + list.length + '종)</span>';
+    title.innerHTML = '🎵 알파벳송 순서 <span class="count">(' + list.length + '종)</span>';
     container.appendChild(title);
     var grid = document.createElement('div');
     grid.className = 'dex-grid';
@@ -787,6 +809,13 @@ function makeDexItem(c, itemSize, fontSize, showAbc) {
   name.style.fontSize = fontSize + 'px';
   item.appendChild(name);
 
+  if (showAbc && c.en) {
+    var en = document.createElement('div');
+    en.className = 'dex-en';
+    en.textContent = c.en;
+    en.style.fontSize = Math.max(9, fontSize * 0.78) + 'px';
+    item.appendChild(en);
+  }
   if (showAbc && c.abc) {
     var abc = document.createElement('div');
     abc.className = 'dex-abc';
@@ -810,6 +839,16 @@ function showDexOverlay(c) {
   overlayImg.src = c.file;
   overlayImg.alt = c.name;
   overlayName.textContent = c.name;
+  // 영문명 병기 (오버레이)
+  var overlayEn = document.getElementById('dexOverlayEn');
+  if (!overlayEn) {
+    overlayEn = document.createElement('div');
+    overlayEn.id = 'dexOverlayEn';
+    overlayEn.className = 'dex-overlay-en';
+    overlayName.parentNode.insertBefore(overlayEn, overlayName.nextSibling);
+  }
+  overlayEn.textContent = c.en || '';
+  overlayEn.style.display = c.en ? '' : 'none';
 
   // 뱃지
   var oldBadge = overlayWrap.querySelector('.tier-badge');
@@ -894,6 +933,8 @@ function gotoDinosaur(query) {
   if (!found) { flashDexSearchError('그 공룡은 도감에 없어'); return; }
   clearDexSearchError();
   if (currentMode !== 'dex') setMode('dex');
+  // 알파벳송 모드인데 그 종이 ABC 26 안에 없으면 시대별로 자동 전환
+  if (sortMode === 'alpha' && !found.abc) setSortMode('period');
   var container = document.getElementById('dexContainer');
   var item = document.querySelector('#dexContainer .dex-item[data-name="' + cssEscape(found.name) + '"]');
   if (!item) { flashDexSearchError('도감을 다시 열어줘'); return; }
