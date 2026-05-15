@@ -1051,6 +1051,53 @@
     font-weight: 800;
   }
 
+  /* Round-complete overlay (e.g. "빨강 젤리액 완성!" with liquid image) */
+  .round-complete-overlay {
+    position: absolute;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 90;
+    pointer-events: none;
+    background: rgba(255, 245, 247, 0.55);
+    backdrop-filter: blur(3px);
+  }
+  .round-complete-overlay.show { display: flex; }
+  .round-complete-overlay .inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding: 22px 28px;
+    background: white;
+    border-radius: 28px;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.22);
+    animation: roundCompletePop 1.7s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  }
+  .round-complete-overlay img {
+    width: 180px;
+    height: 180px;
+    object-fit: contain;
+    image-rendering: pixelated;
+    filter: drop-shadow(0 6px 12px rgba(0,0,0,0.18));
+  }
+  .round-complete-overlay .round-complete-text {
+    font-size: 24px;
+    font-weight: 800;
+    color: var(--primary-dark);
+    text-align: center;
+    word-break: keep-all;
+    line-height: 1.25;
+  }
+  @keyframes roundCompletePop {
+    0%   { transform: scale(0.4); opacity: 0; }
+    18%  { transform: scale(1.08); opacity: 1; }
+    28%  { transform: scale(1); }
+    82%  { transform: scale(1); opacity: 1; }
+    100% { transform: scale(0.85); opacity: 0; }
+  }
+
   /* Guide finger */
   .guide-finger {
     position: absolute;
@@ -1313,6 +1360,14 @@
         <button id="again-home-btn">🏠 처음으로</button>
       </div>
       <div class="particle-layer" id="particle-layer"></div>
+    </div>
+
+    <!-- Round-complete overlay (gummy bear "3종 다 만들기") -->
+    <div class="round-complete-overlay" id="round-complete-overlay" aria-hidden="true">
+      <div class="inner">
+        <img id="round-complete-img" src="" alt="" />
+        <div class="round-complete-text" id="round-complete-text"></div>
+      </div>
     </div>
 
     <!-- Guide finger overlay -->
@@ -2608,9 +2663,20 @@ function proceedAfterBake() {
     if (!isFinalRound) {
       // skip mold+cool for non-final rounds
       if (advanceToNextRound()) return;
+    } else {
+      // Final round: show the final liquid completion overlay, THEN enter the
+      // shared Triple-mold step. startAddAddonScreen will detect multiRound
+      // and use multiColors automatically.
+      const finalColor = r.sequence[r.index];
+      const variant = (dessert.flavorVariants && dessert.flavorVariants[finalColor]) || {};
+      const finalLabel = variant.label || finalColor;
+      showRoundComplete(
+        variant.liquidImg,
+        `${finalLabel} 젤리액 완성! 3가지 색 모두 모았어!`,
+        () => startAddAddonScreen()
+      );
+      return;
     }
-    // Final round: fall through; startAddAddonScreen will detect multiRound
-    // and use the Triple mold + multiColors for the shared pour-into-mold step.
   }
   // Special flow (gummy bear single, etc.): fill the mold BEFORE chilling in the fridge.
   if (dessert.addonBeforeCool && dessert.addonStep && !state.addonDone) {
@@ -2857,6 +2923,25 @@ function startCoolScreen() {
 // finishMultiRoundIfDone() is called AFTER the shared fridge step on the final round
 // to flip the identity to 'all' so the decorate/complete screens show the 3-color result.
 
+// Briefly display a centered "round complete" overlay with a big image + caption.
+// onDone is called after the overlay closes (~1700ms).
+function showRoundComplete(imgSrc, text, onDone) {
+  const overlay = $('#round-complete-overlay');
+  const imgEl = $('#round-complete-img');
+  const textEl = $('#round-complete-text');
+  if (!overlay) { if (onDone) onDone(); return; }
+  imgEl.src = imgSrc || '';
+  imgEl.alt = text || '';
+  textEl.textContent = text || '';
+  overlay.classList.add('show');
+  hideGuideFinger();
+  Sounds.star && Sounds.star();
+  setTimeout(() => {
+    overlay.classList.remove('show');
+    if (onDone) onDone();
+  }, 1700);
+}
+
 function advanceToNextRound() {
   if (!state.gummyMultiRound) return false;
   const r = state.gummyMultiRound;
@@ -2865,7 +2950,8 @@ function advanceToNextRound() {
 
   const dessert = DESSERTS[state.currentDessert];
   const justColor = r.sequence[r.index];
-  const justLabel = (dessert.flavorVariants[justColor] || {}).label || justColor;
+  const justVariant = dessert.flavorVariants[justColor] || {};
+  const justLabel = justVariant.label || justColor;
   const nextColor = r.sequence[nextIdx];
   const nextLabel = (dessert.flavorVariants[nextColor] || {}).label || nextColor;
 
@@ -2873,8 +2959,12 @@ function advanceToNextRound() {
   state.gummyFlavor = nextColor;
   state.selectedIngredients = [];
   state.addonDone = false;
-  say(`와! ${justLabel} 젤리액 완성! 이번엔 ${nextLabel} 차례야~`);
-  setTimeout(() => startIngredientsScreen(), 1500);
+
+  // Pop the completed liquid image with caption, then move on.
+  showRoundComplete(justVariant.liquidImg, `${justLabel} 젤리액 완성!`, () => {
+    say(`이번엔 ${nextLabel} 차례야~`);
+    setTimeout(() => startIngredientsScreen(), 500);
+  });
   return true;
 }
 
