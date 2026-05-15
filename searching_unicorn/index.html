@@ -183,6 +183,13 @@
       max-width: 460px;
     }
     .btn {
+      /* <a>와 <button> 양쪽이 동일하게 보이도록 inline-flex 정렬.
+         (anchor는 기본 inline이라 padding만 줬을 때 글씨가 위로 치우침) */
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1;
+      text-decoration: none;
       padding: 14px 36px;
       font-size: 16px;
       font-weight: 800;
