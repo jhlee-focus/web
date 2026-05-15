@@ -825,10 +825,13 @@
 
       // 시작 크기 — 찾은 유니콘과 동일
       const startSizePx = HORSE_W * horseScale * scaleFit;
-      // 종료 크기 — 스테이지 짧은 변의 50% (너무 안 커지면 임팩트 약함, 너무 크면 답답)
+      // 종료 크기 — 난이도와 무관하게 "하 난이도"의 명목 말 크기를 기준으로 통일.
+      // 중/상 난이도라도 화면 중앙에 도착했을 때의 픽셀 크기는 동일.
+      const isMobile = matchMedia('(hover: none)').matches ||
+                       Math.min(stageRect.width, stageRect.height) < 600;
+      const easyRefSize = isMobile ? DIFFICULTY.easy.mbPx : DIFFICULTY.easy.dtPx;
       const maxFinalSize = Math.min(stageRect.width, stageRect.height) * 0.5;
-      // 최소 3배는 커지도록 (작은 모바일에서도 와닿게)
-      const targetSize = Math.max(startSizePx * 3, Math.min(maxFinalSize, startSizePx * 4.5));
+      const targetSize = Math.max(easyRefSize * 3, Math.min(maxFinalSize, easyRefSize * 4.5));
       const finalScale = targetSize / startSizePx;
 
       const centerX = stageRect.width / 2;
