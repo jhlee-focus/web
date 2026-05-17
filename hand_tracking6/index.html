@@ -254,11 +254,11 @@ const SOLO_SPREAD_MAX = 160;  // px — 손가락이 활짝 펴진 정도(평균
 const SOLO_R_MIN = 30;
 const SOLO_R_MAX = 170;
 
-// 한글 박수 게임 튜닝값
+// 한글 박수 게임 튜닝값 — 판정 너그럽게: 반경 확대 + 3점 판정(중간점·좌손·우손)
 const PALM_LANDMARK = 9;       // 중지 MCP 관절 = 손바닥 중심 근사
-const CLAP_DIST = 110;         // px — 손바닥 간 거리가 이보다 가까우면 박수로 친다
-const CLAP_RELEASE = 220;      // px — 이 거리 이상으로 벌어져야 다음 박수가 재무장된다
-const HIT_RADIUS = 95;         // px — 박수 위치가 타깃 중심에서 이 안이면 명중
+const CLAP_DIST = 145;         // px — 손바닥 간 거리가 이보다 가까우면 박수로 친다
+const CLAP_RELEASE = 270;      // px — 이 거리 이상으로 벌어져야 다음 박수가 재무장된다
+const HIT_RADIUS = 130;        // px — 박수 3점 중 하나라도 타깃 중심에서 이 안이면 명중
 const GAME_DURATION = 60.0;    // 초 — 한 게임 길이
 const TARGET_LIFETIME = 2.5;   // 초 — 타깃 하나가 화면에 머무는 총 시간
 const TARGET_FADE_IN = 0.30;   // 초
@@ -1343,13 +1343,14 @@ function detectClap(leftHand, rightHand) {
 
   if (d < CLAP_DIST && !clapInContact) {
     clapInContact = true;
-    handleClap(mx, my);
+    // 박수 중간점 + 양 손바닥 좌표를 함께 넘겨 너그러운 3점 판정에 쓴다.
+    handleClap(mx, my, ax, ay, bx, by);
   } else if (d > CLAP_RELEASE) {
     clapInContact = false;
   }
 }
 
-function handleClap(x, y) {
+function handleClap(x, y, lx, ly, rx, ry) {
   // 박수 자체에 항상 시각 피드백을 준다.
   spawnBurst(x, y, 200);
   triggerScreenPulse(200);
@@ -1366,14 +1367,25 @@ function handleClap(x, y) {
   }
   if (clapGameState !== 'playing') return;
 
-  // 명중 검사 — HIT_RADIUS 안에 든 타깃은 모두 점수 처리
+  // 명중 검사 — 박수 중간점 + 좌·우 손바닥 3점 중 하나라도 HIT_RADIUS 안이면 명중.
+  // 양 손바닥 위치도 받지 못한 경우(이전 호출 시그니처 호환)는 중간점만 검사.
+  const hasPalmPoints =
+    typeof lx === 'number' && typeof ly === 'number' &&
+    typeof rx === 'number' && typeof ry === 'number';
+
   let hitCount = 0;
   for (let i = clapTargets.length - 1; i >= 0; i--) {
     const t = clapTargets[i];
     if (t.hit) continue;
     const a = targetAlpha(t);
     if (a <= 0.05) continue;
-    if (dist(x, y, t.x, t.y) <= HIT_RADIUS) {
+
+    const dMid = dist(x, y, t.x, t.y);
+    const dLeft = hasPalmPoints ? dist(lx, ly, t.x, t.y) : Infinity;
+    const dRight = hasPalmPoints ? dist(rx, ry, t.x, t.y) : Infinity;
+    const closest = Math.min(dMid, dLeft, dRight);
+
+    if (closest <= HIT_RADIUS) {
       t.hit = true;
       clapScore += t.isSyllable ? 3 : 1;
       // 명중 위치에서 한 번 더 축포
