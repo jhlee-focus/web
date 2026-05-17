@@ -120,6 +120,27 @@ COMBO_COMPONENTS = {
     "카봇 브레이로드":                  ["브레이브", "로드"],
 }
 
+# ────────────────────────────────────────────────────────────────────────
+# 개별 나무위키 페이지가 없는 구성원 → 해당 합체 로봇 페이지에서 이미지 탐색
+# ────────────────────────────────────────────────────────────────────────
+FALLBACK_PAGE_MAP = {
+    # 뱅 시리즈 (시즌 10)
+    "카봇 잭슈트":   "카봇 잭슈트뱅",
+    "카봇 타우":     "카봇 잭슈트뱅",
+    "카봇 퓨처버스": "카봇 잭슈트뱅",
+    "카봇 페로":     "카봇 페로뱅",
+    "카봇 파우":     "카봇 페로뱅",
+    "카봇 나노티스": "카봇 나노티스뱅",
+    "카봇 도우":     "카봇 나노티스뱅",
+    "카봇 썬런":     "카봇 썬런뱅",
+    "카봇 미우":     "카봇 썬런뱅",
+    "카봇 파이트라": "카봇 썬런뱅",
+    "카봇 호스퍼스": "카봇 호스퍼스뱅",
+    "카봇 바우":     "카봇 호스퍼스뱅",
+    "카봇 자크":     "카봇 자크뱅",
+    "카봇 자크레인": "카봇 자크레인뱅",
+}
+
 
 def get_component_robots(already_in_dir: set) -> list:
     """
@@ -274,61 +295,104 @@ def lookup_cache(name: str, cache_map: dict):
 # 3. 개별 나무위키 페이지에서 이미지 URL 추출 (Playwright 헤드리스)
 # ────────────────────────────────────────────────────────────────────────
 
+def _get_og_image(pw_page) -> str:
+    """현재 pw_page에서 og:image URL을 추출. 없으면 빈 문자열."""
+    try:
+        pw_page.wait_for_function(
+            "() => !!document.querySelector('meta[property=\"og:image\"]')?.content",
+            timeout=8_000,
+        )
+    except PWTimeout:
+        pass
+    img_url = pw_page.evaluate(
+        "document.querySelector('meta[property=\"og:image\"]')?.getAttribute('content') || ''"
+    )
+    return ("https:" + img_url if img_url.startswith("//") else img_url) if img_url else ""
+
+
+def _find_img_by_alt(pw_page, keyword: str) -> str:
+    """
+    페이지 내 <img> 중 alt 텍스트에 keyword가 포함되고
+    i.namu.wiki CDN URL을 갖는 첫 번째 이미지 src 반환. 없으면 빈 문자열.
+    """
+    try:
+        result = pw_page.evaluate(
+            """(kw) => {
+                for (const img of document.querySelectorAll('img')) {
+                    const alt = (img.alt || '').toLowerCase();
+                    const src = img.src || img.getAttribute('data-src') || '';
+                    if (alt.includes(kw.toLowerCase()) && src.includes('namu.wiki')) {
+                        return src.startsWith('//') ? 'https:' + src : src;
+                    }
+                }
+                return '';
+            }""",
+            keyword,
+        )
+        return result or ""
+    except Exception:
+        return ""
+
+
 def fetch_namu_image_url(pw_page, robot_name: str):
     """
-    Playwright 브라우저 페이지 객체를 받아
-    https://namu.wiki/w/카봇%20{name} 을 렌더링한 뒤
-    og:image 메타 태그 URL을 반환. 없으면 None.
+    Playwright 브라우저 페이지 객체를 받아 나무위키에서 로봇 이미지 URL을 반환.
+    없으면 None.
 
-    나무위키는 SPA(React)라 requests HTML에는 og:image가 없음 →
-    JS가 실행된 뒤 meta[property="og:image"]가 채워짐.
+    1차: https://namu.wiki/w/카봇%20{name} — og:image 추출
+    2차: FALLBACK_PAGE_MAP에 등록된 경우 합체 로봇 페이지에서 탐색
+         → alt 텍스트 매칭 우선, 없으면 og:image
     """
-    # 이름 정규화: "카봇 " / "그랜드 카봇 " 접두어 없으면 추가
+    # 이름 정규화
     if robot_name.startswith("카봇 ") or robot_name.startswith("그랜드 카봇 "):
         query_name = robot_name
     else:
         query_name = "카봇 " + robot_name
 
+    # ── 1차: 개별 페이지 ─────────────────────────────────────────────────
     url = "https://namu.wiki/w/" + urllib.parse.quote(query_name)
     print(f"    fetch: {url}")
-
     try:
         pw_page.goto(url, wait_until="domcontentloaded", timeout=30_000)
-        # React 앱이 meta 태그를 채울 때까지 잠시 대기
-        try:
-            pw_page.wait_for_function(
-                "() => !!document.querySelector('meta[property=\"og:image\"]')?.content",
-                timeout=8_000,
-            )
-        except PWTimeout:
-            pass  # 타임아웃이어도 있는 것으로 시도
-
-        img_url = pw_page.evaluate(
-            "document.querySelector('meta[property=\"og:image\"]')?.getAttribute('content') || ''"
-        )
+        img_url = _get_og_image(pw_page)
         if img_url:
-            return "https:" + img_url if img_url.startswith("//") else img_url
+            return img_url
 
-        # 404 등 → 이름 그대로 재시도
+        # "카봇 " 접두어 없이 재시도
         if query_name != robot_name:
             url2 = "https://namu.wiki/w/" + urllib.parse.quote(robot_name)
             print(f"    retry: {url2}")
             pw_page.goto(url2, wait_until="domcontentloaded", timeout=30_000)
-            try:
-                pw_page.wait_for_function(
-                    "() => !!document.querySelector('meta[property=\"og:image\"]')?.content",
-                    timeout=8_000,
-                )
-            except PWTimeout:
-                pass
-            img_url = pw_page.evaluate(
-                "document.querySelector('meta[property=\"og:image\"]')?.getAttribute('content') || ''"
-            )
+            img_url = _get_og_image(pw_page)
             if img_url:
-                return "https:" + img_url if img_url.startswith("//") else img_url
-
+                return img_url
     except Exception as e:
-        print(f"    Playwright 오류: {e}")
+        print(f"    Playwright 오류(1차): {e}")
+
+    # ── 2차: 폴백 페이지 (합체 로봇 페이지에서 alt 텍스트 매칭) ──────────
+    fallback_name = FALLBACK_PAGE_MAP.get(query_name)
+    if fallback_name:
+        fb_url = "https://namu.wiki/w/" + urllib.parse.quote(fallback_name)
+        print(f"    fallback: {fb_url}")
+        try:
+            pw_page.goto(fb_url, wait_until="domcontentloaded", timeout=30_000)
+            # 핵심어(접두어 제거): "카봇 썬런" → "썬런"
+            short = query_name
+            for pfx in ("그랜드 카봇 ", "카봇 "):
+                if short.startswith(pfx):
+                    short = short[len(pfx):]
+                    break
+            img_url = _find_img_by_alt(pw_page, short)
+            if img_url:
+                print(f"    alt-match: '{short}'")
+                return img_url
+            # alt 매칭 실패 → 폴백 페이지 og:image
+            img_url = _get_og_image(pw_page)
+            if img_url:
+                print(f"    fallback og:image")
+                return img_url
+        except Exception as e:
+            print(f"    Playwright 오류(fallback): {e}")
 
     return None
 
