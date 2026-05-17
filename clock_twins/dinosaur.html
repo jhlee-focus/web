@@ -330,7 +330,49 @@
     width: 100%;
     height: 100%;
     border: 0;
+    /* iframe 자체는 어떤 터치도 못 받게 막음 — YouTube 제목/로고/'YouTube에서 보기'
+       링크 클릭을 통한 외부 네비게이션을 원천 차단. 모든 터치는 위쪽 .abc-song-tap-shield
+       버튼이 받아서 YT IFrame API로만 재생/정지를 토글. */
+    pointer-events: none;
   }
+  /* 터치 차단 + 자체 재생/정지 버튼 (커스텀 UI) */
+  .abc-song-tap-shield {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    background: transparent;
+    border: 0;
+    margin: 0;
+    padding: 0;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 5;
+  }
+  .abc-song-tap-shield:focus { outline: none; }
+  .abc-song-tap-shield .abc-song-play-icon {
+    width: 22%;
+    aspect-ratio: 1 / 1;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.55);
+    color: #fff;
+    font-size: clamp(28px, 6vmin, 56px);
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.6);
+    box-shadow: 0 4px 14px rgba(0,0,0,0.55), inset 0 0 0 2px rgba(255,255,255,0.85);
+    transition: opacity 0.25s ease, transform 0.2s ease;
+    user-select: none;
+    pointer-events: none; /* 버튼 자체가 클릭을 받지, 아이콘은 비활성 */
+  }
+  .abc-song-tap-shield:hover .abc-song-play-icon { transform: scale(1.06); }
+  .abc-song-tap-shield.playing .abc-song-play-icon { opacity: 0; }
+  .abc-song-tap-shield.playing:hover .abc-song-play-icon { opacity: 0.85; }
   @media (max-width: 600px) {
     .abc-song-frame { max-width: 320px; }
     .abc-song-caption { font-size: 11px; }
@@ -820,8 +862,8 @@ function buildDex() {
         var bb = (b.abc || '').toUpperCase();
         return (aa > bb) - (aa < bb);
       });
-    // 핑크퐁 공룡 ABC 영상 임베드 — 알파벳송 모드 전용
-    // (다른 모드로 가면 dex 재빌드 시 iframe이 제거되어 재생이 자동 중단됨)
+    // 주니토니 알파벳 공룡 영상 임베드 — 알파벳송 모드 전용
+    // (다른 모드로 가면 dex 재빌드 시 iframe + 플레이어가 제거되어 재생이 자동 중단됨)
     var songWrap = document.createElement('div');
     songWrap.className = 'abc-song-wrap';
     var cap = document.createElement('div');
@@ -830,16 +872,25 @@ function buildDex() {
     songWrap.appendChild(cap);
     var frameBox = document.createElement('div');
     frameBox.className = 'abc-song-frame';
-    var iframe = document.createElement('iframe');
-    // rel=0 (관련영상 제거), modestbranding=1 (로고 최소), playsinline=1 (모바일 인라인 재생)
-    iframe.src = 'https://www.youtube-nocookie.com/embed/wA5penhto5s?rel=0&modestbranding=1&playsinline=1';
-    iframe.title = '주니토니 알파벳 공룡';
-    iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';
-    iframe.allowFullscreen = true;
-    iframe.loading = 'lazy';
-    frameBox.appendChild(iframe);
+    // YT IFrame API가 이 placeholder div를 iframe으로 교체. 우리가 직접 iframe을 만들지 않음.
+    // (직접 만든 iframe을 YT.Player에 넘기면 onReady가 안 뜨는 케이스가 있어 placeholder 방식 사용.)
+    var ytHolder = document.createElement('div');
+    ytHolder.id = 'abcSongYTHolder_' + Date.now();  // 고유 id (모드 토글 시 재생성 안전)
+    frameBox.appendChild(ytHolder);
+    // 터치 차단용 투명 버튼 — 이게 모든 터치를 가로채서 YT.Player API로만 재생/정지
+    var tapShield = document.createElement('button');
+    tapShield.type = 'button';
+    tapShield.className = 'abc-song-tap-shield';
+    tapShield.setAttribute('aria-label', '영상 재생/정지');
+    var playIcon = document.createElement('span');
+    playIcon.className = 'abc-song-play-icon';
+    playIcon.textContent = '▶';
+    tapShield.appendChild(playIcon);
+    frameBox.appendChild(tapShield);
     songWrap.appendChild(frameBox);
     container.appendChild(songWrap);
+    // YT IFrame API로 플레이어 만들고 버튼에 연결
+    initAbcSongPlayer(ytHolder.id, tapShield, playIcon);
     var title = document.createElement('div');
     title.className = 'dex-section-title';
     title.innerHTML = '🎵 알파벳송 순서 <span class="count">(' + list.length + '종)</span>';
@@ -851,6 +902,83 @@ function buildDex() {
     container.appendChild(grid);
   }
   container.dataset.built = '1';
+}
+
+// ── YouTube IFrame API: 알파벳송 영상 재생/정지 (터치 차단용 커스텀 UI) ──
+// iframe 자체는 pointer-events:none 으로 막혀 있어서, 모든 터치는 .abc-song-tap-shield
+// 버튼이 받는다. 이 버튼이 YT.Player API의 playVideo()/pauseVideo()를 호출해 재생만 제어 →
+// 영상 제목·로고·"YouTube에서 보기" 링크 클릭으로 외부 이동 0건 보장.
+var __abcSongAPIState = 'idle';  // 'idle' | 'loading' | 'ready'
+var __abcSongAPIQueue = [];
+function ensureYouTubeAPI(cb) {
+  if (__abcSongAPIState === 'ready' && window.YT && window.YT.Player) { cb(); return; }
+  __abcSongAPIQueue.push(cb);
+  if (__abcSongAPIState !== 'idle') return;
+  __abcSongAPIState = 'loading';
+  var prev = window.onYouTubeIframeAPIReady;
+  window.onYouTubeIframeAPIReady = function () {
+    __abcSongAPIState = 'ready';
+    if (typeof prev === 'function') { try { prev(); } catch (e) {} }
+    var q = __abcSongAPIQueue; __abcSongAPIQueue = [];
+    q.forEach(function (fn) { try { fn(); } catch (e) {} });
+  };
+  var tag = document.createElement('script');
+  tag.src = 'https://www.youtube.com/iframe_api';
+  document.head.appendChild(tag);
+}
+function initAbcSongPlayer(holderId, tapShield, playIcon) {
+  ensureYouTubeAPI(function () {
+    var holder = document.getElementById(holderId);
+    // holder가 DOM에서 사라졌다면 (모드 빠른 전환) 그냥 종료
+    if (!holder) return;
+    var player;
+    try {
+      player = new YT.Player(holderId, {
+        videoId: 'wA5penhto5s',
+        host: 'https://www.youtube-nocookie.com',
+        playerVars: {
+          // controls=0 native 컨트롤 숨김 · disablekb=1 키보드 단축키 차단 · fs=0 풀스크린 차단
+          // iv_load_policy=3 주석 숨김 · playsinline=1 모바일 인라인 재생
+          // rel=0 관련영상 제거 · modestbranding=1 로고 최소화
+          controls: 0, disablekb: 1, fs: 0, iv_load_policy: 3,
+          playsinline: 1, rel: 0, modestbranding: 1
+        },
+        events: {
+          onReady: function () {
+            // 생성된 iframe에는 pointer-events:none이 CSS로 들어가 있음
+            tapShield.addEventListener('click', function () {
+              try {
+                var st = player.getPlayerState();
+                if (st === YT.PlayerState.PLAYING || st === YT.PlayerState.BUFFERING) {
+                  player.pauseVideo();
+                } else {
+                  player.playVideo();
+                }
+              } catch (e) {}
+            });
+          },
+          onStateChange: function (e) {
+            if (!tapShield.isConnected) {
+              // dex 재빌드로 shield가 떼어졌으면 플레이어 정리
+              try { player.destroy(); } catch (err) {}
+              return;
+            }
+            if (e.data === YT.PlayerState.PLAYING || e.data === YT.PlayerState.BUFFERING) {
+              tapShield.classList.add('playing');
+              playIcon.textContent = '⏸';
+            } else {
+              tapShield.classList.remove('playing');
+              playIcon.textContent = '▶';
+            }
+          }
+        }
+      });
+    } catch (e) {
+      // YT.Player 생성 실패 시 — 최소한 외부 이동은 막힘 (pointer-events:none),
+      // 다만 재생도 못함. 사용자에게 안내.
+      console.warn('YouTube API player init failed:', e);
+    }
+  });
 }
 
 function makeDexItem(c, itemSize, fontSize, showAbc) {
