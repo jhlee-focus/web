@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>달무티 · The Great Dalmuti</title>
+  <link rel="icon" href="../sweetklogo.png" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<header class="app-header">
+  <a href="../" class="back-link" aria-label="홈으로">←</a>
+  <h1>달무티</h1>
+  <span class="header-tag">The Great Dalmuti</span>
+</header>
+
+<main id="app">
+
+<!-- ============= 로비 ============= -->
+<section id="lobby" class="screen">
+  <div id="nickname-screen" class="card-block">
+    <label class="field">
+      <span>닉네임</span>
+      <input id="nickname-input" maxlength="20" placeholder="비워두면 익명 ID 자동 부여" />
+    </label>
+    <button id="continue-btn" class="primary">계속</button>
+    <p id="online-status" class="muted">실시간 통신: <span id="online-status-value"></span></p>
+  </div>
+
+  <div id="entry-screen" class="card-block" hidden>
+    <p class="hello">안녕하세요, <strong id="entry-nickname"></strong>님</p>
+
+    <button id="create-room-btn" class="primary big">새 방 만들기</button>
+
+    <div class="divider"><span>또는</span></div>
+
+    <div class="join-row">
+      <input id="room-code-input" maxlength="6" placeholder="방 코드 (예: AB23CD)" autocomplete="off" />
+      <button id="join-room-btn" class="primary">입장</button>
+    </div>
+    <p id="join-warning" class="muted small" hidden>
+      Supabase 가 설정되지 않아 다른 사람 방에 입장할 수 없어요. 솔로(AI 봇) 플레이만 가능합니다.
+    </p>
+  </div>
+
+  <div id="room-screen" class="card-block" hidden>
+    <div class="room-head">
+      <div>
+        <span class="muted">방 코드</span>
+        <h2 id="room-code-display" class="room-code"></h2>
+      </div>
+      <button id="copy-link-btn" class="ghost" hidden>링크 복사</button>
+    </div>
+
+    <h3 class="section-title">참가자 <span id="player-count">0</span>/8</h3>
+    <ul id="lobby-players" class="player-list"></ul>
+
+    <div id="host-controls" hidden>
+      <div class="ai-row">
+        <span>AI 봇</span>
+        <button id="remove-ai-btn" class="ghost icon">−</button>
+        <span id="ai-count">0</span>
+        <button id="add-ai-btn" class="ghost icon">+</button>
+      </div>
+      <button id="start-game-btn" class="primary big" disabled>게임 시작 (4명 이상)</button>
+    </div>
+    <p id="guest-waiting" class="muted" hidden>호스트가 게임을 시작하기를 기다리는 중…</p>
+  </div>
+</section>
+
+<!-- ============= 게임 ============= -->
+<section id="game" class="screen" hidden>
+  <div id="players-panel" class="players-panel"></div>
+
+  <div id="trick-area" class="trick-area">
+    <div class="trick-label">현재 트릭</div>
+    <div id="trick-cards" class="trick-cards"></div>
+    <div id="trick-info" class="trick-info muted"></div>
+  </div>
+
+  <div id="status-line" class="status-line"></div>
+
+  <div id="hand-area" class="hand-area">
+    <div id="hand-cards"></div>
+    <div class="action-buttons">
+      <button id="play-btn" class="primary" disabled>내기</button>
+      <button id="pass-btn" class="ghost" disabled>패스</button>
+      <button id="clear-selection-btn" class="ghost" disabled>선택 해제</button>
+    </div>
+  </div>
+
+  <!-- 세금 모달 -->
+  <div id="tax-modal" class="modal" hidden>
+    <div class="modal-card">
+      <h3>세금/조공</h3>
+      <p id="tax-instruction" class="muted"></p>
+      <div id="tax-hand" class="hand-cards small"></div>
+      <button id="tax-submit-btn" class="primary" disabled>보내기</button>
+    </div>
+  </div>
+
+  <!-- 라운드 종료 -->
+  <div id="round-end-modal" class="modal" hidden>
+    <div class="modal-card">
+      <h3 id="round-end-title">라운드 종료</h3>
+      <ol id="round-end-list" class="rank-list"></ol>
+      <p class="muted small">잠시 후 다음 라운드가 시작됩니다…</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============= 토스트 ============= -->
+<div id="toast" class="toast" hidden></div>
+
+</main>
+
+<script type="module" src="js/main.js?v=2"></script>
+</body>
+</html>
