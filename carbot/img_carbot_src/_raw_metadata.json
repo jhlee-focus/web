@@ -214,5 +214,365 @@
     "source": "fetch",
     "safe_name": "자크레인뱅",
     "fetched_at": "2026-05-16T03:26:18"
+  },
+  "카봇 에이스": {
+    "url": "https://i.namu.wiki/i/1_u1q1bydSbW0NNgHWTSUbD0uIM0xFIKJtVTN00hLNjOIp9xSTlAT-IDg6paxDleVmcUun_HzJ8HBibu6re5SHwm8OdJaLlNQn86fMLBEd0LY0Y7vhsC56KZYZ50bmmu7nRK7ignbmnaGIM9VHar_w.webp",
+    "source": "fetch",
+    "safe_name": "카봇 에이스",
+    "fetched_at": "2026-05-18T04:12:48"
+  },
+  "카봇 프론": {
+    "url": "https://i.namu.wiki/i/8i42QxBYAjfryy5hqntuErf9U7UtKMHYhgRkLqML6_xmiUnMUqG45rVO4mN5OOtdZvlSSQg6G7SGorCr6fgBAlJbDWTdgG-17qZL-X81FKHBYJ_J9f52whQ5s-GL5N9ebhqLCxo0uLTRSHEz8TlSbA.webp",
+    "source": "fetch",
+    "safe_name": "카봇 프론",
+    "fetched_at": "2026-05-18T04:13:02"
+  },
+  "카봇 댄디": {
+    "url": "https://i.namu.wiki/i/Ppv6KbmDfEfJv569Qt711k_2KgKNLBJ4ofC6Puzt_hXU1NYY7_zbbQ2jaFr9eypskl-ua4P6iXxtRVGAlZhHdBX4bIUh-9BQyZ85gY4Kax6F7x1Z0SzA6O-xqcVVMQjkoAuwgg44HJSYNCuqWmRGZQ.webp",
+    "source": "fetch",
+    "safe_name": "카봇 댄디",
+    "fetched_at": "2026-05-18T04:13:04"
+  },
+  "카봇 스카이": {
+    "url": "https://i.namu.wiki/i/d8mopMzaiftJVPb9t27Sg69tjHCzcI4sIrrvkHi8AEo2oKRC9tG8x9EO8JaI_gfWM9CaGAhoTcVZaPJqdKTjmYy3KXNT0tLuiwkq3Bt6kwfqhtifgKDUA9JJamEq6t8LFVaE2vJxahQQj4cnjBWV-Q.webp",
+    "source": "fetch",
+    "safe_name": "카봇 스카이",
+    "fetched_at": "2026-05-18T04:13:09"
+  },
+  "카봇 스톰": {
+    "url": "https://i.namu.wiki/i/ejT5p34ELC1onZx_G747dQg5ATFKEKU-bPpi4_m2rdYYDJOw2k_-EVS7yHGRJKIMRdWub1Nf3BD6bA3yljJLM0r6RLQ44Sf8gGgrZCWG3dcJCoB0fk4rDzBX_hNxZWohS6fjJyZPbIWxhPOFJ8xN8g.webp",
+    "source": "fetch",
+    "safe_name": "카봇 스톰",
+    "fetched_at": "2026-05-18T04:13:14"
+  },
+  "카봇 라이프 X": {
+    "url": "https://i.namu.wiki/i/F5owH1kMMoTFXh9H8AKMEHlYIYXLrFmbmeJlFBHxwtd-kbyt6PMqpSmGnPQangPr8RByRIHsq58YrBnzVE1VaLkMJj08YfYVtawqIjptnv9Z38j2yrzualGgQ8tDO_vLo19U9nqS9sj_k0sEY4itfA.webp",
+    "source": "fetch",
+    "safe_name": "카봇 라이프 X",
+    "fetched_at": "2026-05-18T04:13:20"
+  },
+  "카봇 아티": {
+    "url": "https://i.namu.wiki/i/oyqnLHO9tHlpvzy146uDGNyTaFyEhFveuUjvwPe_lR_LYdKLgOpN7x1T1-6JwFHp25C8EyniQWDftDrvbijxDDfE1BON9dS7xHGoYOgv6_ViiqpiEoxonSekkXB2GE8dMFbAwR9a4TMamSA_cOfc2g.webp",
+    "source": "fetch",
+    "safe_name": "카봇 아티",
+    "fetched_at": "2026-05-18T04:13:21"
+  },
+  "카봇 마이스터": {
+    "url": "https://i.namu.wiki/i/mfLMxivctxRXydWTRhci03JZMOid1tzLbkYx43i4rVbVmUlhLMO-U380zCe7sbv8mxkO3BzEreV6jeTEJ_szwYqXEicJq-DkiFd0tu-UvXnHUnea6c6eZxALZwbkl9esbgbxytGMQlbX74WbiYDuag.webp",
+    "source": "fetch",
+    "safe_name": "카봇 마이스터",
+    "fetched_at": "2026-05-18T04:13:23"
+  },
+  "카봇 세이버": {
+    "url": "https://i.namu.wiki/i/fUxzjyZcg9Y_4iUYeKYpKn-q5gI_C3PUiNoixnmYQGJvT2-NHXtdbL2GlEA2RVzobZPk3wtMKj-X_Ngqy-58SfLD5cwCJnKinZ7U95MjhryLHgjxN-kVxqJvR59mVWdFdQ2IeqDjGJiqNeUeLkq7dA.webp",
+    "source": "local",
+    "safe_name": "카봇 세이버",
+    "fetched_at": "2026-05-18T04:13:27"
+  },
+  "카봇 나이트": {
+    "url": "https://i.namu.wiki/i/ffeVRQpouO_UmG_zTc5vJCSTtgXZYD0DlWxnqZD3J3mlS8ut884yY9HdmGoFp2kVGPB8h5kOyiodUQauDzpaNk-E-thS9oCEsqws7SFeoyY9sDxUqlV_NyR1qz8KBf6GbNoFwFgECLs-SGRpqdAOQA.webp",
+    "source": "fetch",
+    "safe_name": "카봇 나이트",
+    "fetched_at": "2026-05-18T04:13:29"
+  },
+  "카봇 루크": {
+    "url": "https://i.namu.wiki/i/ffeVRQpouO_UmG_zTc5vJCSTtgXZYD0DlWxnqZD3J3mlS8ut884yY9HdmGoFp2kVGPB8h5kOyiodUQauDzpaNk-E-thS9oCEsqws7SFeoyY9sDxUqlV_NyR1qz8KBf6GbNoFwFgECLs-SGRpqdAOQA.webp",
+    "source": "fetch",
+    "safe_name": "카봇 루크",
+    "fetched_at": "2026-05-18T04:13:31"
+  },
+  "카봇 폰": {
+    "url": "https://i.namu.wiki/i/ffeVRQpouO_UmG_zTc5vJCSTtgXZYD0DlWxnqZD3J3mlS8ut884yY9HdmGoFp2kVGPB8h5kOyiodUQauDzpaNk-E-thS9oCEsqws7SFeoyY9sDxUqlV_NyR1qz8KBf6GbNoFwFgECLs-SGRpqdAOQA.webp",
+    "source": "fetch",
+    "safe_name": "카봇 폰",
+    "fetched_at": "2026-05-18T04:13:33"
+  },
+  "카봇 레디": {
+    "url": "https://i.namu.wiki/i/aCcOpmtNxS0BRbUM21i0SqzHpIKf1UXwWG3xOtirEiS-pKP92bUdCruF8o20V4R2JsHtuVtHvBEJ98DBD6no7Y1MbBc1u1yWCR5wzfyNfCmjbFlMUuy9M3lERAha6Uo-mUVpgmJP7eDor8Mk4h8VOQ.webp",
+    "source": "fetch",
+    "safe_name": "카봇 레디",
+    "fetched_at": "2026-05-18T04:13:47"
+  },
+  "카봇 큐어": {
+    "url": "https://i.namu.wiki/i/aCcOpmtNxS0BRbUM21i0SqzHpIKf1UXwWG3xOtirEiS-pKP92bUdCruF8o20V4R2JsHtuVtHvBEJ98DBD6no7Y1MbBc1u1yWCR5wzfyNfCmjbFlMUuy9M3lERAha6Uo-mUVpgmJP7eDor8Mk4h8VOQ.webp",
+    "source": "fetch",
+    "safe_name": "카봇 큐어",
+    "fetched_at": "2026-05-18T04:14:02"
+  },
+  "카봇 가드": {
+    "url": "https://i.namu.wiki/i/aCcOpmtNxS0BRbUM21i0SqzHpIKf1UXwWG3xOtirEiS-pKP92bUdCruF8o20V4R2JsHtuVtHvBEJ98DBD6no7Y1MbBc1u1yWCR5wzfyNfCmjbFlMUuy9M3lERAha6Uo-mUVpgmJP7eDor8Mk4h8VOQ.webp",
+    "source": "fetch",
+    "safe_name": "카봇 가드",
+    "fetched_at": "2026-05-18T04:14:16"
+  },
+  "카봇 헬프": {
+    "url": "https://i.namu.wiki/i/aCcOpmtNxS0BRbUM21i0SqzHpIKf1UXwWG3xOtirEiS-pKP92bUdCruF8o20V4R2JsHtuVtHvBEJ98DBD6no7Y1MbBc1u1yWCR5wzfyNfCmjbFlMUuy9M3lERAha6Uo-mUVpgmJP7eDor8Mk4h8VOQ.webp",
+    "source": "fetch",
+    "safe_name": "카봇 헬프",
+    "fetched_at": "2026-05-18T04:14:31"
+  },
+  "카봇 썬더": {
+    "url": "https://i.namu.wiki/i/B48feHMrdngyBA4bjfMRxYPrSKb43TDaL7giMwHBKWDXQtIr-EHuNVgLfQTjOScnsgcYS67gnCdKKgjezpdrsjjZmMPAcpNxFlnI9zcCjsMPB8-o4Rk_D3NkkVEW9zsE7gVvkn3mXXy0wM6XwnWDJA.webp",
+    "source": "fetch",
+    "safe_name": "카봇 썬더",
+    "fetched_at": "2026-05-18T04:14:33"
+  },
+  "카봇 스피드": {
+    "url": "https://i.namu.wiki/i/B48feHMrdngyBA4bjfMRxYPrSKb43TDaL7giMwHBKWDXQtIr-EHuNVgLfQTjOScnsgcYS67gnCdKKgjezpdrsjjZmMPAcpNxFlnI9zcCjsMPB8-o4Rk_D3NkkVEW9zsE7gVvkn3mXXy0wM6XwnWDJA.webp",
+    "source": "fetch",
+    "safe_name": "카봇 스피드",
+    "fetched_at": "2026-05-18T04:14:34"
+  },
+  "카봇 터보": {
+    "url": "https://i.namu.wiki/i/B48feHMrdngyBA4bjfMRxYPrSKb43TDaL7giMwHBKWDXQtIr-EHuNVgLfQTjOScnsgcYS67gnCdKKgjezpdrsjjZmMPAcpNxFlnI9zcCjsMPB8-o4Rk_D3NkkVEW9zsE7gVvkn3mXXy0wM6XwnWDJA.webp",
+    "source": "fetch",
+    "safe_name": "카봇 터보",
+    "fetched_at": "2026-05-18T04:14:36"
+  },
+  "카봇 캅스": {
+    "url": "https://i.namu.wiki/i/B48feHMrdngyBA4bjfMRxYPrSKb43TDaL7giMwHBKWDXQtIr-EHuNVgLfQTjOScnsgcYS67gnCdKKgjezpdrsjjZmMPAcpNxFlnI9zcCjsMPB8-o4Rk_D3NkkVEW9zsE7gVvkn3mXXy0wM6XwnWDJA.webp",
+    "source": "fetch",
+    "safe_name": "카봇 캅스",
+    "fetched_at": "2026-05-18T04:14:38"
+  },
+  "카봇 패트론": {
+    "url": "https://i.namu.wiki/i/w4hGXDNWw3p5v5uQ_V2r6h5xpLwirOJ6jNpNz-5FqgN0wz7qlAXY_uqPD9n-XQ8peKXUiDdbCUzvFidRs1eDBbVheyZAAw8G0uwAo7P84q8xNrkGEbGPhH0HVEZykOFbCrCMC37SNoE5YMcXUSxteg.webp",
+    "source": "fetch",
+    "safe_name": "카봇 패트론",
+    "fetched_at": "2026-05-18T04:14:40"
+  },
+  "카봇 스키드": {
+    "url": "https://i.namu.wiki/i/w4hGXDNWw3p5v5uQ_V2r6h5xpLwirOJ6jNpNz-5FqgN0wz7qlAXY_uqPD9n-XQ8peKXUiDdbCUzvFidRs1eDBbVheyZAAw8G0uwAo7P84q8xNrkGEbGPhH0HVEZykOFbCrCMC37SNoE5YMcXUSxteg.webp",
+    "source": "fetch",
+    "safe_name": "카봇 스키드",
+    "fetched_at": "2026-05-18T04:14:42"
+  },
+  "카봇 다이어": {
+    "url": "https://i.namu.wiki/i/B-Q0abOCUXAhFQDyr_6XRtaHL87bmzePNQRcOjvwkPV4MVf-d5-GOZ-5EvB-i-CGF7Di6XuEDczkZhwm-Bas7YQi8it0uWEmLeFj1YAVTUV8mLLrLicPoeFy83bMrmq30HR7SLAUYzuHnxshi_njWQ.webp",
+    "source": "fetch",
+    "safe_name": "카봇 다이어",
+    "fetched_at": "2026-05-18T04:14:44"
+  },
+  "카봇 리프": {
+    "url": "https://i.namu.wiki/i/B-Q0abOCUXAhFQDyr_6XRtaHL87bmzePNQRcOjvwkPV4MVf-d5-GOZ-5EvB-i-CGF7Di6XuEDczkZhwm-Bas7YQi8it0uWEmLeFj1YAVTUV8mLLrLicPoeFy83bMrmq30HR7SLAUYzuHnxshi_njWQ.webp",
+    "source": "fetch",
+    "safe_name": "카봇 리프",
+    "fetched_at": "2026-05-18T04:14:46"
+  },
+  "카봇 프라우드": {
+    "url": "https://i.namu.wiki/i/9bDu9-ssPcHnMJl3kdHd8lQjhslLFj0czynKdZpcvRw2PQuPIJwdtYLtMo4zG0el6Do8X4K-WJMnsO-ZqlQbSGKMIVr9qpPpZo5YzN05qe0nzmzZZBut_c07rtOH63Fqxcs0RXjC9MuWZiqDD0XpYw.webp",
+    "source": "fetch",
+    "safe_name": "카봇 프라우드",
+    "fetched_at": "2026-05-18T04:14:48"
+  },
+  "카봇 제스티": {
+    "url": "https://i.namu.wiki/i/9bDu9-ssPcHnMJl3kdHd8lQjhslLFj0czynKdZpcvRw2PQuPIJwdtYLtMo4zG0el6Do8X4K-WJMnsO-ZqlQbSGKMIVr9qpPpZo5YzN05qe0nzmzZZBut_c07rtOH63Fqxcs0RXjC9MuWZiqDD0XpYw.webp",
+    "source": "fetch",
+    "safe_name": "카봇 제스티",
+    "fetched_at": "2026-05-18T04:14:50"
+  },
+  "카봇 블래스터": {
+    "url": "https://i.namu.wiki/i/c6cdZVfRrJ-U6poJpYu4lD50YWC3FkLI0Cb9y_Krxcg1K7wOocjjFgHhZhN2VMc-7z5NghLCsALeBj2QSbamiBndvEey5JcULXqXLJCKfhm_hCFeDTMlFcifuL7sDfAGmR5z5y54iXYtTE_6q-KYcw.webp",
+    "source": "fetch",
+    "safe_name": "카봇 블래스터",
+    "fetched_at": "2026-05-18T04:14:52"
+  },
+  "카봇 스타비": {
+    "url": "https://i.namu.wiki/i/c6cdZVfRrJ-U6poJpYu4lD50YWC3FkLI0Cb9y_Krxcg1K7wOocjjFgHhZhN2VMc-7z5NghLCsALeBj2QSbamiBndvEey5JcULXqXLJCKfhm_hCFeDTMlFcifuL7sDfAGmR5z5y54iXYtTE_6q-KYcw.webp",
+    "source": "fetch",
+    "safe_name": "카봇 스타비",
+    "fetched_at": "2026-05-18T04:14:53"
+  },
+  "카봇 킹다이저": {
+    "url": "https://i.namu.wiki/i/dekiyc49Ul3xbhNXc4DxX-ZffMw2dAaKEV2unJFxnuJXw2aCBR8VO84eMI3NH7AH4jMEDdnnxnQUeXtXylk6TSAgtYTLGzt-iZc6DKFRLHxWOi5UrxJE3xZE4hb-jCMHhDqKPp-T_k5-3ER8kFIjfg.webp",
+    "source": "fetch",
+    "safe_name": "카봇 킹다이저",
+    "fetched_at": "2026-05-18T04:14:55"
+  },
+  "카봇 아머포스": {
+    "url": "https://i.namu.wiki/i/QkqKBEzqJpJ15J7jVT2eZYQnyD77r7BKqjGhdDY8ASXhDpZ5cvOLB-IC1DbrPqxVV1RfIuBEn1nw6PKB_vHbxPCqPYNyXhNlGcvNvJKe0voqxMmprAlwix_j37gadIMX-IknKFRzCBV_1pxz2BQ65w.webp",
+    "source": "fetch",
+    "safe_name": "카봇 아머포스",
+    "fetched_at": "2026-05-18T04:14:57"
+  },
+  "카봇 럭키": {
+    "url": "https://i.namu.wiki/i/Ovzdk5B8qsxmi8ZGA33YXNmrYni3clHt5HmauTTrAjKwoPe_6VtOMevjmVr3j8tlvoUdP1_Y9LS7vq9AYUTmIbRaajuVWjucT1Br19ztC5ojbO0tfhhIgTeOQnJ2bLaxysHrIvPsDN82jQ12l7HqCg.webp",
+    "source": "fetch",
+    "safe_name": "카봇 럭키",
+    "fetched_at": "2026-05-18T04:14:58"
+  },
+  "카봇 펀치": {
+    "url": "https://i.namu.wiki/i/Ovzdk5B8qsxmi8ZGA33YXNmrYni3clHt5HmauTTrAjKwoPe_6VtOMevjmVr3j8tlvoUdP1_Y9LS7vq9AYUTmIbRaajuVWjucT1Br19ztC5ojbO0tfhhIgTeOQnJ2bLaxysHrIvPsDN82jQ12l7HqCg.webp",
+    "source": "fetch",
+    "safe_name": "카봇 펀치",
+    "fetched_at": "2026-05-18T04:15:00"
+  },
+  "카봇 덤피": {
+    "url": "https://i.namu.wiki/i/Gtgj87iwq7nZ4PKliVCOBuhZL09Ky3Qpl0lUHVmeAF0Jqs0YQt7SgTqscjbIXN3ClTkots7HjPfQszMjxg33q59TRdZfQUIso2FRnviIp0iCvnelYnp_U1DLXWimAoW5Leg1RqgzPziURajuWLZvpg.webp",
+    "source": "fetch",
+    "safe_name": "카봇 덤피",
+    "fetched_at": "2026-05-18T04:15:04"
+  },
+  "카봇 브로피": {
+    "url": "https://i.namu.wiki/i/Gtgj87iwq7nZ4PKliVCOBuhZL09Ky3Qpl0lUHVmeAF0Jqs0YQt7SgTqscjbIXN3ClTkots7HjPfQszMjxg33q59TRdZfQUIso2FRnviIp0iCvnelYnp_U1DLXWimAoW5Leg1RqgzPziURajuWLZvpg.webp",
+    "source": "fetch",
+    "safe_name": "카봇 브로피",
+    "fetched_at": "2026-05-18T04:15:07"
+  },
+  "카봇 페이저": {
+    "url": "https://i.namu.wiki/i/1r1VbwOS8C_bou8YBIIyBNrFgk98cWOtK4yM_etnWccAPI6tfNxP2A-EP7ux21wQQpZ8_vFMP5d-SlThL8QOm0zDOLLXy7FYdFaj4vT2pdufUFUUT2WKQOwI1woLUYNzSJN1iWqP5FGjjjkQQgY7aw.webp",
+    "source": "fetch",
+    "safe_name": "카봇 페이저",
+    "fetched_at": "2026-05-18T04:15:11"
+  },
+  "카봇 소닉붐": {
+    "url": "https://i.namu.wiki/i/1r1VbwOS8C_bou8YBIIyBNrFgk98cWOtK4yM_etnWccAPI6tfNxP2A-EP7ux21wQQpZ8_vFMP5d-SlThL8QOm0zDOLLXy7FYdFaj4vT2pdufUFUUT2WKQOwI1woLUYNzSJN1iWqP5FGjjjkQQgY7aw.webp",
+    "source": "fetch",
+    "safe_name": "카봇 소닉붐",
+    "fetched_at": "2026-05-18T04:15:14"
+  },
+  "카봇 로더": {
+    "url": "https://i.namu.wiki/i/1r1VbwOS8C_bou8YBIIyBNrFgk98cWOtK4yM_etnWccAPI6tfNxP2A-EP7ux21wQQpZ8_vFMP5d-SlThL8QOm0zDOLLXy7FYdFaj4vT2pdufUFUUT2WKQOwI1woLUYNzSJN1iWqP5FGjjjkQQgY7aw.webp",
+    "source": "fetch",
+    "safe_name": "카봇 로더",
+    "fetched_at": "2026-05-18T04:15:18"
+  },
+  "카봇 핫가이더": {
+    "url": "https://i.namu.wiki/i/Sytt4y9I4A_7IZVa8M3z8LQHo4wDfUcUvWicHZ_2Rcdq7o_Ys_ReqKfsBbiZbwn3QYGcqRYsJ4nL4bc5oIVi5aKY7I2_8HP0f7tZPpYJO6jrnSfeuEUlwOURujQY2B9UAMBoddM0Nb_9ixj-QYcimA.webp",
+    "source": "fetch",
+    "safe_name": "카봇 핫가이더",
+    "fetched_at": "2026-05-18T04:17:29"
+  },
+  "카봇 쿨가이더": {
+    "url": "https://i.namu.wiki/i/Sytt4y9I4A_7IZVa8M3z8LQHo4wDfUcUvWicHZ_2Rcdq7o_Ys_ReqKfsBbiZbwn3QYGcqRYsJ4nL4bc5oIVi5aKY7I2_8HP0f7tZPpYJO6jrnSfeuEUlwOURujQY2B9UAMBoddM0Nb_9ixj-QYcimA.webp",
+    "source": "fetch",
+    "safe_name": "카봇 쿨가이더",
+    "fetched_at": "2026-05-18T04:17:34"
+  },
+  "카봇 드로캅": {
+    "url": "https://i.namu.wiki/i/9KhdZSeG6iZnT5dguI1lA0X0gusOvTj6ums_Qd4OblsfBCoZhWzf89zGAhCDajlHlx2XZxNLVQvRsMRpkXj8I2K_3jKMGF8GnwJbHI4rJuwudcB_IEfy_qwdEaZeLwpvfh9hQ1fQKiiAswozcJpfsQ.webp",
+    "source": "fetch",
+    "safe_name": "카봇 드로캅",
+    "fetched_at": "2026-05-18T04:17:38"
+  },
+  "카봇 이그리붐": {
+    "url": "https://i.namu.wiki/i/9KhdZSeG6iZnT5dguI1lA0X0gusOvTj6ums_Qd4OblsfBCoZhWzf89zGAhCDajlHlx2XZxNLVQvRsMRpkXj8I2K_3jKMGF8GnwJbHI4rJuwudcB_IEfy_qwdEaZeLwpvfh9hQ1fQKiiAswozcJpfsQ.webp",
+    "source": "fetch",
+    "safe_name": "카봇 이그리붐",
+    "fetched_at": "2026-05-18T04:17:41"
+  },
+  "카봇 푸르디붐": {
+    "url": "https://i.namu.wiki/i/9KhdZSeG6iZnT5dguI1lA0X0gusOvTj6ums_Qd4OblsfBCoZhWzf89zGAhCDajlHlx2XZxNLVQvRsMRpkXj8I2K_3jKMGF8GnwJbHI4rJuwudcB_IEfy_qwdEaZeLwpvfh9hQ1fQKiiAswozcJpfsQ.webp",
+    "source": "fetch",
+    "safe_name": "카봇 푸르디붐",
+    "fetched_at": "2026-05-18T04:17:45"
+  },
+  "카봇 서포티붐": {
+    "url": "https://i.namu.wiki/i/9KhdZSeG6iZnT5dguI1lA0X0gusOvTj6ums_Qd4OblsfBCoZhWzf89zGAhCDajlHlx2XZxNLVQvRsMRpkXj8I2K_3jKMGF8GnwJbHI4rJuwudcB_IEfy_qwdEaZeLwpvfh9hQ1fQKiiAswozcJpfsQ.webp",
+    "source": "fetch",
+    "safe_name": "카봇 서포티붐",
+    "fetched_at": "2026-05-18T04:17:48"
+  },
+  "카봇 드럼킹": {
+    "url": "https://i.namu.wiki/i/M2QeBgJBSVHAJLMEEqSogGGuceQ_ebSnUmXXBG6Bl6005hLn0NOoJCEmMz5hV6a2BOHFzbxlNHR3tp7OzbsBHsA8CuvgCGgc3h5S5HdYsdSojb09PbVC42ntPEFItloDTMXO0GJ8XMCW5johfVTRzw.webp",
+    "source": "fetch",
+    "safe_name": "카봇 드럼킹",
+    "fetched_at": "2026-05-18T04:17:52"
+  },
+  "카봇 호크하이": {
+    "url": "https://i.namu.wiki/i/M2QeBgJBSVHAJLMEEqSogGGuceQ_ebSnUmXXBG6Bl6005hLn0NOoJCEmMz5hV6a2BOHFzbxlNHR3tp7OzbsBHsA8CuvgCGgc3h5S5HdYsdSojb09PbVC42ntPEFItloDTMXO0GJ8XMCW5johfVTRzw.webp",
+    "source": "fetch",
+    "safe_name": "카봇 호크하이",
+    "fetched_at": "2026-05-18T04:17:56"
+  },
+  "카봇 하울러": {
+    "url": "https://i.namu.wiki/i/M2QeBgJBSVHAJLMEEqSogGGuceQ_ebSnUmXXBG6Bl6005hLn0NOoJCEmMz5hV6a2BOHFzbxlNHR3tp7OzbsBHsA8CuvgCGgc3h5S5HdYsdSojb09PbVC42ntPEFItloDTMXO0GJ8XMCW5johfVTRzw.webp",
+    "source": "fetch",
+    "safe_name": "카봇 하울러",
+    "fetched_at": "2026-05-18T04:17:59"
+  },
+  "카봇 타이거붐": {
+    "url": "https://i.namu.wiki/i/M2QeBgJBSVHAJLMEEqSogGGuceQ_ebSnUmXXBG6Bl6005hLn0NOoJCEmMz5hV6a2BOHFzbxlNHR3tp7OzbsBHsA8CuvgCGgc3h5S5HdYsdSojb09PbVC42ntPEFItloDTMXO0GJ8XMCW5johfVTRzw.webp",
+    "source": "fetch",
+    "safe_name": "카봇 타이거붐",
+    "fetched_at": "2026-05-18T04:18:03"
+  },
+  "카봇 스터번": {
+    "url": "https://i.namu.wiki/i/M2QeBgJBSVHAJLMEEqSogGGuceQ_ebSnUmXXBG6Bl6005hLn0NOoJCEmMz5hV6a2BOHFzbxlNHR3tp7OzbsBHsA8CuvgCGgc3h5S5HdYsdSojb09PbVC42ntPEFItloDTMXO0GJ8XMCW5johfVTRzw.webp",
+    "source": "fetch",
+    "safe_name": "카봇 스터번",
+    "fetched_at": "2026-05-18T04:18:06"
+  },
+  "카봇 폴리스타": {
+    "url": "https://i.namu.wiki/i/67p--kBQ134RYOoWCDHvJQqvLGjh6XetvP5Usj-hgK1kJMCVRHwbuh-BsIA9OF-spkYBakgoQXgF-3mOYFj4RmG6cl1vUde9iyzIhCBtKLTKm9nHm3HhBkUtN3LHUIDV-6hiTADl0c9aRsFVOwRRoA.webp",
+    "source": "fetch",
+    "safe_name": "카봇 폴리스타",
+    "fetched_at": "2026-05-18T04:18:09"
+  },
+  "카봇 스카이스타": {
+    "url": "https://i.namu.wiki/i/67p--kBQ134RYOoWCDHvJQqvLGjh6XetvP5Usj-hgK1kJMCVRHwbuh-BsIA9OF-spkYBakgoQXgF-3mOYFj4RmG6cl1vUde9iyzIhCBtKLTKm9nHm3HhBkUtN3LHUIDV-6hiTADl0c9aRsFVOwRRoA.webp",
+    "source": "fetch",
+    "safe_name": "카봇 스카이스타",
+    "fetched_at": "2026-05-18T04:18:13"
+  },
+  "카봇 아이언스타": {
+    "url": "https://i.namu.wiki/i/67p--kBQ134RYOoWCDHvJQqvLGjh6XetvP5Usj-hgK1kJMCVRHwbuh-BsIA9OF-spkYBakgoQXgF-3mOYFj4RmG6cl1vUde9iyzIhCBtKLTKm9nHm3HhBkUtN3LHUIDV-6hiTADl0c9aRsFVOwRRoA.webp",
+    "source": "fetch",
+    "safe_name": "카봇 아이언스타",
+    "fetched_at": "2026-05-18T04:18:16"
+  },
+  "카봇 파이어스타": {
+    "url": "https://i.namu.wiki/i/67p--kBQ134RYOoWCDHvJQqvLGjh6XetvP5Usj-hgK1kJMCVRHwbuh-BsIA9OF-spkYBakgoQXgF-3mOYFj4RmG6cl1vUde9iyzIhCBtKLTKm9nHm3HhBkUtN3LHUIDV-6hiTADl0c9aRsFVOwRRoA.webp",
+    "source": "fetch",
+    "safe_name": "카봇 파이어스타",
+    "fetched_at": "2026-05-18T04:18:20"
+  },
+  "카봇 X": {
+    "url": "https://i.namu.wiki/i/ZRUGnXE9MCiR9ZPjFBbC0MDyOr3m9EkH--GQDPF-AXI4GukCbV-KNg8lM6Fb2pGRYkBcBpBIN_T4HXlCpJjG8OG78xR5K8qC7A8iJJPVN6qnvvjjsPla1-RUfm5TYKkkNgsxJfWLaxG0OczMGo-AEg.webp",
+    "source": "fetch",
+    "safe_name": "카봇 X",
+    "fetched_at": "2026-05-18T04:18:27"
+  },
+  "카봇 엑스 파이터": {
+    "url": "https://i.namu.wiki/i/6NeqWx1DU3JI1YsqHrZVssq7QNqpltPUI6ZCTgUE2Mf3S65irha-m1Iez4KSU5-Ojx-C_zG63bV6QYKBsUDPVT3xfFpVwCvYM33dPWDGW_sNWV4WT_JXrbJeKNUqZVW5bRe-urDd0GdCzkdsr74pEQ.webp",
+    "source": "fetch",
+    "safe_name": "카봇 엑스 파이터",
+    "fetched_at": "2026-05-18T04:18:35"
+  },
+  "카봇 엑스 트레인": {
+    "url": "https://i.namu.wiki/i/6NeqWx1DU3JI1YsqHrZVssq7QNqpltPUI6ZCTgUE2Mf3S65irha-m1Iez4KSU5-Ojx-C_zG63bV6QYKBsUDPVT3xfFpVwCvYM33dPWDGW_sNWV4WT_JXrbJeKNUqZVW5bRe-urDd0GdCzkdsr74pEQ.webp",
+    "source": "fetch",
+    "safe_name": "카봇 엑스 트레인",
+    "fetched_at": "2026-05-18T04:18:43"
+  },
+  "카봇 히트가이": {
+    "url": "https://i.namu.wiki/i/uuu8Zx1CHmtaPFHwm70vyKLOIZMCOuK4m5jM7bXQtISiwajh1s4iDgp3evkuumrHMCjnmBVdcOGIZAbySoBjIEXrqA3jXC4cqcFiLwuG5qgeot5AlflPqDx8L7pgobQ22hlfhSIBZ1xSL1MbyDI1sQ.webp",
+    "source": "fetch",
+    "safe_name": "카봇 히트가이",
+    "fetched_at": "2026-05-18T04:18:50"
+  },
+  "카봇 코드가이": {
+    "url": "https://i.namu.wiki/i/uuu8Zx1CHmtaPFHwm70vyKLOIZMCOuK4m5jM7bXQtISiwajh1s4iDgp3evkuumrHMCjnmBVdcOGIZAbySoBjIEXrqA3jXC4cqcFiLwuG5qgeot5AlflPqDx8L7pgobQ22hlfhSIBZ1xSL1MbyDI1sQ.webp",
+    "source": "fetch",
+    "safe_name": "카봇 코드가이",
+    "fetched_at": "2026-05-18T04:18:56"
+  },
+  "카봇 제트밴더": {
+    "url": "https://i.namu.wiki/i/3rcqTRZNFAUiakSe0D5IWdfAGOm3RGi7pjKfoVM5zvPQt5VCbff6DJ_2eHzr1_RL_AKb4LfOHscuKmu3ejjgUMSwMvEvxm6r5mB_q_4crPr8eQgArZZrGEciP2LNGUSfEGAXC1TXVF0meMm5dtxeGg.webp",
+    "source": "fetch",
+    "safe_name": "카봇 제트밴더",
+    "fetched_at": "2026-05-18T04:18:59"
+  },
+  "카봇 에어밴더": {
+    "url": "https://i.namu.wiki/i/3rcqTRZNFAUiakSe0D5IWdfAGOm3RGi7pjKfoVM5zvPQt5VCbff6DJ_2eHzr1_RL_AKb4LfOHscuKmu3ejjgUMSwMvEvxm6r5mB_q_4crPr8eQgArZZrGEciP2LNGUSfEGAXC1TXVF0meMm5dtxeGg.webp",
+    "source": "fetch",
+    "safe_name": "카봇 에어밴더",
+    "fetched_at": "2026-05-18T04:19:03"
+  },
+  "카봇 헬리밴더": {
+    "url": "https://i.namu.wiki/i/3rcqTRZNFAUiakSe0D5IWdfAGOm3RGi7pjKfoVM5zvPQt5VCbff6DJ_2eHzr1_RL_AKb4LfOHscuKmu3ejjgUMSwMvEvxm6r5mB_q_4crPr8eQgArZZrGEciP2LNGUSfEGAXC1TXVF0meMm5dtxeGg.webp",
+    "source": "fetch",
+    "safe_name": "카봇 헬리밴더",
+    "fetched_at": "2026-05-18T04:19:06"
   }
 }

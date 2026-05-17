@@ -62,6 +62,91 @@ META_FILE  = SRC_DIR / "_raw_metadata.json"
 
 SIZE = 512
 
+# ────────────────────────────────────────────────────────────────────────
+# 합체 카봇 → 구성 멤버 맵
+# ────────────────────────────────────────────────────────────────────────
+# 값: 짧은 이름 그대로 (검색 시 "카봇 {이름}" 으로 자동 완성됨)
+# 이미 "카봇 " 접두어가 붙어야 하는 경우에만 명시
+# 중복 멤버(퓨처버스, 바우, 파이트라 등)는 dedup 처리됨
+
+COMBO_COMPONENTS = {
+    # 시즌 1
+    "펜타스톰":                       ["에이스", "프론", "댄디", "스카이", "스톰"],
+    "펜타스톰 X":                      ["라이프 X"],
+    # 시즌 2
+    "카봇 로드세이버":                  ["아티", "마이스터", "세이버"],
+    "카봇 삼총사":                      ["나이트", "루크", "폰"],
+    # 시즌 3
+    "카봇 마이티가드":                  ["레디", "큐어", "가드", "헬프"],
+    "카봇 K-캅스":                     ["썬더", "스피드", "터보", "캅스"],
+    # 시즌 4
+    "카봇 슈퍼패트론":                  ["패트론", "스키드", "다이어", "리프"],
+    "카봇 패트론S":                     ["패트론", "스키드"],
+    "카봇 다이어EX":                    ["다이어", "리프"],
+    # 시즌 5 (하이퍼빌디언 구성원은 콤보 리스트에 이미 있음)
+    "카봇 프라우드제트":                 ["프라우드", "제스티"],
+    "카봇 스타블래스터":                 ["블래스터", "스타비"],
+    "카봇 아머다이저":                   ["킹다이저", "아머포스"],
+    # 시즌 6
+    "카봇 럭키펀치":                    ["럭키", "펀치"],
+    # 시즌 10 – 가디언트 / 자이언트 로더
+    "카봇 가디언트":                    ["덤피", "브로피"],
+    "카봇 자이언트 로더":               ["페이저", "소닉붐", "로더"],
+    # 시즌 10 – 뱅 시리즈 (퓨처버스·파이트라·바우는 공유 부품)
+    "잭슈트뱅":                        ["잭슈트", "타우", "퓨처버스"],
+    "페로뱅":                          ["페로", "파우", "퓨처버스"],
+    "나노티스뱅":                       ["나노티스", "도우", "퓨처버스"],
+    "썬런뱅":                          ["썬런", "미우", "파이트라"],
+    "호스퍼스뱅":                       ["호스퍼스", "바우", "파이트라"],
+    "자크뱅":                          ["자크", "바우", "파이트라"],
+    "자크레인뱅":                       ["자크", "자크레인"],
+    # 시즌 11
+    "카봇 킹가이더":                    ["핫가이더", "쿨가이더"],
+    # 시즌 12
+    "카봇 하이퍼캅스":                  ["드로캅", "이그리붐", "푸르디붐", "서포티붐"],
+    # 시즌 13
+    "카봇 사파리세이버":                 ["드럼킹", "호크하이", "하울러", "타이거붐", "스터번"],
+    # 시즌 15
+    "카봇 스타가디언":                  ["폴리스타", "스카이스타", "아이언스타", "파이어스타"],
+    # 시즌 16
+    "그랜드 카봇 X":                   ["카봇 X", "엑스 파이터", "엑스 트레인"],
+    "카봇 패트롤가이즈":                 ["히트가이", "코드가이"],
+    # 시즌 17
+    "카봇 스카이 트리오":               ["제트밴더", "에어밴더", "헬리밴더"],
+    # 크로스 콤비네이션 (마하+피스·로드 / 브레이브+피스·로드)
+    "카봇 마하피스":                    ["마하", "피스"],
+    "카봇 브레이피스":                  ["브레이브", "피스"],
+    "카봇 마하로드":                    ["마하", "로드"],
+    "카봇 브레이로드":                  ["브레이브", "로드"],
+}
+
+
+def get_component_robots(already_in_dir: set) -> list:
+    """
+    COMBO_COMPONENTS에서 유일한 구성원 로봇 이름 목록을 반환.
+    - 중복 제거 (순서 유지)
+    - already_in_dir: OUT_DIR에 이미 있는 safe_name 집합
+    - 반환값: 아직 다운로드되지 않은 구성원 이름 list (전체도 함께 반환)
+    """
+    seen = {}  # name → True (ordered dedup)
+    for members in COMBO_COMPONENTS.values():
+        for m in members:
+            # "카봇 " 접두어 없으면 붙여 표준 이름 생성
+            full = m if (m.startswith("카봇 ") or m.startswith("그랜드 카봇 ")) else f"카봇 {m}"
+            seen[full] = True
+
+    all_components = list(seen.keys())
+
+    # 이미 img_carbot/ 에 있는 것 스킵 표시
+    pending = []
+    for name in all_components:
+        safe = re.sub(r'[\\/*?:"<>|()\[\]]', "", name).strip()
+        if safe not in already_in_dir:
+            pending.append(name)
+
+    return all_components, pending
+
+
 # ── HTTP 설정 (나무위키 403 회피용 브라우저 유사 헤더) ──────────────────
 HEADERS = {
     "User-Agent": (
@@ -273,22 +358,106 @@ def to_webp_square(src: Path, dest: Path, size: int = SIZE):
 
 
 # ────────────────────────────────────────────────────────────────────────
-# 5. 메인
+# 5. 공통 처리 루프
+# ────────────────────────────────────────────────────────────────────────
+
+def process_robot_list(robot_names: list, pw_page, cache_map: dict,
+                       metadata: dict, force: bool) -> tuple:
+    """
+    robot_names 리스트를 순회하며 이미지 수집·변환.
+    (success, skipped, failed, failures) 반환.
+    """
+    success = skipped = failed = 0
+    failures = []
+
+    for idx, name in enumerate(robot_names, 1):
+        print(f"[{idx:02d}/{len(robot_names)}] {name}")
+
+        safe_name = re.sub(r'[\\/*?:"<>|()\[\]]', "", name).strip()
+        src_file = SRC_DIR / f"{safe_name}.webp"
+        out_file = OUT_DIR / f"{safe_name}.webp"
+
+        # 이미 완성 + 메타 있으면 스킵 (수동 추가 파일도 포함)
+        already_done = out_file.exists() and out_file.stat().st_size > 0
+        has_meta = bool(metadata.get(name, {}).get("url"))
+        if already_done and (has_meta or not force):
+            if not force:
+                print(f"    skip (이미 완료)")
+                skipped += 1
+                continue
+
+        # ── 이미지 URL 탐색 ──────────────────────────────────────────
+        img_url = local_file = None
+        source = "unknown"
+
+        img_url, local_file, matched_key = lookup_cache(name, cache_map)
+        if img_url:
+            source = "local" if (local_file and local_file.exists()) else "cache"
+            print(f"    cache hit: alt='{matched_key}' [{source}]")
+
+        if not img_url:
+            img_url = fetch_namu_image_url(pw_page, name)
+            if img_url:
+                source = "fetch"
+            time.sleep(1.0)
+
+        if not img_url:
+            print(f"    FAIL: 이미지 URL을 찾지 못했습니다.")
+            failed += 1
+            failures.append(name)
+            continue
+
+        # ── 원본 준비 → WebP 변환 ────────────────────────────────────
+        try:
+            need_dl = not (src_file.exists() and src_file.stat().st_size > 0) or force
+            if not need_dl:
+                print(f"    src cached: {src_file.name}")
+            elif source == "local" and local_file and local_file.exists():
+                shutil.copy2(local_file, src_file)
+                print(f"    copy local: {local_file.name}")
+            else:
+                size_bytes = download_image(img_url, src_file)
+                print(f"    download: {size_bytes // 1024} KB  ← {img_url[:80]}")
+
+            to_webp_square(src_file, out_file)
+            print(f"    → {out_file.name}  ({out_file.stat().st_size // 1024} KB)")
+
+            metadata[name] = {
+                "url": img_url,
+                "source": source,
+                "safe_name": safe_name,
+                "fetched_at": datetime.now().isoformat(timespec="seconds"),
+            }
+            META_FILE.write_text(
+                json.dumps(metadata, ensure_ascii=False, indent=2), encoding="utf-8"
+            )
+            success += 1
+
+        except Exception as e:
+            print(f"    FAIL: {e}")
+            failed += 1
+            failures.append(name)
+
+    return success, skipped, failed, failures
+
+
+# ────────────────────────────────────────────────────────────────────────
+# 6. 메인
 # ────────────────────────────────────────────────────────────────────────
 
 def main():
     parser = argparse.ArgumentParser(description="카봇 이미지 크롤러")
-    parser.add_argument("--all",   action="store_true", help="전체 카봇 크롤링 (미구현, 향후 확장)")
-    parser.add_argument("--force", action="store_true", help="캐시 무시하고 재다운로드")
+    parser.add_argument("--components", action="store_true",
+                        help="합체 카봇 구성원 로봇 이미지 수집 (img_carbot에 없는 것만)")
+    parser.add_argument("--all",   action="store_true",
+                        help="전체 카봇 크롤링 (미구현, 향후 확장)")
+    parser.add_argument("--force", action="store_true",
+                        help="캐시 무시하고 재다운로드")
     args = parser.parse_args()
-
-    if args.all:
-        print("[info] --all 모드는 아직 미구현입니다. 합체 카봇만 처리합니다.\n")
 
     OUT_DIR.mkdir(exist_ok=True)
     SRC_DIR.mkdir(exist_ok=True)
 
-    # 메타데이터 로드
     metadata: dict = {}
     if META_FILE.exists() and not args.force:
         try:
@@ -296,22 +465,31 @@ def main():
         except Exception:
             metadata = {}
 
-    # 합체 카봇 이름 목록
-    robot_names = parse_combo_robots(MD_FILE)
-    print(f"합체 카봇 {len(robot_names)}종 처리 시작\n")
+    # ── 처리 대상 결정 ───────────────────────────────────────────────────
+    if args.components:
+        # 이미 img_carbot/ 에 있는 파일명(확장자 제외) 집합
+        existing = {f.stem for f in OUT_DIR.glob("*.webp")}
+        all_comp, pending = get_component_robots(existing)
+        print(f"구성원 로봇 전체 {len(all_comp)}종 중 미수집 {len(pending)}종 처리 시작")
+        print(f"(이미 있는 {len(all_comp) - len(pending)}종은 스킵)\n")
+        robot_names = pending
+        section_label = "구성원 로봇"
+    else:
+        robot_names = parse_combo_robots(MD_FILE)
+        print(f"합체 카봇 {len(robot_names)}종 처리 시작\n")
+        section_label = "합체 카봇"
 
-    # 로컬 캐시 맵 구성
+    if args.all:
+        print("[info] --all 모드는 아직 미구현입니다.\n")
+
     cache_map: dict = {}
     if CACHE_HTML.exists():
         cache_map = build_cache_map(CACHE_HTML)
     else:
-        print(f"[warn] 캐시 HTML 없음: {CACHE_HTML.name} — 모두 Playwright fetch로 처리합니다.")
-
+        print(f"[warn] 캐시 HTML 없음 — Playwright fetch만 사용합니다.")
     print()
-    success = skipped = failed = 0
-    failures = []
 
-    # ── Playwright 브라우저 초기화 (전체 루프에서 재사용) ────────────────
+    # ── Playwright 브라우저 (전체 루프 재사용) ───────────────────────────
     with sync_playwright() as pw:
         browser = pw.chromium.launch(headless=True)
         context = browser.new_context(
@@ -323,88 +501,14 @@ def main():
             extra_http_headers={"Referer": "https://namu.wiki/"},
         )
         pw_page = context.new_page()
-
-        for idx, name in enumerate(robot_names, 1):
-            print(f"[{idx:02d}/{len(robot_names)}] {name}")
-
-            # 안전한 파일명 (경로 특수문자 제거)
-            safe_name = re.sub(r'[\\/*?:"<>|()\[\]]', "", name).strip()
-            src_file = SRC_DIR / f"{safe_name}.webp"
-            out_file = OUT_DIR / f"{safe_name}.webp"
-
-            # 이미 완성된 출력 파일 + 메타가 있으면 스킵
-            if (out_file.exists() and out_file.stat().st_size > 0
-                    and metadata.get(name, {}).get("url")
-                    and not args.force):
-                print(f"    skip (이미 완료)")
-                skipped += 1
-                continue
-
-            # ── 이미지 URL 탐색 ──────────────────────────────────────
-            img_url = None
-            local_file = None
-            source = "unknown"
-
-            # 1) 로컬 캐시 HTML에서 alt 텍스트로 매칭
-            img_url, local_file, matched_key = lookup_cache(name, cache_map)
-            if img_url:
-                source = "local" if (local_file and local_file.exists()) else "cache"
-                print(f"    cache hit: alt='{matched_key}' [{source}]")
-
-            # 2) fallback: Playwright로 개별 나무위키 페이지 렌더링
-            if not img_url:
-                img_url = fetch_namu_image_url(pw_page, name)
-                if img_url:
-                    source = "fetch"
-                time.sleep(1.0)  # rate-limit 회피
-
-            if not img_url:
-                print(f"    FAIL: 이미지 URL을 찾지 못했습니다.")
-                failed += 1
-                failures.append(name)
-                continue
-
-            # ── 원본 파일 준비 ───────────────────────────────────────
-            try:
-                need_download = not (src_file.exists() and src_file.stat().st_size > 0)
-
-                if not need_download and not args.force:
-                    print(f"    src cached: {src_file.name}")
-                elif source == "local" and local_file and local_file.exists():
-                    # 로컬 캐시 파일 복사 (HTTP 요청 불필요)
-                    shutil.copy2(local_file, src_file)
-                    print(f"    copy local: {local_file.name}")
-                else:
-                    size_bytes = download_image(img_url, src_file)
-                    print(f"    download: {size_bytes // 1024} KB  ← {img_url[:80]}")
-
-                # ── WebP 512×512 변환 ────────────────────────────────
-                to_webp_square(src_file, out_file)
-                print(f"    → {out_file.name}  ({out_file.stat().st_size // 1024} KB)")
-
-                # 메타데이터 저장 (매 항목마다 갱신해 중단 복구 가능)
-                metadata[name] = {
-                    "url": img_url,
-                    "source": source,
-                    "safe_name": safe_name,
-                    "fetched_at": datetime.now().isoformat(timespec="seconds"),
-                }
-                META_FILE.write_text(
-                    json.dumps(metadata, ensure_ascii=False, indent=2), encoding="utf-8"
-                )
-
-                success += 1
-
-            except Exception as e:
-                print(f"    FAIL: {e}")
-                failed += 1
-                failures.append(name)
-
+        success, skipped, failed, failures = process_robot_list(
+            robot_names, pw_page, cache_map, metadata, args.force
+        )
         browser.close()
 
     # ── 결과 요약 ────────────────────────────────────────────────────────
     print(f"\n{'=' * 55}")
-    print(f"완료: {success}개 성공  /  {skipped}개 스킵  /  {failed}개 실패")
+    print(f"[{section_label}] 완료: {success}개 성공  /  {skipped}개 스킵  /  {failed}개 실패")
     if failures:
         print(f"\n실패 목록:")
         for f in failures:
