@@ -486,6 +486,12 @@
           <span class="meta">작게 · 많이</span>
           <span class="card-best empty" id="cardBest_hard">🏆 —</span>
         </button>
+        <button class="diff-card" data-diff="extreme">
+          <span class="emoji">💀</span>
+          <span class="lbl">최상 · 극악</span>
+          <span class="meta">상 + 움직임</span>
+          <span class="card-best empty" id="cardBest_extreme">🏆 —</span>
+        </button>
       </div>
       <button class="reset-btn" type="button" id="resetBestBtn">🗑 기록 초기화</button>
     </div>
@@ -514,6 +520,10 @@
           <button class="diff-card" data-diff="hard">
             <span class="emoji">🔥</span>
             <span class="lbl">상</span>
+          </button>
+          <button class="diff-card" data-diff="extreme">
+            <span class="emoji">💀</span>
+            <span class="lbl">최상</span>
           </button>
           <button class="btn secondary" type="button" id="winToStartBtn">↺ 처음으로</button>
           <a class="btn secondary" href="../index.html">홈으로</a>
@@ -553,9 +563,10 @@
        dt = desktop(hover 가능), mb = mobile(터치)
        ─────────────────────────────────────────── */
     const DIFFICULTY = {
-      easy:   { label: '하 · 쉬움',   short: '🌱 하', dtPx: 110, mbPx: 80, dtCount: 25,  mbCount: 16 },
-      medium: { label: '중 · 보통',   short: '⭐ 중', dtPx: 76,  mbPx: 60, dtCount: 50,  mbCount: 32 },
-      hard:   { label: '상 · 어려움', short: '🔥 상', dtPx: 54,  mbPx: 44, dtCount: 100, mbCount: 60 }
+      easy:    { label: '하 · 쉬움',   short: '🌱 하',   dtPx: 110, mbPx: 80, dtCount: 25,  mbCount: 16, moving: false },
+      medium:  { label: '중 · 보통',   short: '⭐ 중',   dtPx: 76,  mbPx: 60, dtCount: 50,  mbCount: 32, moving: false },
+      hard:    { label: '상 · 어려움', short: '🔥 상',   dtPx: 54,  mbPx: 44, dtCount: 100, mbCount: 60, moving: false },
+      extreme: { label: '최상 · 극악', short: '💀 최상', dtPx: 54,  mbPx: 44, dtCount: 100, mbCount: 60, moving: true  }
     };
 
     const state = {
@@ -567,7 +578,7 @@
       cdTimer: null,
       unicornId: null,
       foundEl: null,
-      best: { easy: null, medium: null, hard: null },
+      best: { easy: null, medium: null, hard: null, extreme: null },
       finishing: false
     };
 
@@ -596,7 +607,7 @@
       renderCardBests();
     }
     function renderCardBests() {
-      ['easy', 'medium', 'hard'].forEach(d => {
+      Object.keys(DIFFICULTY).forEach(d => {
         const el = document.getElementById('cardBest_' + d);
         if (!el) return;
         const b = state.best[d];
@@ -618,7 +629,7 @@
     }
     function resetAllBest() {
       if (!confirm('모든 난이도의 베스트 기록을 초기화할까요?\n(되돌릴 수 없습니다)')) return;
-      ['easy', 'medium', 'hard'].forEach(d => {
+      Object.keys(DIFFICULTY).forEach(d => {
         try { localStorage.removeItem(bestKey(d)); } catch {}
         state.best[d] = null;
       });
@@ -712,6 +723,12 @@
         return a.pos.y - b.pos.y;
       });
 
+      // extreme 모드: 이번 게임을 위한 movement 풀 초기화
+      const movingMode = DIFFICULTY[state.difficulty].moving;
+      movementState.horses = [];
+      movementState.vbW = vbW;
+      movementState.vbH = vbH;
+
       for (const p of placed) {
         const isUnicorn = p.idx === state.unicornId;
         const color = PALETTES[Math.floor(Math.random() * PALETTES.length)];
@@ -724,7 +741,20 @@
         // 유니콘은 회전 제한 (난이도 유지)
         const maxRot = isUnicorn ? 12 : 22;
         const rot = (Math.random() * 2 - 1) * maxRot;
-        const mirror = Math.random() < 0.45 ? -1 : 1;
+
+        // 이동(extreme) 모드일 땐 mirror가 이동 방향에 맞춰지도록 vx 부호로 결정
+        let vx = 0, vy = 0;
+        if (movingMode) {
+          // viewBox 단위/초. 화면 짧은 변 대비 5~12%/sec 정도가 자연스러움
+          const minSide = Math.min(vbW, vbH);
+          const speed = minSide * (0.05 + Math.random() * 0.07);
+          const angle = Math.random() * Math.PI * 2;
+          vx = Math.cos(angle) * speed;
+          vy = Math.sin(angle) * speed;
+        }
+        const mirror = movingMode
+          ? (vx >= 0 ? 1 : -1)
+          : (Math.random() < 0.45 ? -1 : 1);
 
         const cx = HORSE_W / 2;
         const cy = HORSE_H / 2;
@@ -747,7 +777,85 @@
         wrap.addEventListener('click', onHorseClick, { passive: true });
         wrap.addEventListener('touchstart', onHorseTouch, { passive: false });
         stage.appendChild(wrap);
+
+        if (movingMode) {
+          movementState.horses.push({
+            wrap, x: p.pos.x, y: p.pos.y, vx, vy,
+            scale: p.scale, rot, mirror
+          });
+        }
       }
+    }
+
+    /* ─── 말 무리 이동 (extreme 난이도) ───────────────────────
+       각 말이 랜덤 속도/방향으로 viewBox 내부를 돌아다니며 벽에서 튕긴다.
+       좌우로 튕기면 mirror를 뒤집어 진행 방향을 자연스럽게 만든다.
+       성능: 100마리 × 1 transform set/frame = 60fps에서 6k ops/sec — 무리 없음.
+       ───────────────────────────────────────────────────── */
+    const movementState = {
+      active: false,
+      horses: [],
+      rafId: null,
+      lastT: 0,
+      vbW: 0,
+      vbH: 0
+    };
+
+    function movementTick(t) {
+      if (!movementState.active) return;
+      // dt를 50ms로 캡 (탭 백그라운드 후 복귀 시 큰 점프 방지)
+      const dt = Math.min(50, t - movementState.lastT) / 1000;
+      movementState.lastT = t;
+
+      const vbW = movementState.vbW;
+      const vbH = movementState.vbH;
+      const cx = HORSE_W / 2;
+      const cy = HORSE_H / 2;
+
+      for (const h of movementState.horses) {
+        h.x += h.vx * dt;
+        h.y += h.vy * dt;
+        const wPx = HORSE_W * h.scale;
+        const hPx = HORSE_H * h.scale;
+
+        // 벽 충돌 → 위치 클램프 + 속도 반전 + 좌우 튕길 땐 미러 갱신
+        if (h.x < 0) {
+          h.x = 0; h.vx = Math.abs(h.vx); h.mirror = 1;
+        } else if (h.x + wPx > vbW) {
+          h.x = vbW - wPx; h.vx = -Math.abs(h.vx); h.mirror = -1;
+        }
+        if (h.y < 0) {
+          h.y = 0; h.vy = Math.abs(h.vy);
+        } else if (h.y + hPx > vbH) {
+          h.y = vbH - hPx; h.vy = -Math.abs(h.vy);
+        }
+
+        const finalCx = h.x + cx * h.scale;
+        const finalCy = h.y + cy * h.scale;
+        const sx = h.scale * h.mirror;
+        h.wrap.setAttribute(
+          'transform',
+          `translate(${finalCx.toFixed(1)}, ${finalCy.toFixed(1)}) rotate(${h.rot.toFixed(1)}) scale(${sx.toFixed(3)}, ${h.scale.toFixed(3)}) translate(${-cx}, ${-cy})`
+        );
+        h.wrap.dataset.cx = finalCx.toFixed(1);
+        h.wrap.dataset.cy = finalCy.toFixed(1);
+      }
+
+      movementState.rafId = requestAnimationFrame(movementTick);
+    }
+
+    function startMovement() {
+      if (!movementState.horses.length) return;
+      if (movementState.rafId) cancelAnimationFrame(movementState.rafId);
+      movementState.active = true;
+      movementState.lastT = performance.now();
+      movementState.rafId = requestAnimationFrame(movementTick);
+    }
+
+    function stopMovement() {
+      movementState.active = false;
+      if (movementState.rafId) cancelAnimationFrame(movementState.rafId);
+      movementState.rafId = null;
     }
 
     /* ─── 클릭 / 터치 ─── */
@@ -784,6 +892,7 @@
     function winFlow(wrapEl, horseG) {
       state.finishing = true;
       stopTimer();
+      stopMovement();          // 움직임 정지 → 걷는 유니콘 GIF가 정확한 위치에서 출발
       horseG.classList.add('horse--found');
       state.foundEl = wrapEl;
 
@@ -949,14 +1058,20 @@
       winOverlay.classList.remove('show');
       startOverlay.classList.add('hide');
       hideWalkingUnicorn();
-      spawnHorses();
-      runCountdown(() => { startTimer(); });
+      stopMovement();          // 이전 게임 movement 잔여 정리
+      spawnHorses();           // (extreme이면 spawnHorses가 movement 풀 다시 채움)
+      runCountdown(() => {
+        startTimer();
+        startMovement();       // GO! 시점부터 말들이 움직이기 시작
+      });
     }
 
     /* ─── 게임 첫 화면으로 돌아가기 ─── */
     function toStartScreen() {
-      // 진행 중 타이머/카운트다운/페널티 모두 정리
+      // 진행 중 타이머/카운트다운/페널티/이동 모두 정리
       stopTimer();
+      stopMovement();
+      movementState.horses = [];
       if (state.cdTimer) { clearInterval(state.cdTimer); state.cdTimer = null; }
       state.finishing = false;
       state.penaltyMs = 0;
@@ -1030,9 +1145,7 @@
     });
 
     /* ─── 초기화 ─── */
-    state.best.easy   = loadBestFor('easy');
-    state.best.medium = loadBestFor('medium');
-    state.best.hard   = loadBestFor('hard');
+    Object.keys(DIFFICULTY).forEach(d => { state.best[d] = loadBestFor(d); });
     state.difficulty  = loadLastDiff();
     if (!DIFFICULTY[state.difficulty]) state.difficulty = 'medium';
     renderBest();
