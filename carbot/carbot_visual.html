@@ -1,0 +1,1711 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>카봇 카탈로그 (표)</title>
+<style>
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+    margin: 0; padding: 0; background: #f5f7fa; color: #2c3e50;
+    line-height: 1.5;
+  }
+  .container { display: grid; grid-template-columns: 240px 1fr; min-height: 100vh; }
+  aside {
+    background: #305496; color: white; padding: 20px 16px;
+    position: sticky; top: 0; height: 100vh; overflow-y: auto;
+    box-sizing: border-box;
+  }
+  aside h3 { margin: 8px 0 12px; color: #fff; font-size: 14px; opacity: 0.85; text-transform: uppercase; letter-spacing: 0.5px; }
+  aside .nav-section a { display: block; color: #d6e4f7; text-decoration: none; padding: 6px 10px; border-radius: 4px; font-size: 13px; }
+  aside .nav-section a:hover { background: rgba(255,255,255,0.1); color: white; }
+  aside ul { list-style: none; padding: 0; margin: 0 0 20px; }
+  main { padding: 28px 40px; max-width: 1100px; }
+  h1 { color: #305496; margin: 0 0 4px; }
+  .subtitle { color: #6c757d; margin: 0 0 24px; font-size: 14px; }
+  .stats {
+    display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 28px;
+  }
+  .stat {
+    background: white; padding: 14px; border-radius: 10px; text-align: center;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  }
+  .stat .num { font-size: 28px; font-weight: bold; color: #305496; }
+  .stat .label { font-size: 11px; color: #6c757d; margin-top: 4px; }
+
+  section { margin-bottom: 40px; }
+  h2 {
+    color: #305496; border-bottom: 3px solid #305496; padding-bottom: 6px;
+    margin-top: 36px; font-size: 22px;
+  }
+  .section-desc { color: #6c757d; font-size: 13px; margin-bottom: 16px; }
+
+  /* 개별 로봇 표 */
+  table.standalone {
+    width: 100%; border-collapse: collapse; background: white; border-radius: 10px;
+    overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    font-size: 13px;
+  }
+  table.standalone thead th {
+    background: #305496; color: white; font-weight: 600; text-align: left;
+    padding: 10px 14px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.3px;
+  }
+  table.standalone tbody tr { border-top: 1px solid #eef1f5; }
+  table.standalone tbody tr:hover { background: #f8f9fc; }
+  table.standalone td { padding: 8px 14px; vertical-align: top; }
+  table.standalone .name { font-weight: 600; color: #2c3e50; width: 22%; }
+  table.standalone .season { color: #6c757d; width: 12%; white-space: nowrap; }
+  table.standalone .category {
+    width: 14%;
+  }
+  table.standalone .category::before {
+    content: ''; display: inline-block; width: 6px; height: 6px;
+    border-radius: 50%; margin-right: 6px; background: #305496;
+  }
+  table.standalone .note { color: #6c757d; font-size: 12.5px; }
+
+  /* 합체 로봇 카드 */
+  .combo-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+  .combo-card {
+    background: white; border-radius: 10px; padding: 16px 18px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    scroll-margin-top: 16px;
+  }
+  .combo-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+  .combo-title { font-size: 15px; font-weight: 700; color: #305496; }
+  .combo-meta { display: flex; gap: 4px; }
+  .badge {
+    display: inline-block; padding: 2px 8px; font-size: 10.5px;
+    border-radius: 10px; font-weight: 600;
+  }
+  .badge-season { background: #e8eef7; color: #305496; }
+  .badge-units { background: #fef0e6; color: #c75e17; }
+  .badge-count { background: #e6f4ea; color: #2d7d3e; }
+  .combo-note {
+    font-size: 11.5px; color: #6c757d; margin: 6px 0 10px;
+    padding: 6px 10px; background: #f8f9fa; border-left: 3px solid #6c757d; border-radius: 3px;
+  }
+  table.member-table {
+    width: 100%; border-collapse: collapse; font-size: 12.5px; margin-top: 8px;
+  }
+  table.member-table thead th {
+    background: #f5f7fa; color: #495057; font-weight: 600;
+    padding: 6px 10px; text-align: left; font-size: 11px;
+  }
+  table.member-table tbody tr { border-top: 1px solid #f0f2f5; }
+  table.member-table td { padding: 6px 10px; vertical-align: middle; }
+  table.member-table .idx { width: 24px; color: #adb5bd; font-weight: 600; }
+  table.member-table .member { color: #2c3e50; }
+  th.idx { width: 24px; }
+
+  /* 팀 카드 (비합체 3인조) */
+  .team-card { border-left: 4px solid #ad6800; background: #fffbf0; }
+  .team-card .combo-title { color: #ad6800; }
+  .team-tag {
+    display: inline-block; background: #ad6800; color: white;
+    font-size: 10px; padding: 1px 6px; border-radius: 6px;
+    vertical-align: middle; margin-left: 4px; font-weight: 600;
+  }
+  .stat-team .num { color: #ad6800 !important; }
+</style>
+</head>
+<body>
+<div class="container">
+
+<aside>
+  <h3>섹션</h3>
+  <div class="nav-section">
+    <a href="#sec-standalone">▸ 개별 로봇 (74)</a>
+    <a href="#sec-team">▸ 팀 (비합체) (3)</a>
+    <a href="#sec-combo">▸ 합체 로봇 (43)</a>
+  </div>
+  <h3>팀 목차</h3>
+  <ul class="nav-section">
+    <li><a href="#team-카봇 삼총사">카봇 삼총사</a></li><li><a href="#team-카봇 테이프 삼총사">카봇 테이프 삼총사</a></li><li><a href="#team-카봇 스카이 트리오">카봇 스카이 트리오</a></li>
+  </ul>
+  <h3>합체 로봇 목차</h3>
+  <ul class="nav-section">
+    <li><a href="#combo-카봇 펜타스톰">카봇 펜타스톰</a></li><li><a href="#combo-카봇 로드세이버">카봇 로드세이버</a></li><li><a href="#combo-카봇 마이티가드">카봇 마이티가드</a></li><li><a href="#combo-카봇 K-캅스">카봇 K-캅스</a></li><li><a href="#combo-카봇 슈퍼패트론">카봇 슈퍼패트론</a></li><li><a href="#combo-카봇 패트론S">카봇 패트론S</a></li><li><a href="#combo-카봇 다이어EX">카봇 다이어EX</a></li><li><a href="#combo-카봇 하이퍼빌디언">카봇 하이퍼빌디언</a></li><li><a href="#combo-카봇 프라우드제트">카봇 프라우드제트</a></li><li><a href="#combo-카봇 스타블래스터">카봇 스타블래스터</a></li><li><a href="#combo-카봇 아머다이저">카봇 아머다이저</a></li><li><a href="#combo-카봇 마하피스">카봇 마하피스</a></li><li><a href="#combo-카봇 브레이피스">카봇 브레이피스</a></li><li><a href="#combo-카봇 마하로드">카봇 마하로드</a></li><li><a href="#combo-카봇 브레이로드">카봇 브레이로드</a></li><li><a href="#combo-카봇 럭키펀치">카봇 럭키펀치</a></li><li><a href="#combo-카봇 펜타스톰 X">카봇 펜타스톰 X</a></li><li><a href="#combo-카봇 가디언트">카봇 가디언트</a></li><li><a href="#combo-카봇 자이언트 로더">카봇 자이언트 로더</a></li><li><a href="#combo-잭슈트뱅">잭슈트뱅</a></li><li><a href="#combo-페로뱅">페로뱅</a></li><li><a href="#combo-나노티스뱅">나노티스뱅</a></li><li><a href="#combo-썬런뱅">썬런뱅</a></li><li><a href="#combo-호스퍼스뱅">호스퍼스뱅</a></li><li><a href="#combo-자크뱅">자크뱅</a></li><li><a href="#combo-자크레인뱅">자크레인뱅</a></li><li><a href="#combo-카봇 킹가이더">카봇 킹가이더</a></li><li><a href="#combo-카봇 하이퍼캅스">카봇 하이퍼캅스</a></li><li><a href="#combo-크리스탈 카봇 펜타스톰 X">크리스탈 카봇 펜타스톰 X</a></li><li><a href="#combo-카봇 사파리세이버">카봇 사파리세이버</a></li><li><a href="#combo-카봇 마이티가드 X">카봇 마이티가드 X</a></li><li><a href="#combo-카봇 펜타스톰 X 빅큐브">카봇 펜타스톰 X 빅큐브</a></li><li><a href="#combo-카봇 펜타스톰 X 라이프 캐논 모드">카봇 펜타스톰 X 라이프 캐논 모드</a></li><li><a href="#combo-펜타스톰 X 라이프 캐논 모드 (재기재)">펜타스톰 X 라이프 캐논 모드 (재기재)</a></li><li><a href="#combo-카봇 스타가디언">카봇 스타가디언</a></li><li><a href="#combo-그랜드 카봇 GX">그랜드 카봇 GX</a></li><li><a href="#combo-그랜드 카봇 X">그랜드 카봇 X</a></li><li><a href="#combo-카봇 패트롤가이즈">카봇 패트롤가이즈</a></li><li><a href="#combo-카봇 마이티캅스">카봇 마이티캅스</a></li><li><a href="#combo-카봇 울트라포트 GX">카봇 울트라포트 GX</a></li><li><a href="#combo-카봇 울트라포트">카봇 울트라포트</a></li><li><a href="#combo-카봇 티라이오">카봇 티라이오</a></li><li><a href="#combo-에반 프라임">에반 프라임</a></li>
+  </ul>
+</aside>
+
+<main>
+  <h1>카봇 카탈로그</h1>
+  <p class="subtitle">개별 로봇 + 팀 (비합체 3인조) + 합체 로봇별 멤버 표</p>
+
+  <div class="stats">
+    <div class="stat"><div class="num">74</div><div class="label">개별 로봇</div></div>
+    <div class="stat stat-team"><div class="num">3</div><div class="label">팀 (비합체)</div></div>
+    <div class="stat"><div class="num">43</div><div class="label">합체 로봇</div></div>
+    <div class="stat"><div class="num">95</div><div class="label">합체 멤버 (고유)</div></div>
+    <div class="stat"><div class="num">9</div><div class="label">팀원</div></div>
+  </div>
+
+  <section id="sec-standalone">
+    <h2>① 개별 로봇 (74종)</h2>
+    <p class="section-desc">합체에도 팀에도 속하지 않는 완전 단독 로봇. 시즌순 정렬. 극장판/알카봇/유니티 포함.</p>
+    <table class="standalone">
+      <thead>
+        <tr>
+          <th>로봇 이름</th>
+          <th>시즌</th>
+          <th>분류</th>
+          <th>비고</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+            <td class="name">카봇 호크</td>
+            <td class="season">1</td>
+            <td class="category">정규</td>
+            <td class="note">차탄의 첫 카봇. 펜타스톰에 합체 안 함 (차탄 호위)</td>
+        </tr><tr>
+            <td class="name">카봇 트루</td>
+            <td class="season">2</td>
+            <td class="category">정규</td>
+            <td class="note">미래 카봇</td>
+        </tr><tr>
+            <td class="name">카봇 본</td>
+            <td class="season">2</td>
+            <td class="category">정규</td>
+            <td class="note"></td>
+        </tr><tr>
+            <td class="name">카봇 우가바</td>
+            <td class="season">3</td>
+            <td class="category">미래 카봇</td>
+            <td class="note"></td>
+        </tr><tr>
+            <td class="name">카봇 골드렉스</td>
+            <td class="season">3</td>
+            <td class="category">미래 카봇</td>
+            <td class="note"></td>
+        </tr><tr>
+            <td class="name">카봇 제트렌</td>
+            <td class="season">3</td>
+            <td class="category">미래 카봇</td>
+            <td class="note"></td>
+        </tr><tr>
+            <td class="name">카봇 킹가이즈</td>
+            <td class="season">3</td>
+            <td class="category">미래 카봇</td>
+            <td class="note"></td>
+        </tr><tr>
+            <td class="name">카봇 비트런</td>
+            <td class="season">5</td>
+            <td class="category">오토봇</td>
+            <td class="note">원액션 변신</td>
+        </tr><tr>
+            <td class="name">카봇 메가볼드</td>
+            <td class="season">5</td>
+            <td class="category">오토봇</td>
+            <td class="note">원액션 변신</td>
+        </tr><tr>
+            <td class="name">카봇 오토소닉</td>
+            <td class="season">5</td>
+            <td class="category">오토봇</td>
+            <td class="note">원액션 변신</td>
+        </tr><tr>
+            <td class="name">카봇 아이언트</td>
+            <td class="season">6</td>
+            <td class="category">크루</td>
+            <td class="note">엔지니어 크루 (파트너십, 합체 아님)</td>
+        </tr><tr>
+            <td class="name">카봇 컨버스터</td>
+            <td class="season">6</td>
+            <td class="category">오토봇</td>
+            <td class="note"></td>
+        </tr><tr>
+            <td class="name">카봇 아이누크</td>
+            <td class="season">6</td>
+            <td class="category">크루</td>
+            <td class="note">레스큐 크루</td>
+        </tr><tr>
+            <td class="name">카봇 스타피너</td>
+            <td class="season">6</td>
+            <td class="category">오토봇</td>
+            <td class="note"></td>
+        </tr><tr>
+            <td class="name">카봇 스피너블</td>
+            <td class="season">7</td>
+            <td class="category">정규</td>
+            <td class="note"></td>
+        </tr><tr>
+            <td class="name">카봇 버디가드</td>
+            <td class="season">7</td>
+            <td class="category">정규</td>
+            <td class="note"></td>
+        </tr><tr>
+            <td class="name">카봇 유니크루저</td>
+            <td class="season">7</td>
+            <td class="category">크루저</td>
+            <td class="note">파일럿 크루. 변신 불가</td>
+        </tr><tr>
+            <td class="name">카봇 제트크루저</td>
+            <td class="season">7</td>
+            <td class="category">크루저</td>
+            <td class="note">크루 에어</td>
+        </tr><tr>
+            <td class="name">카봇 메디언트</td>
+            <td class="season">7</td>
+            <td class="category">크루</td>
+            <td class="note">엠뷸런스 크루</td>
+        </tr><tr>
+            <td class="name">카봇 파이언트</td>
+            <td class="season">7</td>
+            <td class="category">크루</td>
+            <td class="note">119 크루</td>
+        </tr><tr>
+            <td class="name">카봇 라이캅스</td>
+            <td class="season">7</td>
+            <td class="category">크루</td>
+            <td class="note">크루 기동대</td>
+        </tr><tr>
+            <td class="name">카봇 앵그리퍼프</td>
+            <td class="season">7</td>
+            <td class="category">크루</td>
+            <td class="note">크루 워커</td>
+        </tr><tr>
+            <td class="name">카봇 테크노마스터</td>
+            <td class="season">8</td>
+            <td class="category">정규</td>
+            <td class="note"></td>
+        </tr><tr>
+            <td class="name">카봇 파워크루저</td>
+            <td class="season">9</td>
+            <td class="category">크루저</td>
+            <td class="note">크루 파워</td>
+        </tr><tr>
+            <td class="name">카봇 모:반</td>
+            <td class="season">9</td>
+            <td class="category">정규</td>
+            <td class="note"></td>
+        </tr><tr>
+            <td class="name">카봇 울티맥스</td>
+            <td class="season">9</td>
+            <td class="category">정규</td>
+            <td class="note"></td>
+        </tr><tr>
+            <td class="name">카봇 마이티로</td>
+            <td class="season">10</td>
+            <td class="category">정규</td>
+            <td class="note"></td>
+        </tr><tr>
+            <td class="name">카봇 저스포스</td>
+            <td class="season">11</td>
+            <td class="category">쌈바</td>
+            <td class="note">파트너: 폴리독 (합체 아님)</td>
+        </tr><tr>
+            <td class="name">카봇 레드와일러</td>
+            <td class="season">11</td>
+            <td class="category">쌈바</td>
+            <td class="note">파트너: 롱고</td>
+        </tr><tr>
+            <td class="name">카봇 나이트호퍼</td>
+            <td class="season">11</td>
+            <td class="category">쌈바</td>
+            <td class="note">파트너: 앰뷰버드. 여성형</td>
+        </tr><tr>
+            <td class="name">카봇 맥스도저</td>
+            <td class="season">11</td>
+            <td class="category">쌈바</td>
+            <td class="note">파트너: 맥스릴라</td>
+        </tr><tr>
+            <td class="name">카봇 샌드버스터</td>
+            <td class="season">11</td>
+            <td class="category">쌈바</td>
+            <td class="note">파트너: 와일리온</td>
+        </tr><tr>
+            <td class="name">카봇 록캔</td>
+            <td class="season">11</td>
+            <td class="category">쌈바</td>
+            <td class="note">파트너: 아쿠아리노</td>
+        </tr><tr>
+            <td class="name">카봇 베어하이더</td>
+            <td class="season">11</td>
+            <td class="category">하이더</td>
+            <td class="note">곰형 비스트</td>
+        </tr><tr>
+            <td class="name">카봇 이글하이더</td>
+            <td class="season">11</td>
+            <td class="category">하이더</td>
+            <td class="note">독수리형 비스트</td>
+        </tr><tr>
+            <td class="name">카봇 스크류붐바</td>
+            <td class="season">12</td>
+            <td class="category">붐바</td>
+            <td class="note"></td>
+        </tr><tr>
+            <td class="name">카봇 파워붐바</td>
+            <td class="season">12</td>
+            <td class="category">붐바</td>
+            <td class="note"></td>
+        </tr><tr>
+            <td class="name">카봇 드릴버스트</td>
+            <td class="season">12</td>
+            <td class="category">쌈바</td>
+            <td class="note">파트너: 몰리켓</td>
+        </tr><tr>
+            <td class="name">카봇 스톰다이버</td>
+            <td class="season">12</td>
+            <td class="category">쌈바</td>
+            <td class="note">파트너: 롤링크록</td>
+        </tr><tr>
+            <td class="name">카봇 라란자</td>
+            <td class="season">12</td>
+            <td class="category">정규</td>
+            <td class="note">여성형. 호크의 여친</td>
+        </tr><tr>
+            <td class="name">카봇 도저밤밤</td>
+            <td class="season">12</td>
+            <td class="category">밤밤</td>
+            <td class="note">카봇붐 변형 시스템</td>
+        </tr><tr>
+            <td class="name">카봇 레미밤밤</td>
+            <td class="season">12</td>
+            <td class="category">밤밤</td>
+            <td class="note"></td>
+        </tr><tr>
+            <td class="name">카봇 아레스밤밤</td>
+            <td class="season">12</td>
+            <td class="category">밤밤</td>
+            <td class="note"></td>
+        </tr><tr>
+            <td class="name">카봇 포레밤밤</td>
+            <td class="season">12</td>
+            <td class="category">밤밤</td>
+            <td class="note">여성형</td>
+        </tr><tr>
+            <td class="name">카봇 큐어밤밤</td>
+            <td class="season">12</td>
+            <td class="category">밤밤</td>
+            <td class="note">여성형</td>
+        </tr><tr>
+            <td class="name">카봇 디고베어젬</td>
+            <td class="season">13</td>
+            <td class="category">젬</td>
+            <td class="note">= 디고베어 + 디고베어카. 곰형 비스트</td>
+        </tr><tr>
+            <td class="name">카봇 토터젬</td>
+            <td class="season">13</td>
+            <td class="category">젬</td>
+            <td class="note">= 토터 + 토터카</td>
+        </tr><tr>
+            <td class="name">카봇 톡시젬</td>
+            <td class="season">13</td>
+            <td class="category">젬</td>
+            <td class="note">인피니툴. 여성형</td>
+        </tr><tr>
+            <td class="name">카봇 스나이퍼젬</td>
+            <td class="season">13</td>
+            <td class="category">젬</td>
+            <td class="note">인피니툴</td>
+        </tr><tr>
+            <td class="name">카봇 캥복스젬</td>
+            <td class="season">13</td>
+            <td class="category">젬</td>
+            <td class="note">인피니툴</td>
+        </tr><tr>
+            <td class="name">카봇 로어젬</td>
+            <td class="season">13</td>
+            <td class="category">젬</td>
+            <td class="note">인피니툴</td>
+        </tr><tr>
+            <td class="name">카봇 레포스</td>
+            <td class="season">13</td>
+            <td class="category">정규</td>
+            <td class="note">여성형</td>
+        </tr><tr>
+            <td class="name">카봇 일렉트롬</td>
+            <td class="season">13</td>
+            <td class="category">정규</td>
+            <td class="note"></td>
+        </tr><tr>
+            <td class="name">카봇 빅터</td>
+            <td class="season">14</td>
+            <td class="category">정규</td>
+            <td class="note"></td>
+        </tr><tr>
+            <td class="name">카봇 티라쿵</td>
+            <td class="season">14</td>
+            <td class="category">알카봇 쿵</td>
+            <td class="note"></td>
+        </tr><tr>
+            <td class="name">카봇 펀치마스터</td>
+            <td class="season">15</td>
+            <td class="category">정규</td>
+            <td class="note"></td>
+        </tr><tr>
+            <td class="name">카봇 호프</td>
+            <td class="season">15</td>
+            <td class="category">정규</td>
+            <td class="note"></td>
+        </tr><tr>
+            <td class="name">카봇 하이드</td>
+            <td class="season">16</td>
+            <td class="category">마법사</td>
+            <td class="note">용사로 분류되지 않음</td>
+        </tr><tr>
+            <td class="name">카봇 스카이거너</td>
+            <td class="season">극장판</td>
+            <td class="category">극장판</td>
+            <td class="note">항공기</td>
+        </tr><tr>
+            <td class="name">카봇 소나다이버</td>
+            <td class="season">극장판</td>
+            <td class="category">극장판</td>
+            <td class="note">잠수정</td>
+        </tr><tr>
+            <td class="name">카봇 티라클레스</td>
+            <td class="season">극장판 1기</td>
+            <td class="category">백악기</td>
+            <td class="note">티라노사우루스. 불 속성</td>
+        </tr><tr>
+            <td class="name">카봇 트리톤</td>
+            <td class="season">극장판 1기</td>
+            <td class="category">백악기</td>
+            <td class="note">공룡형. 물 속성</td>
+        </tr><tr>
+            <td class="name">카봇 테라제트</td>
+            <td class="season">극장판 1기</td>
+            <td class="category">백악기</td>
+            <td class="note">공룡형 여성형. 바람 속성</td>
+        </tr><tr>
+            <td class="name">카봇 테고</td>
+            <td class="season">극장판 1기</td>
+            <td class="category">백악기</td>
+            <td class="note">공룡형. 땅 속성</td>
+        </tr><tr>
+            <td class="name">카봇 에이샤크</td>
+            <td class="season">극장판 2기</td>
+            <td class="category">옴파로스 섬</td>
+            <td class="note">상어형 비스트. 여성형</td>
+        </tr><tr>
+            <td class="name">카봇 팔로</td>
+            <td class="season">극장판 2기</td>
+            <td class="category">옴파로스 섬</td>
+            <td class="note">아프리카물소형. 트리플 체인저 (역대 유일)</td>
+        </tr><tr>
+            <td class="name">카봇 마이모스</td>
+            <td class="season">극장판 2기</td>
+            <td class="category">옴파로스 섬</td>
+            <td class="note">비스트</td>
+        </tr><tr>
+            <td class="name">카봇 그린팜</td>
+            <td class="season">극장판 4기</td>
+            <td class="category">극장판</td>
+            <td class="note">여성형</td>
+        </tr><tr>
+            <td class="name">피노쿵</td>
+            <td class="season">쿵 시리즈</td>
+            <td class="category">알카봇</td>
+            <td class="note">여성형</td>
+        </tr><tr>
+            <td class="name">아르케쿵</td>
+            <td class="season">쿵 시리즈</td>
+            <td class="category">알카봇</td>
+            <td class="note">여성형</td>
+        </tr><tr>
+            <td class="name">디메트로쿵</td>
+            <td class="season">쿵 시리즈</td>
+            <td class="category">알카봇</td>
+            <td class="note">여성형</td>
+        </tr><tr>
+            <td class="name">파키케쿵</td>
+            <td class="season">쿵 시리즈</td>
+            <td class="category">알카봇</td>
+            <td class="note">여성형</td>
+        </tr><tr>
+            <td class="name">람포린</td>
+            <td class="season">쿵 시리즈</td>
+            <td class="category">알카봇</td>
+            <td class="note">여성형</td>
+        </tr><tr>
+            <td class="name">라고</td>
+            <td class="season">유니티</td>
+            <td class="category">유니티</td>
+            <td class="note">메카드 콜라보. 여성형</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section id="sec-team">
+    <h2>② 팀 — 비합체 3인조 (3팀)</h2>
+    <p class="section-desc">각 멤버는 독립된 로봇이고, 팀 단위로 함께 활동하지만 <b>합체는 하지 않음</b>. 손잡고 회전·연계 기술 등 팀워크로 싸움. 나무위키 명시 분류.</p>
+    <div class="combo-grid">
+      
+<div class="combo-card team-card" id="team-카봇 삼총사">
+  <div class="combo-header">
+    <div class="combo-title">카봇 삼총사 <span class="team-tag">팀</span></div>
+    <div class="combo-meta">
+      <span class="badge badge-season">시즌 2~</span>
+      <span class="badge badge-units">3인조 (기본)</span>
+      <span class="badge badge-count">3명</span>
+    </div>
+  </div>
+  <div class="combo-note">★ 나무위키 확인: 합체 아닌 팀. 손잡고 회전하는 '바람개비', 트라이앵글 배리어 등 팀 연계 기술</div>
+  <table class="member-table">
+    <thead><tr><th class="idx">#</th><th class="member">팀원</th></tr></thead>
+    <tbody><tr>
+            <td class="idx">1</td>
+            <td class="member">카봇 나이트</td>
+        </tr><tr>
+            <td class="idx">2</td>
+            <td class="member">카봇 루크</td>
+        </tr><tr>
+            <td class="idx">3</td>
+            <td class="member">카봇 폰</td>
+        </tr></tbody>
+  </table>
+</div>
+
+<div class="combo-card team-card" id="team-카봇 테이프 삼총사">
+  <div class="combo-header">
+    <div class="combo-title">카봇 테이프 삼총사 <span class="team-tag">팀</span></div>
+    <div class="combo-meta">
+      <span class="badge badge-season">시즌 15~</span>
+      <span class="badge badge-units">3인조 (X 강화)</span>
+      <span class="badge badge-count">3명</span>
+    </div>
+  </div>
+  <div class="combo-note">★ 나무위키 확인: 카봇 삼총사의 X 강화판. 시즌 17 12화부터는 '삼총사 X'로도 불림. 각자 다른 색 테이프 탑재 (레드/블루/오렌지). 테이프 윕/스틱/회오리 기술</div>
+  <table class="member-table">
+    <thead><tr><th class="idx">#</th><th class="member">팀원</th></tr></thead>
+    <tbody><tr>
+            <td class="idx">1</td>
+            <td class="member">카봇 나이트 X</td>
+        </tr><tr>
+            <td class="idx">2</td>
+            <td class="member">카봇 루크 X</td>
+        </tr><tr>
+            <td class="idx">3</td>
+            <td class="member">카봇 폰 X</td>
+        </tr></tbody>
+  </table>
+</div>
+
+<div class="combo-card team-card" id="team-카봇 스카이 트리오">
+  <div class="combo-header">
+    <div class="combo-title">카봇 스카이 트리오 <span class="team-tag">팀</span></div>
+    <div class="combo-meta">
+      <span class="badge badge-season">시즌 17</span>
+      <span class="badge badge-units">3인조</span>
+      <span class="badge badge-count">3명</span>
+    </div>
+  </div>
+  <div class="combo-note">★ 나무위키 명시: '합체가 불가능한 3인조 카봇' (삼총사에 이어 두 번째). 브레이브 킹덤 공중 근위대. 슬랩밴드로 헥사 밴드 사이클론 등 연계 기술</div>
+  <table class="member-table">
+    <thead><tr><th class="idx">#</th><th class="member">팀원</th></tr></thead>
+    <tbody><tr>
+            <td class="idx">1</td>
+            <td class="member">카봇 제트밴더 (4번째 용사)</td>
+        </tr><tr>
+            <td class="idx">2</td>
+            <td class="member">카봇 에어밴더 (5번째 용사)</td>
+        </tr><tr>
+            <td class="idx">3</td>
+            <td class="member">카봇 헬리밴더 (6번째 용사)</td>
+        </tr></tbody>
+  </table>
+</div>
+
+    </div>
+  </section>
+
+  <section id="sec-combo">
+    <h2>③ 합체 로봇 → 멤버 (43종)</h2>
+    <p class="section-desc">각 합체 로봇별 구성 멤버. 사이드바의 합체 이름을 클릭하면 해당 표로 이동.</p>
+    <div class="combo-grid">
+      
+<div class="combo-card" id="combo-카봇 펜타스톰">
+  <div class="combo-header">
+    <div class="combo-title">카봇 펜타스톰</div>
+    <div class="combo-meta">
+      <span class="badge badge-season">시즌 1</span>
+      <span class="badge badge-units">5단</span>
+      <span class="badge badge-count">5명</span>
+    </div>
+  </div>
+  <div class="combo-note">최초 합체 카봇. 검증 완료 (basic/gold/refine 3변종)</div>
+  <table class="member-table">
+    <thead><tr><th class="idx">#</th><th class="member">멤버 로봇</th></tr></thead>
+    <tbody><tr>
+            <td class="idx">1</td>
+            <td class="member">카봇 에이스</td>
+        </tr><tr>
+            <td class="idx">2</td>
+            <td class="member">카봇 프론</td>
+        </tr><tr>
+            <td class="idx">3</td>
+            <td class="member">카봇 댄디</td>
+        </tr><tr>
+            <td class="idx">4</td>
+            <td class="member">카봇 스카이</td>
+        </tr><tr>
+            <td class="idx">5</td>
+            <td class="member">카봇 스톰</td>
+        </tr></tbody>
+  </table>
+</div>
+
+<div class="combo-card" id="combo-카봇 로드세이버">
+  <div class="combo-header">
+    <div class="combo-title">카봇 로드세이버</div>
+    <div class="combo-meta">
+      <span class="badge badge-season">시즌 2~15</span>
+      <span class="badge badge-units">3단</span>
+      <span class="badge badge-count">3명</span>
+    </div>
+  </div>
+  <div class="combo-note">검증 완료. 인간형 ↔ 로어세이버(곰형) 두 모드. basic/allstar 2변종</div>
+  <table class="member-table">
+    <thead><tr><th class="idx">#</th><th class="member">멤버 로봇</th></tr></thead>
+    <tbody><tr>
+            <td class="idx">1</td>
+            <td class="member">카봇 아티 (택시)</td>
+        </tr><tr>
+            <td class="idx">2</td>
+            <td class="member">카봇 마이스터 (택시)</td>
+        </tr><tr>
+            <td class="idx">3</td>
+            <td class="member">카봇 세이버</td>
+        </tr></tbody>
+  </table>
+</div>
+
+<div class="combo-card" id="combo-카봇 마이티가드">
+  <div class="combo-header">
+    <div class="combo-title">카봇 마이티가드</div>
+    <div class="combo-meta">
+      <span class="badge badge-season">시즌 3</span>
+      <span class="badge badge-units">4단</span>
+      <span class="badge badge-count">4명</span>
+    </div>
+  </div>
+  
+  <table class="member-table">
+    <thead><tr><th class="idx">#</th><th class="member">멤버 로봇</th></tr></thead>
+    <tbody><tr>
+            <td class="idx">1</td>
+            <td class="member">카봇 레디</td>
+        </tr><tr>
+            <td class="idx">2</td>
+            <td class="member">카봇 큐어</td>
+        </tr><tr>
+            <td class="idx">3</td>
+            <td class="member">카봇 가드</td>
+        </tr><tr>
+            <td class="idx">4</td>
+            <td class="member">카봇 헬프</td>
+        </tr></tbody>
+  </table>
+</div>
+
+<div class="combo-card" id="combo-카봇 K-캅스">
+  <div class="combo-header">
+    <div class="combo-title">카봇 K-캅스</div>
+    <div class="combo-meta">
+      <span class="badge badge-season">시즌 3</span>
+      <span class="badge badge-units">4단</span>
+      <span class="badge badge-count">4명</span>
+    </div>
+  </div>
+  
+  <table class="member-table">
+    <thead><tr><th class="idx">#</th><th class="member">멤버 로봇</th></tr></thead>
+    <tbody><tr>
+            <td class="idx">1</td>
+            <td class="member">카봇 썬더</td>
+        </tr><tr>
+            <td class="idx">2</td>
+            <td class="member">카봇 스피드</td>
+        </tr><tr>
+            <td class="idx">3</td>
+            <td class="member">카봇 터보</td>
+        </tr><tr>
+            <td class="idx">4</td>
+            <td class="member">카봇 캅스</td>
+        </tr></tbody>
+  </table>
+</div>
+
+<div class="combo-card" id="combo-카봇 슈퍼패트론">
+  <div class="combo-header">
+    <div class="combo-title">카봇 슈퍼패트론</div>
+    <div class="combo-meta">
+      <span class="badge badge-season">시즌 4</span>
+      <span class="badge badge-units">4단</span>
+      <span class="badge badge-count">4명</span>
+    </div>
+  </div>
+  <div class="combo-note">패트론S + 다이어EX의 그레이트 합체</div>
+  <table class="member-table">
+    <thead><tr><th class="idx">#</th><th class="member">멤버 로봇</th></tr></thead>
+    <tbody><tr>
+            <td class="idx">1</td>
+            <td class="member">카봇 패트론</td>
+        </tr><tr>
+            <td class="idx">2</td>
+            <td class="member">카봇 스키드</td>
+        </tr><tr>
+            <td class="idx">3</td>
+            <td class="member">카봇 다이어</td>
+        </tr><tr>
+            <td class="idx">4</td>
+            <td class="member">카봇 리프</td>
+        </tr></tbody>
+  </table>
+</div>
+
+<div class="combo-card" id="combo-카봇 패트론S">
+  <div class="combo-header">
+    <div class="combo-title">카봇 패트론S</div>
+    <div class="combo-meta">
+      <span class="badge badge-season">시즌 4</span>
+      <span class="badge badge-units">2단</span>
+      <span class="badge badge-count">2명</span>
+    </div>
+  </div>
+  <div class="combo-note">슈퍼패트론의 상체</div>
+  <table class="member-table">
+    <thead><tr><th class="idx">#</th><th class="member">멤버 로봇</th></tr></thead>
+    <tbody><tr>
+            <td class="idx">1</td>
+            <td class="member">카봇 패트론</td>
+        </tr><tr>
+            <td class="idx">2</td>
+            <td class="member">카봇 스키드</td>
+        </tr></tbody>
+  </table>
+</div>
+
+<div class="combo-card" id="combo-카봇 다이어EX">
+  <div class="combo-header">
+    <div class="combo-title">카봇 다이어EX</div>
+    <div class="combo-meta">
+      <span class="badge badge-season">시즌 4</span>
+      <span class="badge badge-units">2단</span>
+      <span class="badge badge-count">2명</span>
+    </div>
+  </div>
+  <div class="combo-note">슈퍼패트론의 하체</div>
+  <table class="member-table">
+    <thead><tr><th class="idx">#</th><th class="member">멤버 로봇</th></tr></thead>
+    <tbody><tr>
+            <td class="idx">1</td>
+            <td class="member">카봇 다이어</td>
+        </tr><tr>
+            <td class="idx">2</td>
+            <td class="member">카봇 리프</td>
+        </tr></tbody>
+  </table>
+</div>
+
+<div class="combo-card" id="combo-카봇 하이퍼빌디언">
+  <div class="combo-header">
+    <div class="combo-title">카봇 하이퍼빌디언</div>
+    <div class="combo-meta">
+      <span class="badge badge-season">시즌 5</span>
+      <span class="badge badge-units">그레이트</span>
+      <span class="badge badge-count">5명</span>
+    </div>
+  </div>
+  <div class="combo-note">그레이트 합체. 빌디언/크랜/듀크 (나무위키 확인) + 프라우드제트/스타블래스터 (md 기재). 다층 구조</div>
+  <table class="member-table">
+    <thead><tr><th class="idx">#</th><th class="member">멤버 로봇</th></tr></thead>
+    <tbody><tr>
+            <td class="idx">1</td>
+            <td class="member">카봇 빌디언</td>
+        </tr><tr>
+            <td class="idx">2</td>
+            <td class="member">카봇 크랜</td>
+        </tr><tr>
+            <td class="idx">3</td>
+            <td class="member">카봇 듀크</td>
+        </tr><tr>
+            <td class="idx">4</td>
+            <td class="member">카봇 프라우드제트</td>
+        </tr><tr>
+            <td class="idx">5</td>
+            <td class="member">카봇 스타블래스터</td>
+        </tr></tbody>
+  </table>
+</div>
+
+<div class="combo-card" id="combo-카봇 프라우드제트">
+  <div class="combo-header">
+    <div class="combo-title">카봇 프라우드제트</div>
+    <div class="combo-meta">
+      <span class="badge badge-season">시즌 5</span>
+      <span class="badge badge-units">2단</span>
+      <span class="badge badge-count">2명</span>
+    </div>
+  </div>
+  
+  <table class="member-table">
+    <thead><tr><th class="idx">#</th><th class="member">멤버 로봇</th></tr></thead>
+    <tbody><tr>
+            <td class="idx">1</td>
+            <td class="member">카봇 프라우드</td>
+        </tr><tr>
+            <td class="idx">2</td>
+            <td class="member">카봇 제스티</td>
+        </tr></tbody>
+  </table>
+</div>
+
+<div class="combo-card" id="combo-카봇 스타블래스터">
+  <div class="combo-header">
+    <div class="combo-title">카봇 스타블래스터</div>
+    <div class="combo-meta">
+      <span class="badge badge-season">시즌 5</span>
+      <span class="badge badge-units">2단</span>
+      <span class="badge badge-count">2명</span>
+    </div>
+  </div>
+  
+  <table class="member-table">
+    <thead><tr><th class="idx">#</th><th class="member">멤버 로봇</th></tr></thead>
+    <tbody><tr>
+            <td class="idx">1</td>
+            <td class="member">카봇 블래스터</td>
+        </tr><tr>
+            <td class="idx">2</td>
+            <td class="member">카봇 스타비</td>
+        </tr></tbody>
+  </table>
+</div>
+
+<div class="combo-card" id="combo-카봇 아머다이저">
+  <div class="combo-header">
+    <div class="combo-title">카봇 아머다이저</div>
+    <div class="combo-meta">
+      <span class="badge badge-season">시즌 5</span>
+      <span class="badge badge-units">—</span>
+      <span class="badge badge-count">2명</span>
+    </div>
+  </div>
+  
+  <table class="member-table">
+    <thead><tr><th class="idx">#</th><th class="member">멤버 로봇</th></tr></thead>
+    <tbody><tr>
+            <td class="idx">1</td>
+            <td class="member">카봇 킹다이저</td>
+        </tr><tr>
+            <td class="idx">2</td>
+            <td class="member">카봇 아머포스</td>
+        </tr></tbody>
+  </table>
+</div>
+
+<div class="combo-card" id="combo-카봇 마하피스">
+  <div class="combo-header">
+    <div class="combo-title">카봇 마하피스</div>
+    <div class="combo-meta">
+      <span class="badge badge-season">시즌 5</span>
+      <span class="badge badge-units">교차 합체</span>
+      <span class="badge badge-count">2명</span>
+    </div>
+  </div>
+  <div class="combo-note">크로스 콤비네이션</div>
+  <table class="member-table">
+    <thead><tr><th class="idx">#</th><th class="member">멤버 로봇</th></tr></thead>
+    <tbody><tr>
+            <td class="idx">1</td>
+            <td class="member">카봇 마하 (상체)</td>
+        </tr><tr>
+            <td class="idx">2</td>
+            <td class="member">카봇 피스 (하체)</td>
+        </tr></tbody>
+  </table>
+</div>
+
+<div class="combo-card" id="combo-카봇 브레이피스">
+  <div class="combo-header">
+    <div class="combo-title">카봇 브레이피스</div>
+    <div class="combo-meta">
+      <span class="badge badge-season">시즌 5</span>
+      <span class="badge badge-units">교차 합체</span>
+      <span class="badge badge-count">2명</span>
+    </div>
+  </div>
+  <div class="combo-note">크로스 콤비네이션</div>
+  <table class="member-table">
+    <thead><tr><th class="idx">#</th><th class="member">멤버 로봇</th></tr></thead>
+    <tbody><tr>
+            <td class="idx">1</td>
+            <td class="member">카봇 브레이브 (상체)</td>
+        </tr><tr>
+            <td class="idx">2</td>
+            <td class="member">카봇 피스 (하체)</td>
+        </tr></tbody>
+  </table>
+</div>
+
+<div class="combo-card" id="combo-카봇 마하로드">
+  <div class="combo-header">
+    <div class="combo-title">카봇 마하로드</div>
+    <div class="combo-meta">
+      <span class="badge badge-season">시즌 5</span>
+      <span class="badge badge-units">교차 합체</span>
+      <span class="badge badge-count">2명</span>
+    </div>
+  </div>
+  <div class="combo-note">크로스 콤비네이션</div>
+  <table class="member-table">
+    <thead><tr><th class="idx">#</th><th class="member">멤버 로봇</th></tr></thead>
+    <tbody><tr>
+            <td class="idx">1</td>
+            <td class="member">카봇 마하 (상체)</td>
+        </tr><tr>
+            <td class="idx">2</td>
+            <td class="member">카봇 로드 (하체)</td>
+        </tr></tbody>
+  </table>
+</div>
+
+<div class="combo-card" id="combo-카봇 브레이로드">
+  <div class="combo-header">
+    <div class="combo-title">카봇 브레이로드</div>
+    <div class="combo-meta">
+      <span class="badge badge-season">시즌 5</span>
+      <span class="badge badge-units">교차 합체</span>
+      <span class="badge badge-count">2명</span>
+    </div>
+  </div>
+  <div class="combo-note">크로스 콤비네이션</div>
+  <table class="member-table">
+    <thead><tr><th class="idx">#</th><th class="member">멤버 로봇</th></tr></thead>
+    <tbody><tr>
+            <td class="idx">1</td>
+            <td class="member">카봇 브레이브 (상체)</td>
+        </tr><tr>
+            <td class="idx">2</td>
+            <td class="member">카봇 로드 (하체)</td>
+        </tr></tbody>
+  </table>
+</div>
+
+<div class="combo-card" id="combo-카봇 럭키펀치">
+  <div class="combo-header">
+    <div class="combo-title">카봇 럭키펀치</div>
+    <div class="combo-meta">
+      <span class="badge badge-season">시즌 6</span>
+      <span class="badge badge-units">2단</span>
+      <span class="badge badge-count">2명</span>
+    </div>
+  </div>
+  
+  <table class="member-table">
+    <thead><tr><th class="idx">#</th><th class="member">멤버 로봇</th></tr></thead>
+    <tbody><tr>
+            <td class="idx">1</td>
+            <td class="member">카봇 럭키</td>
+        </tr><tr>
+            <td class="idx">2</td>
+            <td class="member">카봇 펀치</td>
+        </tr></tbody>
+  </table>
+</div>
+
+<div class="combo-card" id="combo-카봇 펜타스톰 X">
+  <div class="combo-header">
+    <div class="combo-title">카봇 펜타스톰 X</div>
+    <div class="combo-meta">
+      <span class="badge badge-season">시즌 9~15</span>
+      <span class="badge badge-units">5단</span>
+      <span class="badge badge-count">5명</span>
+    </div>
+  </div>
+  <div class="combo-note">X 강화판. 검증 완료 (basic/crystal/bigcube/lifecannon 4변종)</div>
+  <table class="member-table">
+    <thead><tr><th class="idx">#</th><th class="member">멤버 로봇</th></tr></thead>
+    <tbody><tr>
+            <td class="idx">1</td>
+            <td class="member">카봇 스톰 X</td>
+        </tr><tr>
+            <td class="idx">2</td>
+            <td class="member">카봇 에이스 레스큐 X</td>
+        </tr><tr>
+            <td class="idx">3</td>
+            <td class="member">카봇 프론 폴리스 X</td>
+        </tr><tr>
+            <td class="idx">4</td>
+            <td class="member">카봇 댄디 앰뷸런스 X</td>
+        </tr><tr>
+            <td class="idx">5</td>
+            <td class="member">카봇 스카이 S.W.A.T X</td>
+        </tr></tbody>
+  </table>
+</div>
+
+<div class="combo-card" id="combo-카봇 가디언트">
+  <div class="combo-header">
+    <div class="combo-title">카봇 가디언트</div>
+    <div class="combo-meta">
+      <span class="badge badge-season">시즌 10</span>
+      <span class="badge badge-units">2단</span>
+      <span class="badge badge-count">2명</span>
+    </div>
+  </div>
+  
+  <table class="member-table">
+    <thead><tr><th class="idx">#</th><th class="member">멤버 로봇</th></tr></thead>
+    <tbody><tr>
+            <td class="idx">1</td>
+            <td class="member">카봇 덤피</td>
+        </tr><tr>
+            <td class="idx">2</td>
+            <td class="member">카봇 브로피</td>
+        </tr></tbody>
+  </table>
+</div>
+
+<div class="combo-card" id="combo-카봇 자이언트 로더">
+  <div class="combo-header">
+    <div class="combo-title">카봇 자이언트 로더</div>
+    <div class="combo-meta">
+      <span class="badge badge-season">시즌 10</span>
+      <span class="badge badge-units">3단</span>
+      <span class="badge badge-count">3명</span>
+    </div>
+  </div>
+  
+  <table class="member-table">
+    <thead><tr><th class="idx">#</th><th class="member">멤버 로봇</th></tr></thead>
+    <tbody><tr>
+            <td class="idx">1</td>
+            <td class="member">카봇 페이저</td>
+        </tr><tr>
+            <td class="idx">2</td>
+            <td class="member">카봇 소닉붐</td>
+        </tr><tr>
+            <td class="idx">3</td>
+            <td class="member">카봇 로더</td>
+        </tr></tbody>
+  </table>
+</div>
+
+<div class="combo-card" id="combo-잭슈트뱅">
+  <div class="combo-header">
+    <div class="combo-title">잭슈트뱅</div>
+    <div class="combo-meta">
+      <span class="badge badge-season">시즌 10</span>
+      <span class="badge badge-units">2단</span>
+      <span class="badge badge-count">3명</span>
+    </div>
+  </div>
+  <div class="combo-note">6대륙 카봇 뱅</div>
+  <table class="member-table">
+    <thead><tr><th class="idx">#</th><th class="member">멤버 로봇</th></tr></thead>
+    <tbody><tr>
+            <td class="idx">1</td>
+            <td class="member">카봇 잭슈트</td>
+        </tr><tr>
+            <td class="idx">2</td>
+            <td class="member">카봇 타우</td>
+        </tr><tr>
+            <td class="idx">3</td>
+            <td class="member">카봇 퓨처버스</td>
+        </tr></tbody>
+  </table>
+</div>
+
+<div class="combo-card" id="combo-페로뱅">
+  <div class="combo-header">
+    <div class="combo-title">페로뱅</div>
+    <div class="combo-meta">
+      <span class="badge badge-season">시즌 10</span>
+      <span class="badge badge-units">2단</span>
+      <span class="badge badge-count">3명</span>
+    </div>
+  </div>
+  <div class="combo-note">6대륙 카봇 뱅</div>
+  <table class="member-table">
+    <thead><tr><th class="idx">#</th><th class="member">멤버 로봇</th></tr></thead>
+    <tbody><tr>
+            <td class="idx">1</td>
+            <td class="member">카봇 페로</td>
+        </tr><tr>
+            <td class="idx">2</td>
+            <td class="member">카봇 파우</td>
+        </tr><tr>
+            <td class="idx">3</td>
+            <td class="member">카봇 퓨처버스</td>
+        </tr></tbody>
+  </table>
+</div>
+
+<div class="combo-card" id="combo-나노티스뱅">
+  <div class="combo-header">
+    <div class="combo-title">나노티스뱅</div>
+    <div class="combo-meta">
+      <span class="badge badge-season">시즌 10</span>
+      <span class="badge badge-units">2단</span>
+      <span class="badge badge-count">3명</span>
+    </div>
+  </div>
+  <div class="combo-note">6대륙 카봇 뱅</div>
+  <table class="member-table">
+    <thead><tr><th class="idx">#</th><th class="member">멤버 로봇</th></tr></thead>
+    <tbody><tr>
+            <td class="idx">1</td>
+            <td class="member">카봇 나노티스</td>
+        </tr><tr>
+            <td class="idx">2</td>
+            <td class="member">카봇 도우</td>
+        </tr><tr>
+            <td class="idx">3</td>
+            <td class="member">카봇 퓨처버스</td>
+        </tr></tbody>
+  </table>
+</div>
+
+<div class="combo-card" id="combo-썬런뱅">
+  <div class="combo-header">
+    <div class="combo-title">썬런뱅</div>
+    <div class="combo-meta">
+      <span class="badge badge-season">시즌 10</span>
+      <span class="badge badge-units">2단</span>
+      <span class="badge badge-count">3명</span>
+    </div>
+  </div>
+  <div class="combo-note">6대륙 카봇 뱅</div>
+  <table class="member-table">
+    <thead><tr><th class="idx">#</th><th class="member">멤버 로봇</th></tr></thead>
+    <tbody><tr>
+            <td class="idx">1</td>
+            <td class="member">카봇 썬런</td>
+        </tr><tr>
+            <td class="idx">2</td>
+            <td class="member">카봇 미우</td>
+        </tr><tr>
+            <td class="idx">3</td>
+            <td class="member">카봇 파이트라</td>
+        </tr></tbody>
+  </table>
+</div>
+
+<div class="combo-card" id="combo-호스퍼스뱅">
+  <div class="combo-header">
+    <div class="combo-title">호스퍼스뱅</div>
+    <div class="combo-meta">
+      <span class="badge badge-season">시즌 10</span>
+      <span class="badge badge-units">2단</span>
+      <span class="badge badge-count">3명</span>
+    </div>
+  </div>
+  <div class="combo-note">6대륙 카봇 뱅</div>
+  <table class="member-table">
+    <thead><tr><th class="idx">#</th><th class="member">멤버 로봇</th></tr></thead>
+    <tbody><tr>
+            <td class="idx">1</td>
+            <td class="member">카봇 호스퍼스</td>
+        </tr><tr>
+            <td class="idx">2</td>
+            <td class="member">카봇 바우</td>
+        </tr><tr>
+            <td class="idx">3</td>
+            <td class="member">카봇 파이트라</td>
+        </tr></tbody>
+  </table>
+</div>
+
+<div class="combo-card" id="combo-자크뱅">
+  <div class="combo-header">
+    <div class="combo-title">자크뱅</div>
+    <div class="combo-meta">
+      <span class="badge badge-season">시즌 10</span>
+      <span class="badge badge-units">2단</span>
+      <span class="badge badge-count">3명</span>
+    </div>
+  </div>
+  <div class="combo-note">6대륙 카봇 뱅</div>
+  <table class="member-table">
+    <thead><tr><th class="idx">#</th><th class="member">멤버 로봇</th></tr></thead>
+    <tbody><tr>
+            <td class="idx">1</td>
+            <td class="member">카봇 자크</td>
+        </tr><tr>
+            <td class="idx">2</td>
+            <td class="member">카봇 바우</td>
+        </tr><tr>
+            <td class="idx">3</td>
+            <td class="member">카봇 파이트라</td>
+        </tr></tbody>
+  </table>
+</div>
+
+<div class="combo-card" id="combo-자크레인뱅">
+  <div class="combo-header">
+    <div class="combo-title">자크레인뱅</div>
+    <div class="combo-meta">
+      <span class="badge badge-season">시즌 10</span>
+      <span class="badge badge-units">—</span>
+      <span class="badge badge-count">2명</span>
+    </div>
+  </div>
+  <div class="combo-note">6대륙 카봇 뱅</div>
+  <table class="member-table">
+    <thead><tr><th class="idx">#</th><th class="member">멤버 로봇</th></tr></thead>
+    <tbody><tr>
+            <td class="idx">1</td>
+            <td class="member">카봇 자크</td>
+        </tr><tr>
+            <td class="idx">2</td>
+            <td class="member">카봇 자크레인</td>
+        </tr></tbody>
+  </table>
+</div>
+
+<div class="combo-card" id="combo-카봇 킹가이더">
+  <div class="combo-header">
+    <div class="combo-title">카봇 킹가이더</div>
+    <div class="combo-meta">
+      <span class="badge badge-season">시즌 11</span>
+      <span class="badge badge-units">2단</span>
+      <span class="badge badge-count">2명</span>
+    </div>
+  </div>
+  <div class="combo-note">쌈바 카봇 (핫가이더=브라키레인 파트너, 쿨가이더=트리카고 파트너)</div>
+  <table class="member-table">
+    <thead><tr><th class="idx">#</th><th class="member">멤버 로봇</th></tr></thead>
+    <tbody><tr>
+            <td class="idx">1</td>
+            <td class="member">카봇 핫가이더</td>
+        </tr><tr>
+            <td class="idx">2</td>
+            <td class="member">카봇 쿨가이더</td>
+        </tr></tbody>
+  </table>
+</div>
+
+<div class="combo-card" id="combo-카봇 하이퍼캅스">
+  <div class="combo-header">
+    <div class="combo-title">카봇 하이퍼캅스</div>
+    <div class="combo-meta">
+      <span class="badge badge-season">시즌 12</span>
+      <span class="badge badge-units">합체</span>
+      <span class="badge badge-count">4명</span>
+    </div>
+  </div>
+  <div class="combo-note">나무위키 명시 4종 (추가 멤버 미확인)</div>
+  <table class="member-table">
+    <thead><tr><th class="idx">#</th><th class="member">멤버 로봇</th></tr></thead>
+    <tbody><tr>
+            <td class="idx">1</td>
+            <td class="member">카봇 드로캅</td>
+        </tr><tr>
+            <td class="idx">2</td>
+            <td class="member">카봇 이그리붐</td>
+        </tr><tr>
+            <td class="idx">3</td>
+            <td class="member">카봇 푸르디붐</td>
+        </tr><tr>
+            <td class="idx">4</td>
+            <td class="member">카봇 서포티붐</td>
+        </tr></tbody>
+  </table>
+</div>
+
+<div class="combo-card" id="combo-크리스탈 카봇 펜타스톰 X">
+  <div class="combo-header">
+    <div class="combo-title">크리스탈 카봇 펜타스톰 X</div>
+    <div class="combo-meta">
+      <span class="badge badge-season">시즌 13</span>
+      <span class="badge badge-units">5단</span>
+      <span class="badge badge-count">5명</span>
+    </div>
+  </div>
+  <div class="combo-note">13기 한정. 반투명 크리스탈 재질</div>
+  <table class="member-table">
+    <thead><tr><th class="idx">#</th><th class="member">멤버 로봇</th></tr></thead>
+    <tbody><tr>
+            <td class="idx">1</td>
+            <td class="member">크리스탈 스톰 X</td>
+        </tr><tr>
+            <td class="idx">2</td>
+            <td class="member">크리스탈 에이스 레스큐 X</td>
+        </tr><tr>
+            <td class="idx">3</td>
+            <td class="member">크리스탈 프론 폴리스 X</td>
+        </tr><tr>
+            <td class="idx">4</td>
+            <td class="member">크리스탈 댄디 앰뷸런스 X</td>
+        </tr><tr>
+            <td class="idx">5</td>
+            <td class="member">크리스탈 스카이 S.W.A.T X</td>
+        </tr></tbody>
+  </table>
+</div>
+
+<div class="combo-card" id="combo-카봇 사파리세이버">
+  <div class="combo-header">
+    <div class="combo-title">카봇 사파리세이버</div>
+    <div class="combo-meta">
+      <span class="badge badge-season">시즌 13</span>
+      <span class="badge badge-units">5단</span>
+      <span class="badge badge-count">5명</span>
+    </div>
+  </div>
+  <div class="combo-note">펜타스톰 다음 5단 합체</div>
+  <table class="member-table">
+    <thead><tr><th class="idx">#</th><th class="member">멤버 로봇</th></tr></thead>
+    <tbody><tr>
+            <td class="idx">1</td>
+            <td class="member">카봇 드럼킹</td>
+        </tr><tr>
+            <td class="idx">2</td>
+            <td class="member">카봇 호크하이</td>
+        </tr><tr>
+            <td class="idx">3</td>
+            <td class="member">카봇 하울러</td>
+        </tr><tr>
+            <td class="idx">4</td>
+            <td class="member">카봇 타이거붐</td>
+        </tr><tr>
+            <td class="idx">5</td>
+            <td class="member">카봇 스터번</td>
+        </tr></tbody>
+  </table>
+</div>
+
+<div class="combo-card" id="combo-카봇 마이티가드 X">
+  <div class="combo-header">
+    <div class="combo-title">카봇 마이티가드 X</div>
+    <div class="combo-meta">
+      <span class="badge badge-season">시즌 14</span>
+      <span class="badge badge-units">—</span>
+      <span class="badge badge-count">1명</span>
+    </div>
+  </div>
+  <div class="combo-note">마이티가드의 X 강화판</div>
+  <table class="member-table">
+    <thead><tr><th class="idx">#</th><th class="member">멤버 로봇</th></tr></thead>
+    <tbody><tr>
+            <td class="idx">1</td>
+            <td class="member">(마이티가드 빅큐브 X 업그레이드)</td>
+        </tr></tbody>
+  </table>
+</div>
+
+<div class="combo-card" id="combo-카봇 펜타스톰 X 빅큐브">
+  <div class="combo-header">
+    <div class="combo-title">카봇 펜타스톰 X 빅큐브</div>
+    <div class="combo-meta">
+      <span class="badge badge-season">시즌 14</span>
+      <span class="badge badge-units">5단+빅큐브</span>
+      <span class="badge badge-count">6명</span>
+    </div>
+  </div>
+  <div class="combo-note">빅큐브 무장 장착. 부스터 모드 / 기어 모드</div>
+  <table class="member-table">
+    <thead><tr><th class="idx">#</th><th class="member">멤버 로봇</th></tr></thead>
+    <tbody><tr>
+            <td class="idx">1</td>
+            <td class="member">카봇 스톰 X 빅큐브</td>
+        </tr><tr>
+            <td class="idx">2</td>
+            <td class="member">카봇 에이스 레스큐 X</td>
+        </tr><tr>
+            <td class="idx">3</td>
+            <td class="member">카봇 프론 폴리스 X</td>
+        </tr><tr>
+            <td class="idx">4</td>
+            <td class="member">카봇 댄디 앰뷸런스 X</td>
+        </tr><tr>
+            <td class="idx">5</td>
+            <td class="member">카봇 스카이 S.W.A.T X</td>
+        </tr><tr>
+            <td class="idx">6</td>
+            <td class="member">(+ 빅큐브 무장)</td>
+        </tr></tbody>
+  </table>
+</div>
+
+<div class="combo-card" id="combo-카봇 펜타스톰 X 라이프 캐논 모드">
+  <div class="combo-header">
+    <div class="combo-title">카봇 펜타스톰 X 라이프 캐논 모드</div>
+    <div class="combo-meta">
+      <span class="badge badge-season">시즌 14</span>
+      <span class="badge badge-units">6단 그레이트</span>
+      <span class="badge badge-count">6명</span>
+    </div>
+  </div>
+  <div class="combo-note">6단 그레이트 합체. 새니타이저 캐논, 콰트로 클로 (라이프 X 변형)</div>
+  <table class="member-table">
+    <thead><tr><th class="idx">#</th><th class="member">멤버 로봇</th></tr></thead>
+    <tbody><tr>
+            <td class="idx">1</td>
+            <td class="member">카봇 스톰 X</td>
+        </tr><tr>
+            <td class="idx">2</td>
+            <td class="member">카봇 에이스 레스큐 X</td>
+        </tr><tr>
+            <td class="idx">3</td>
+            <td class="member">카봇 프론 폴리스 X</td>
+        </tr><tr>
+            <td class="idx">4</td>
+            <td class="member">카봇 댄디 앰뷸런스 X</td>
+        </tr><tr>
+            <td class="idx">5</td>
+            <td class="member">카봇 스카이 S.W.A.T X</td>
+        </tr><tr>
+            <td class="idx">6</td>
+            <td class="member">카봇 라이프 X</td>
+        </tr></tbody>
+  </table>
+</div>
+
+<div class="combo-card" id="combo-펜타스톰 X 라이프 캐논 모드 (재기재)">
+  <div class="combo-header">
+    <div class="combo-title">펜타스톰 X 라이프 캐논 모드 (재기재)</div>
+    <div class="combo-meta">
+      <span class="badge badge-season">시즌 14</span>
+      <span class="badge badge-units">(중복)</span>
+      <span class="badge badge-count">1명</span>
+    </div>
+  </div>
+  
+  <table class="member-table">
+    <thead><tr><th class="idx">#</th><th class="member">멤버 로봇</th></tr></thead>
+    <tbody><tr>
+            <td class="idx">1</td>
+            <td class="member">(위 펜타스톰 X 라이프 캐논 모드 항목 참조)</td>
+        </tr></tbody>
+  </table>
+</div>
+
+<div class="combo-card" id="combo-카봇 스타가디언">
+  <div class="combo-header">
+    <div class="combo-title">카봇 스타가디언</div>
+    <div class="combo-meta">
+      <span class="badge badge-season">시즌 15</span>
+      <span class="badge badge-units">4단(+1)</span>
+      <span class="badge badge-count">5명</span>
+    </div>
+  </div>
+  
+  <table class="member-table">
+    <thead><tr><th class="idx">#</th><th class="member">멤버 로봇</th></tr></thead>
+    <tbody><tr>
+            <td class="idx">1</td>
+            <td class="member">카봇 폴리스타</td>
+        </tr><tr>
+            <td class="idx">2</td>
+            <td class="member">카봇 스카이스타</td>
+        </tr><tr>
+            <td class="idx">3</td>
+            <td class="member">카봇 아이언스타</td>
+        </tr><tr>
+            <td class="idx">4</td>
+            <td class="member">카봇 파이어스타</td>
+        </tr><tr>
+            <td class="idx">5</td>
+            <td class="member">(+ 파이터 비클)</td>
+        </tr></tbody>
+  </table>
+</div>
+
+<div class="combo-card" id="combo-그랜드 카봇 GX">
+  <div class="combo-header">
+    <div class="combo-title">그랜드 카봇 GX</div>
+    <div class="combo-meta">
+      <span class="badge badge-season">시즌 16</span>
+      <span class="badge badge-units">그레이트</span>
+      <span class="badge badge-count">5명</span>
+    </div>
+  </div>
+  <div class="combo-note">시즌 16 그레이트 합체. 캐논 X는 나무위키 확인됨</div>
+  <table class="member-table">
+    <thead><tr><th class="idx">#</th><th class="member">멤버 로봇</th></tr></thead>
+    <tbody><tr>
+            <td class="idx">1</td>
+            <td class="member">카봇 X</td>
+        </tr><tr>
+            <td class="idx">2</td>
+            <td class="member">카봇 캐논 X</td>
+        </tr><tr>
+            <td class="idx">3</td>
+            <td class="member">카봇 엑스 파이터</td>
+        </tr><tr>
+            <td class="idx">4</td>
+            <td class="member">카봇 엑스 트레인</td>
+        </tr><tr>
+            <td class="idx">5</td>
+            <td class="member">(+ 하이드 제외 시즌 16 용사 카봇 전원)</td>
+        </tr></tbody>
+  </table>
+</div>
+
+<div class="combo-card" id="combo-그랜드 카봇 X">
+  <div class="combo-header">
+    <div class="combo-title">그랜드 카봇 X</div>
+    <div class="combo-meta">
+      <span class="badge badge-season">시즌 16</span>
+      <span class="badge badge-units">3단</span>
+      <span class="badge badge-count">3명</span>
+    </div>
+  </div>
+  <div class="combo-note">1번째 용사 카봇 그룹</div>
+  <table class="member-table">
+    <thead><tr><th class="idx">#</th><th class="member">멤버 로봇</th></tr></thead>
+    <tbody><tr>
+            <td class="idx">1</td>
+            <td class="member">카봇 X</td>
+        </tr><tr>
+            <td class="idx">2</td>
+            <td class="member">카봇 엑스 파이터</td>
+        </tr><tr>
+            <td class="idx">3</td>
+            <td class="member">카봇 엑스 트레인</td>
+        </tr></tbody>
+  </table>
+</div>
+
+<div class="combo-card" id="combo-카봇 패트롤가이즈">
+  <div class="combo-header">
+    <div class="combo-title">카봇 패트롤가이즈</div>
+    <div class="combo-meta">
+      <span class="badge badge-season">시즌 16</span>
+      <span class="badge badge-units">—</span>
+      <span class="badge badge-count">2명</span>
+    </div>
+  </div>
+  <div class="combo-note">3번째 용사 카봇</div>
+  <table class="member-table">
+    <thead><tr><th class="idx">#</th><th class="member">멤버 로봇</th></tr></thead>
+    <tbody><tr>
+            <td class="idx">1</td>
+            <td class="member">카봇 히트가이</td>
+        </tr><tr>
+            <td class="idx">2</td>
+            <td class="member">카봇 코드가이</td>
+        </tr></tbody>
+  </table>
+</div>
+
+<div class="combo-card" id="combo-카봇 마이티캅스">
+  <div class="combo-header">
+    <div class="combo-title">카봇 마이티캅스</div>
+    <div class="combo-meta">
+      <span class="badge badge-season">시즌 16</span>
+      <span class="badge badge-units">—</span>
+      <span class="badge badge-count">1명</span>
+    </div>
+  </div>
+  <div class="combo-note">시즌 16 합체</div>
+  <table class="member-table">
+    <thead><tr><th class="idx">#</th><th class="member">멤버 로봇</th></tr></thead>
+    <tbody><tr>
+            <td class="idx">1</td>
+            <td class="member">(미확인)</td>
+        </tr></tbody>
+  </table>
+</div>
+
+<div class="combo-card" id="combo-카봇 울트라포트 GX">
+  <div class="combo-header">
+    <div class="combo-title">카봇 울트라포트 GX</div>
+    <div class="combo-meta">
+      <span class="badge badge-season">시즌 17</span>
+      <span class="badge badge-units">그레이트</span>
+      <span class="badge badge-count">3명</span>
+    </div>
+  </div>
+  <div class="combo-note">시즌 17 그레이트 합체. 빅포트/EV 커맨더는 나무위키 확인</div>
+  <table class="member-table">
+    <thead><tr><th class="idx">#</th><th class="member">멤버 로봇</th></tr></thead>
+    <tbody><tr>
+            <td class="idx">1</td>
+            <td class="member">카봇 빅포트</td>
+        </tr><tr>
+            <td class="idx">2</td>
+            <td class="member">카봇 EV 커맨더</td>
+        </tr><tr>
+            <td class="idx">3</td>
+            <td class="member">(+ 미공개 4종)</td>
+        </tr></tbody>
+  </table>
+</div>
+
+<div class="combo-card" id="combo-카봇 울트라포트">
+  <div class="combo-header">
+    <div class="combo-title">카봇 울트라포트</div>
+    <div class="combo-meta">
+      <span class="badge badge-season">시즌 17</span>
+      <span class="badge badge-units">—</span>
+      <span class="badge badge-count">3명</span>
+    </div>
+  </div>
+  <div class="combo-note">시즌 17 합체. 빅포트/EV 커맨더는 나무위키 확인, 나머지 2종 미공개</div>
+  <table class="member-table">
+    <thead><tr><th class="idx">#</th><th class="member">멤버 로봇</th></tr></thead>
+    <tbody><tr>
+            <td class="idx">1</td>
+            <td class="member">카봇 빅포트</td>
+        </tr><tr>
+            <td class="idx">2</td>
+            <td class="member">카봇 EV 커맨더</td>
+        </tr><tr>
+            <td class="idx">3</td>
+            <td class="member">(+ 미공개 2종)</td>
+        </tr></tbody>
+  </table>
+</div>
+
+<div class="combo-card" id="combo-카봇 티라이오">
+  <div class="combo-header">
+    <div class="combo-title">카봇 티라이오</div>
+    <div class="combo-meta">
+      <span class="badge badge-season">시즌 극장판 2기</span>
+      <span class="badge badge-units">합체</span>
+      <span class="badge badge-count">3명</span>
+    </div>
+  </div>
+  <div class="combo-note">★ 나무위키 검증으로 신규 발견. 옴파로스 섬의 비밀 (2019). md 합체 카봇 표에는 없음</div>
+  <table class="member-table">
+    <thead><tr><th class="idx">#</th><th class="member">멤버 로봇</th></tr></thead>
+    <tbody><tr>
+            <td class="idx">1</td>
+            <td class="member">카봇 크라이언</td>
+        </tr><tr>
+            <td class="idx">2</td>
+            <td class="member">카봇 티라투스</td>
+        </tr><tr>
+            <td class="idx">3</td>
+            <td class="member">카봇 코어</td>
+        </tr></tbody>
+  </table>
+</div>
+
+<div class="combo-card" id="combo-에반 프라임">
+  <div class="combo-header">
+    <div class="combo-title">에반 프라임</div>
+    <div class="combo-meta">
+      <span class="badge badge-season">시즌 유니티</span>
+      <span class="badge badge-units">합체</span>
+      <span class="badge badge-count">2명</span>
+    </div>
+  </div>
+  <div class="combo-note">★ 나무위키 검증으로 신규 발견. 유니티 시리즈. md 합체 카봇 표에는 없음</div>
+  <table class="member-table">
+    <thead><tr><th class="idx">#</th><th class="member">멤버 로봇</th></tr></thead>
+    <tbody><tr>
+            <td class="idx">1</td>
+            <td class="member">미리내프라임</td>
+        </tr><tr>
+            <td class="idx">2</td>
+            <td class="member">(+ 미확인 멤버)</td>
+        </tr></tbody>
+  </table>
+</div>
+
+    </div>
+  </section>
+
+</main>
+</div>
+</body>
+</html>
