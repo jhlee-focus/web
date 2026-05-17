@@ -97,6 +97,75 @@
     box-shadow: 0 0 10px #0ff, 0 0 22px #0ff7;
     text-shadow: none;
   }
+  /* ----- 한글 박수 게임 오버레이 ----- */
+  #clapGameOverlay {
+    position: fixed;
+    inset: 0;
+    z-index: 12;
+    pointer-events: none;
+    font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', 'Courier New', Consolas, sans-serif;
+    color: #dff;
+    transition: opacity 0.5s ease;
+  }
+  #clapGameOverlay.hidden { display: none; }
+  #clapScoreBoard,
+  #clapTimerBoard,
+  #clapBestBoard {
+    position: absolute;
+    top: 54px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    opacity: 0.92;
+  }
+  #clapScoreBoard { left: 26%; }
+  #clapTimerBoard { left: 50%; transform: translateX(-50%); }
+  #clapBestBoard { right: 22%; }
+  #clapScoreBoard .clap-num {
+    font-size: 40px;
+    font-weight: 700;
+    color: #9ff;
+    text-shadow: 0 0 12px #0ff, 0 0 28px rgba(0, 255, 255, 0.55);
+    font-variant-numeric: tabular-nums;
+  }
+  #clapTimerBoard .clap-num {
+    font-size: 46px;
+    font-weight: 700;
+    color: #ffe89a;
+    text-shadow: 0 0 12px #ff0, 0 0 28px rgba(255, 220, 60, 0.55);
+    font-variant-numeric: tabular-nums;
+  }
+  #clapBestBoard .clap-num {
+    font-size: 30px;
+    font-weight: 700;
+    color: #fcf;
+    text-shadow: 0 0 10px #f6f, 0 0 22px rgba(255, 102, 255, 0.55);
+    font-variant-numeric: tabular-nums;
+  }
+  #clapScoreBoard .clap-label,
+  #clapTimerBoard .clap-label,
+  #clapBestBoard .clap-label {
+    text-shadow: 0 0 6px #0ff, 0 0 12px rgba(0, 255, 255, 0.5);
+  }
+  #clapPrompt {
+    position: absolute;
+    bottom: 22%;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    padding: 10px 22px;
+    background: rgba(0, 24, 28, 0.62);
+    border: 1px solid #1a8;
+    box-shadow: 0 0 14px rgba(0, 255, 255, 0.28), inset 0 0 18px #033;
+    color: #efc;
+    text-shadow: 0 0 8px #ff0, 0 0 18px rgba(255, 220, 80, 0.55);
+    white-space: nowrap;
+  }
   @media (max-width: 520px) {
     #hud {
       top: 36px;
@@ -112,6 +181,12 @@
       padding: 8px 10px;
       font-size: 10px;
     }
+    #clapScoreBoard { left: 10%; }
+    #clapBestBoard { right: 8%; }
+    #clapScoreBoard .clap-num { font-size: 28px; }
+    #clapTimerBoard .clap-num { font-size: 34px; }
+    #clapBestBoard .clap-num { font-size: 22px; }
+    #clapPrompt { font-size: 13px; padding: 8px 14px; }
   }
   canvas { display: block; }
 </style>
@@ -132,6 +207,22 @@
 <div id="modeControls" role="group" aria-label="시각화 모드">
   <button type="button" class="active" data-mode="strings" aria-pressed="true">줄놀이</button>
   <button type="button" data-mode="sphere" aria-pressed="false">구체</button>
+  <button type="button" data-mode="clap" aria-pressed="false">한글 박수</button>
+</div>
+<div id="clapGameOverlay" class="hidden" aria-live="polite">
+  <div id="clapScoreBoard">
+    <span class="clap-label">점수</span>
+    <span class="clap-num" id="clapScore">0</span>
+  </div>
+  <div id="clapTimerBoard">
+    <span class="clap-label">남은 시간</span>
+    <span class="clap-num" id="clapTimer">60.0</span>
+  </div>
+  <div id="clapBestBoard">
+    <span class="clap-label">최고 기록</span>
+    <span class="clap-num" id="clapBest">0</span>
+  </div>
+  <div id="clapPrompt">양손으로 박수쳐서 시작!</div>
 </div>
 <video id="cam" playsinline autoplay muted></video>
 
@@ -163,6 +254,34 @@ const SOLO_SPREAD_MAX = 160;  // px — 손가락이 활짝 펴진 정도(평균
 const SOLO_R_MIN = 30;
 const SOLO_R_MAX = 170;
 
+// 한글 박수 게임 튜닝값
+const PALM_LANDMARK = 9;       // 중지 MCP 관절 = 손바닥 중심 근사
+const CLAP_DIST = 110;         // px — 손바닥 간 거리가 이보다 가까우면 박수로 친다
+const CLAP_RELEASE = 220;      // px — 이 거리 이상으로 벌어져야 다음 박수가 재무장된다
+const HIT_RADIUS = 95;         // px — 박수 위치가 타깃 중심에서 이 안이면 명중
+const GAME_DURATION = 60.0;    // 초 — 한 게임 길이
+const TARGET_LIFETIME = 2.5;   // 초 — 타깃 하나가 화면에 머무는 총 시간
+const TARGET_FADE_IN = 0.30;   // 초
+const TARGET_FADE_OUT = 0.50;  // 초
+const SPAWN_INTERVAL_BASE = 0.62; // 초 — 시작 시 스폰 간격
+const SPAWN_INTERVAL_MIN = 0.32;  // 초 — 종반부에 도달하는 최소 스폰 간격
+const SYLLABLE_PROBABILITY = 0.35; // 음절(3점) 비율, 나머지는 자모(1점)
+const HIGH_SCORE_KEY = 'handTracking6_clapHighScore';
+const RESTART_GRACE_MS = 1200; // 게임 종료 직후 자동 재시작 방지용 유예
+
+// 게임에 등장하는 한글 자모(1점)와 음절(3점) 풀
+const HANGUL_JAMO = [
+  'ㄱ','ㄴ','ㄷ','ㄹ','ㅁ','ㅂ','ㅅ','ㅇ','ㅈ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ',
+  'ㅏ','ㅑ','ㅓ','ㅕ','ㅗ','ㅛ','ㅜ','ㅠ','ㅡ','ㅣ','ㅐ','ㅔ',
+];
+const HANGUL_SYLLABLES = [
+  '가','나','다','라','마','바','사','아','자','차','카','타','파','하',
+  '기','니','디','리','미','비','시','이','지','치','키','티','피','히',
+  '고','노','도','로','모','보','소','오','조','초','코','토','포','호',
+  '구','누','두','루','무','부','수','우','주','추','쿠','투','푸','후',
+  '박','수','잡','기','놀','이','즐','거','움','한','글',
+];
+
 // 손끝 충돌 / 파티클 버스트 튜닝값
 const TOUCH_DIST    = 38;   // px — 이 거리보다 가까우면 "닿은" 것으로 본다
 const TOUCH_RELEASE = 70;   // px — 이 거리 이상으로 떨어져야 다음 버스트가 다시 발동한다
@@ -193,6 +312,18 @@ let modeButtonEls = [];
 let spherePitch = -0.34;
 let sphereRoll = 0;
 
+// 한글 박수 게임 상태
+let clapGameState = 'idle';    // 'idle' | 'playing' | 'finished'
+let clapScore = 0;
+let clapTimeLeft = GAME_DURATION;
+let clapTargets = [];
+let clapInContact = false;     // 양손 손바닥이 붙어 있는 동안 true (상승 에지 검출용)
+let clapHighScore = 0;
+let clapSpawnAccum = 0;        // 다음 타깃 스폰까지 남은 시간 누적
+let clapLastUpdateMs = 0;      // tickClapGame에서 dt 계산용
+let clapJustEndedMs = 0;       // 종료 직후 박수가 곧바로 재시작 트리거 되는 것 방지
+let clapElements = null;       // 오버레이 DOM 캐시
+
 function setup() {
   createCanvas(windowWidth, windowHeight);
   pixelDensity(1);
@@ -201,6 +332,7 @@ function setup() {
   videoEl = document.getElementById('cam');
   initHud();
   initModeControls();
+  initClapGame();
   initMediaPipe();
 }
 
@@ -267,8 +399,19 @@ function draw() {
 
   updateHud(Boolean(handMap.Left), Boolean(handMap.Right));
 
+  // 한글 박수 모드는 손이 안 보여도 타이머가 굴러가야 하므로 매 프레임 틱.
+  const inClapMode = visualMode === 'clap';
+  if (inClapMode) {
+    tickClapGame();
+    syncClapHud();
+  }
+
   if (allHands.length === 0) {
     resetContactState();
+    if (inClapMode) {
+      clapInContact = false;
+      drawClapTargets();
+    }
     updateAndDrawParticles();
     drawScreenPulse();
     return;
@@ -277,9 +420,17 @@ function draw() {
   // 1. 인식된 손 모든 관절에 발광 점.
   for (let i = 0; i < allHands.length; i++) drawHandDots(allHands[i]);
 
-  // 2. 모드별 메인 시각화 + 손끝 충돌 감지.
-  if (handMap.Left && handMap.Right) {
-    // 양손 다 잡혔을 때는 어떤 모드든 손끝 충돌을 감지해서 버스트를 띄운다.
+  // 2. 모드별 메인 시각화 + 손끝/박수 감지.
+  if (inClapMode) {
+    if (handMap.Left && handMap.Right) {
+      detectClap(handMap.Left, handMap.Right);
+    } else {
+      // 한 손을 놓치면 다음 박수가 새로 잡히도록 재무장.
+      clapInContact = false;
+    }
+    drawClapTargets();
+  } else if (handMap.Left && handMap.Right) {
+    // 양손 다 잡혔을 때는 손끝 충돌을 감지해서 버스트를 띄운다.
     detectFingertipCollisions(handMap.Left, handMap.Right);
     if (visualMode === 'sphere') {
       drawWireSphereBetweenHands(handMap.Left, handMap.Right);
@@ -319,14 +470,18 @@ function initModeControls() {
 }
 
 function setVisualMode(mode) {
-  if (mode !== 'strings' && mode !== 'sphere') return;
+  if (mode !== 'strings' && mode !== 'sphere' && mode !== 'clap') return;
   if (visualMode === mode) return;
 
+  const wasClap = visualMode === 'clap';
   visualMode = mode;
   particles = [];
   pulseLevel = 0;
   resetContactState();
   syncModeButtons();
+
+  if (wasClap && mode !== 'clap') deactivateClapMode();
+  if (mode === 'clap') activateClapMode();
 }
 
 function syncModeButtons() {
@@ -972,6 +1127,265 @@ function updateAndDrawParticles() {
   }
 
   ctx.shadowBlur = 0;
+}
+
+/* ----- 한글 박수 미니게임 ------------------------------------- */
+
+function initClapGame() {
+  clapElements = {
+    overlay: document.getElementById('clapGameOverlay'),
+    score: document.getElementById('clapScore'),
+    timer: document.getElementById('clapTimer'),
+    best: document.getElementById('clapBest'),
+    prompt: document.getElementById('clapPrompt'),
+  };
+  try {
+    const stored = localStorage.getItem(HIGH_SCORE_KEY);
+    clapHighScore = stored ? (parseInt(stored, 10) || 0) : 0;
+  } catch (e) {
+    clapHighScore = 0;
+  }
+  syncClapHud();
+}
+
+// 모드 진입 시 호출: 오버레이 켜고 idle 상태로 초기화한다.
+function activateClapMode() {
+  resetClapGame('idle');
+  if (clapElements && clapElements.overlay) {
+    clapElements.overlay.classList.remove('hidden');
+  }
+  syncClapHud();
+}
+
+// 모드 이탈 시 호출: 오버레이 끄고 타깃 정리.
+function deactivateClapMode() {
+  if (clapElements && clapElements.overlay) {
+    clapElements.overlay.classList.add('hidden');
+  }
+  clapTargets = [];
+  clapInContact = false;
+}
+
+function resetClapGame(nextState) {
+  clapGameState = nextState || 'idle';
+  clapScore = 0;
+  clapTimeLeft = GAME_DURATION;
+  clapTargets = [];
+  clapInContact = false;
+  clapSpawnAccum = 0;
+  clapLastUpdateMs = performance.now();
+}
+
+function startClapGame() {
+  resetClapGame('playing');
+  clapJustEndedMs = 0;
+}
+
+function endClapGame() {
+  clapGameState = 'finished';
+  clapJustEndedMs = performance.now();
+  if (clapScore > clapHighScore) {
+    clapHighScore = clapScore;
+    try { localStorage.setItem(HIGH_SCORE_KEY, String(clapHighScore)); } catch (e) {}
+  }
+}
+
+function syncClapHud() {
+  if (!clapElements) return;
+  if (clapElements.score) clapElements.score.textContent = String(clapScore);
+  if (clapElements.timer) clapElements.timer.textContent = Math.max(0, clapTimeLeft).toFixed(1);
+  if (clapElements.best)  clapElements.best.textContent  = String(clapHighScore);
+  if (clapElements.prompt) {
+    let text = '';
+    if (clapGameState === 'idle') {
+      text = '양손으로 박수쳐서 시작!';
+    } else if (clapGameState === 'finished') {
+      text = `${clapScore}점! 최고 ${clapHighScore}점 — 다시 박수쳐서 재도전`;
+    }
+    clapElements.prompt.textContent = text;
+    clapElements.prompt.style.display = text ? '' : 'none';
+  }
+}
+
+// 타이머·스폰·타깃 노화 — 손 인식 여부와 무관하게 매 프레임 호출.
+function tickClapGame() {
+  const now = performance.now();
+  const dt = clapLastUpdateMs ? Math.min(0.1, (now - clapLastUpdateMs) / 1000) : 0;
+  clapLastUpdateMs = now;
+
+  if (clapGameState === 'playing') {
+    clapTimeLeft -= dt;
+    if (clapTimeLeft <= 0) {
+      clapTimeLeft = 0;
+      endClapGame();
+    } else {
+      // 종반부로 갈수록 스폰 간격이 줄어 난이도가 자연스럽게 올라간다.
+      const progress = 1 - clapTimeLeft / GAME_DURATION;
+      const interval = lerp(SPAWN_INTERVAL_BASE, SPAWN_INTERVAL_MIN, progress);
+      clapSpawnAccum += dt;
+      while (clapSpawnAccum >= interval) {
+        clapSpawnAccum -= interval;
+        spawnClapTarget();
+      }
+    }
+  }
+
+  // 모든 타깃 나이 갱신, 수명 다한 것 제거.
+  for (let i = clapTargets.length - 1; i >= 0; i--) {
+    clapTargets[i].age += dt;
+    if (clapTargets[i].age > TARGET_LIFETIME) {
+      clapTargets.splice(i, 1);
+    }
+  }
+}
+
+function spawnClapTarget() {
+  const isSyllable = Math.random() < SYLLABLE_PROBABILITY;
+  const pool = isSyllable ? HANGUL_SYLLABLES : HANGUL_JAMO;
+  const char = pool[(Math.random() * pool.length) | 0];
+  // 시안/마젠타/옐로 위주 + 청록·핑크 등 확장 팔레트
+  const palette = [180, 300, 50, 200, 330, 70, 270];
+  const hue = palette[(Math.random() * palette.length) | 0];
+
+  // HUD(상단), 모드 버튼(하단), 좌우 스코어보드와 부딪히지 않게 마진.
+  const sideMargin = 90;
+  const topMargin = 140;
+  const bottomMargin = 130;
+  const x = sideMargin + Math.random() * Math.max(1, width - sideMargin * 2);
+  const y = topMargin + Math.random() * Math.max(1, height - topMargin - bottomMargin);
+
+  clapTargets.push({
+    x, y,
+    char,
+    isSyllable,
+    hue,
+    age: 0,
+    size: isSyllable ? 88 : 70,
+    rot: (Math.random() - 0.5) * 0.35,
+    hit: false,
+  });
+}
+
+function targetAlpha(target) {
+  if (target.age < TARGET_FADE_IN) return target.age / TARGET_FADE_IN;
+  const remaining = TARGET_LIFETIME - target.age;
+  if (remaining < TARGET_FADE_OUT) return Math.max(0, remaining / TARGET_FADE_OUT);
+  return 1;
+}
+
+function drawClapTargets() {
+  if (clapTargets.length === 0) return;
+  const ctx = drawingContext;
+  const prevAlign = (typeof textAlign === 'function');
+  textAlign(CENTER, CENTER);
+  textStyle(BOLD);
+  // OS에 따라 한글 폴백을 보장하기 위해 명시적으로 폰트 지정.
+  textFont("'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif");
+
+  for (let i = 0; i < clapTargets.length; i++) {
+    const t = clapTargets[i];
+    const alpha = targetAlpha(t);
+    if (alpha <= 0) continue;
+
+    push();
+    translate(t.x, t.y);
+    rotate(t.rot);
+
+    // 헤일로 링 — 명중 가능 범위를 시각적으로 암시
+    ctx.shadowBlur = 24;
+    ctx.shadowColor = `hsl(${t.hue}, 100%, 65%)`;
+    noFill();
+    stroke(t.hue, 75, 100, 0.42 * alpha);
+    strokeWeight(2.2);
+    circle(0, 0, t.size * 1.7);
+
+    // 안쪽 반투명 백드롭
+    noStroke();
+    fill(t.hue, 80, 28, 0.38 * alpha);
+    circle(0, 0, t.size * 1.45);
+
+    // 글리프 — 외곽 발광 한 번, 안쪽 밝은 코어 한 번 (2-패스 글로우)
+    textSize(t.size);
+    ctx.shadowBlur = 22;
+    ctx.shadowColor = `hsl(${t.hue}, 100%, 62%)`;
+    fill(t.hue, 80, 100, alpha);
+    text(t.char, 0, 4);
+
+    ctx.shadowBlur = 6;
+    fill(0, 0, 100, 0.95 * alpha);
+    textSize(t.size * 0.92);
+    text(t.char, 0, 4);
+
+    // 음절(3점)은 위쪽에 작은 "3" 배지를 띄워서 자모와 구분
+    if (t.isSyllable) {
+      ctx.shadowBlur = 8;
+      ctx.shadowColor = '#ff0';
+      textFont('Courier New, Consolas, monospace');
+      textSize(15);
+      fill(54, 95, 100, 0.95 * alpha);
+      text('+3', 0, -t.size * 0.7);
+      textFont("'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif");
+    }
+
+    pop();
+  }
+  ctx.shadowBlur = 0;
+}
+
+function detectClap(leftHand, rightHand) {
+  const ax = projX(leftHand[PALM_LANDMARK]);
+  const ay = projY(leftHand[PALM_LANDMARK]);
+  const bx = projX(rightHand[PALM_LANDMARK]);
+  const by = projY(rightHand[PALM_LANDMARK]);
+  const d = dist(ax, ay, bx, by);
+  const mx = (ax + bx) / 2;
+  const my = (ay + by) / 2;
+
+  if (d < CLAP_DIST && !clapInContact) {
+    clapInContact = true;
+    handleClap(mx, my);
+  } else if (d > CLAP_RELEASE) {
+    clapInContact = false;
+  }
+}
+
+function handleClap(x, y) {
+  // 박수 자체에 항상 시각 피드백을 준다.
+  spawnBurst(x, y, 200);
+  triggerScreenPulse(200);
+
+  if (clapGameState === 'idle') {
+    startClapGame();
+    return;
+  }
+  if (clapGameState === 'finished') {
+    // 직후 박수가 곧바로 재시작 트리거 되지 않도록 유예
+    if (performance.now() - clapJustEndedMs < RESTART_GRACE_MS) return;
+    startClapGame();
+    return;
+  }
+  if (clapGameState !== 'playing') return;
+
+  // 명중 검사 — HIT_RADIUS 안에 든 타깃은 모두 점수 처리
+  let hitCount = 0;
+  for (let i = clapTargets.length - 1; i >= 0; i--) {
+    const t = clapTargets[i];
+    if (t.hit) continue;
+    const a = targetAlpha(t);
+    if (a <= 0.05) continue;
+    if (dist(x, y, t.x, t.y) <= HIT_RADIUS) {
+      t.hit = true;
+      clapScore += t.isSyllable ? 3 : 1;
+      // 명중 위치에서 한 번 더 축포
+      spawnBurst(t.x, t.y, t.hue);
+      clapTargets.splice(i, 1);
+      hitCount++;
+    }
+  }
+  if (hitCount > 0) {
+    // 노란 섬광 — 점수 적립 피드백
+    triggerScreenPulse(54);
+  }
 }
 </script>
 </body>
