@@ -628,16 +628,17 @@ function drawHandDots(landmarks) {
     const isTip = FINGERTIPS.indexOf(i) !== -1;
 
     const hue = palette[i % palette.length];
-    const r   = isTip ? 14 : 8;
+    const r   = isTip ? 12 : 7;
 
-    ctx.shadowBlur  = (isTip ? 30 : 16) * profile.glowScale;
+    // 글로우(shadowBlur)를 절반 이하로 줄이고 알파도 낮춰 손 윤곽이 덜 번쩍이게.
+    ctx.shadowBlur  = (isTip ? 12 : 6) * profile.glowScale;
     ctx.shadowColor = `hsl(${hue}, 100%, 60%)`;
-    fill(hue, 85, 100, 0.95);
+    fill(hue, 75, 95, 0.72);
     circle(x, y, r);
 
-    // 안쪽 밝은 코어
-    ctx.shadowBlur = 4;
-    fill(hue, 20, 100, 1);
+    // 안쪽 코어 — 흰빛이 덜 도드라지도록 채도 살짝 올리고 알파 낮춤
+    ctx.shadowBlur = 2;
+    fill(hue, 35, 100, 0.78);
     circle(x, y, r * 0.4);
   }
 
