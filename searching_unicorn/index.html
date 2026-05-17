@@ -830,7 +830,7 @@
       const foundX   = offsetX + vbCx * scaleFit;
       const foundY   = offsetY + vbCy * scaleFit;
 
-      // 시작 크기 — 찾은 유니콘과 동일
+      // 화면 보이는 시작 크기 — 찾은 유니콘과 동일
       const startSizePx = HORSE_W * horseScale * scaleFit;
       // 종료 크기 — 난이도와 무관하게 "하 난이도"의 명목 말 크기를 기준으로 통일.
       // 중/상 난이도라도 화면 중앙에 도착했을 때의 픽셀 크기는 동일.
@@ -839,35 +839,44 @@
       const easyRefSize = isMobile ? DIFFICULTY.easy.mbPx : DIFFICULTY.easy.dtPx;
       const maxFinalSize = Math.min(stageRect.width, stageRect.height) * 0.5;
       const targetSize = Math.max(easyRefSize * 3, Math.min(maxFinalSize, easyRefSize * 4.5));
-      const finalScale = targetSize / startSizePx;
 
       const centerX = stageRect.width / 2;
       const centerY = stageRect.height / 2;
-      const dx = centerX - foundX;
-      const dy = centerY - foundY;
+      // 진행 방향(찾은 위치 → 중앙)에 맞춰 좌우 미러링.
+      // GIF 원본이 오른쪽을 보고 있다고 가정 → 우측으로 걷으면 mirror=1, 좌측이면 -1.
+      const walkDx = centerX - foundX;
+      const mirror = walkDx >= 0 ? 1 : -1;
 
-      // 진행 방향에 맞춰 좌우 미러링 (GIF 원본이 오른쪽을 보고 있다고 가정)
-      const mirror = dx >= 0 ? 1 : -1;
+      // ─── 핵심 화질 보존 ──────────────────────────────────────
+      // img를 처음부터 최종 크기(targetSize)로 렌더(브라우저가 GIF 원본을
+      // 고해상도 비트맵으로 다운스케일). transform: scale은 GPU에서 보간하므로
+      // 작게(0.16x) 보일 때도 비트맵을 늘리는 게 아니라 줄이는 것 → 화질 손실 X.
+      // (이전 방식은 startSizePx로 렌더 후 6x로 늘려 픽셀화됐음)
+      const initialVisualScale = startSizePx / targetSize;
+      // img 자체는 (centerX, centerY)에 중앙 고정. transform translate로 위치 이동.
+      const initialTx = foundX - centerX;
+      const initialTy = foundY - centerY;
 
-      // 1) 초기 상태 — transition 끄고 위치/크기/투명도 즉시 적용
+      // 1) 초기 상태 — transition 끄고 즉시 적용 (작게, 찾은 위치)
       wu.classList.add('walking');
       wu.style.transition = 'none';
-      wu.style.width  = startSizePx + 'px';
+      wu.style.width  = targetSize + 'px';     // ← 최종 크기로 고품질 렌더
       wu.style.height = 'auto';
-      wu.style.left   = (foundX - startSizePx / 2) + 'px';
-      wu.style.top    = (foundY - startSizePx / 2) + 'px';
+      wu.style.left   = (centerX - targetSize / 2) + 'px';
+      wu.style.top    = (centerY - targetSize / 2) + 'px';
       wu.style.opacity = '0';
-      wu.style.transform = `translate(0px, 0px) scale(${mirror}, 1)`;
+      wu.style.transform =
+        `translate(${initialTx.toFixed(1)}px, ${initialTy.toFixed(1)}px) ` +
+        `scale(${(mirror * initialVisualScale).toFixed(3)}, ${initialVisualScale.toFixed(3)})`;
       wu.style.display = 'block';
 
       // 2) 강제 reflow로 위 스타일 commit
       void wu.offsetWidth;
 
-      // 3) transition 활성화 + 목표값 인라인 적용 → 브라우저가 보간
+      // 3) transition 활성화 + 목표 (중앙, 원본 크기)로 보간
       wu.style.transition = 'transform 1.4s cubic-bezier(0.32, 0.72, 0.32, 1), opacity 0.35s ease';
       wu.style.opacity = '1';
-      wu.style.transform = `translate(${dx.toFixed(1)}px, ${dy.toFixed(1)}px) ` +
-                           `scale(${(mirror * finalScale).toFixed(3)}, ${finalScale.toFixed(3)})`;
+      wu.style.transform = `translate(0px, 0px) scale(${mirror}, 1)`;
     }
 
     function hideWalkingUnicorn() {
