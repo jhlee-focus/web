@@ -1,0 +1,10 @@
+# Firecrawl 스크랩 캐시 (나무위키 본문 — 재취득 가능)
+.firecrawl/
+
+# 임시 진단/리포트 파일 (스크립트 출력)
+_dup_report.txt
+_rename_report.txt
+_zz_check_report.txt
+_verify_log.txt
+_verify_summary.txt
+_components_run*.log

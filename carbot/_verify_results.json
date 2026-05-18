@@ -1,0 +1,802 @@
+[
+  {
+    "name": "카봇 호크",
+    "url": "https://namu.wiki/w/%EC%B9%B4%EB%B4%87%20%ED%98%B8%ED%81%AC",
+    "title": "카봇 호크 - 나무위키",
+    "exists": true,
+    "combine_to": [],
+    "is_member": false,
+    "has_constituent_field": false
+  },
+  {
+    "name": "카봇 트루",
+    "url": "https://namu.wiki/w/%EC%B9%B4%EB%B4%87%20%ED%8A%B8%EB%A3%A8",
+    "title": "카봇 트루 - 나무위키",
+    "exists": true,
+    "combine_to": [],
+    "is_member": false,
+    "has_constituent_field": false
+  },
+  {
+    "name": "카봇 본",
+    "url": "https://namu.wiki/w/%EC%B9%B4%EB%B4%87%20%EB%B3%B8",
+    "title": "카봇 본 - 나무위키",
+    "exists": true,
+    "combine_to": [],
+    "is_member": false,
+    "has_constituent_field": false
+  },
+  {
+    "name": "카봇 우가바",
+    "url": "https://namu.wiki/w/%EC%B9%B4%EB%B4%87%20%EC%9A%B0%EA%B0%80%EB%B0%94",
+    "title": "카봇 우가바 - 나무위키",
+    "exists": true,
+    "combine_to": [],
+    "is_member": false,
+    "has_constituent_field": false
+  },
+  {
+    "name": "카봇 골드렉스",
+    "url": "https://namu.wiki/w/%EC%B9%B4%EB%B4%87%20%EA%B3%A8%EB%93%9C%EB%A0%89%EC%8A%A4",
+    "title": "카봇 골드렉스 - 나무위키",
+    "exists": true,
+    "combine_to": [],
+    "is_member": false,
+    "has_constituent_field": false
+  },
+  {
+    "name": "카봇 제트렌",
+    "url": "https://namu.wiki/w/%EC%B9%B4%EB%B4%87%20%EC%A0%9C%ED%8A%B8%EB%A0%8C",
+    "title": "카봇 제트렌 - 나무위키",
+    "exists": true,
+    "combine_to": [],
+    "is_member": false,
+    "has_constituent_field": false
+  },
+  {
+    "name": "카봇 킹가이즈",
+    "url": "https://namu.wiki/w/%EC%B9%B4%EB%B4%87%20%ED%82%B9%EA%B0%80%EC%9D%B4%EC%A6%88",
+    "title": "카봇 킹가이즈 - 나무위키",
+    "exists": true,
+    "combine_to": [],
+    "is_member": false,
+    "has_constituent_field": false
+  },
+  {
+    "name": "카봇 빌디언",
+    "url": "https://namu.wiki/w/%EC%B9%B4%EB%B4%87%20%EB%B9%8C%EB%94%94%EC%96%B8",
+    "title": "카봇 빌디언 - 나무위키",
+    "exists": true,
+    "combine_to": [
+      "카봇 하이퍼빌디언"
+    ],
+    "is_member": true,
+    "has_constituent_field": true
+  },
+  {
+    "name": "카봇 크랜",
+    "url": "https://namu.wiki/w/%EC%B9%B4%EB%B4%87%20%ED%81%AC%EB%9E%9C",
+    "title": "카봇 크랜 - 나무위키",
+    "exists": true,
+    "combine_to": [
+      "카봇 하이퍼 빌디언"
+    ],
+    "is_member": true,
+    "has_constituent_field": false
+  },
+  {
+    "name": "카봇 듀크",
+    "url": "https://namu.wiki/w/%EC%B9%B4%EB%B4%87%20%EB%93%80%ED%81%AC",
+    "title": "카봇 듀크 - 나무위키",
+    "exists": true,
+    "combine_to": [
+      "카봇 하이퍼 빌디언"
+    ],
+    "is_member": true,
+    "has_constituent_field": false
+  },
+  {
+    "name": "카봇 비트런",
+    "url": "https://namu.wiki/w/%EC%B9%B4%EB%B4%87%20%EB%B9%84%ED%8A%B8%EB%9F%B0",
+    "title": "카봇 비트런 - 나무위키",
+    "exists": true,
+    "combine_to": [],
+    "is_member": false,
+    "has_constituent_field": false
+  },
+  {
+    "name": "카봇 메가볼드",
+    "url": "https://namu.wiki/w/%EC%B9%B4%EB%B4%87%20%EB%A9%94%EA%B0%80%EB%B3%BC%EB%93%9C",
+    "title": "카봇 메가볼드 - 나무위키",
+    "exists": true,
+    "combine_to": [],
+    "is_member": false,
+    "has_constituent_field": false
+  },
+  {
+    "name": "카봇 오토소닉",
+    "url": "https://namu.wiki/w/%EC%B9%B4%EB%B4%87%20%EC%98%A4%ED%86%A0%EC%86%8C%EB%8B%89",
+    "title": "카봇 오토소닉 - 나무위키",
+    "exists": true,
+    "combine_to": [],
+    "is_member": false,
+    "has_constituent_field": false
+  },
+  {
+    "name": "카봇 아이언트",
+    "url": "https://namu.wiki/w/%EC%B9%B4%EB%B4%87%20%EC%95%84%EC%9D%B4%EC%96%B8%ED%8A%B8",
+    "title": "카봇 아이언트 - 나무위키",
+    "exists": true,
+    "combine_to": [],
+    "is_member": false,
+    "has_constituent_field": false
+  },
+  {
+    "name": "카봇 컨버스터",
+    "url": "https://namu.wiki/w/%EC%B9%B4%EB%B4%87%20%EC%BB%A8%EB%B2%84%EC%8A%A4%ED%84%B0",
+    "title": "카봇 컨버스터 - 나무위키",
+    "exists": true,
+    "combine_to": [],
+    "is_member": false,
+    "has_constituent_field": false
+  },
+  {
+    "name": "카봇 아이누크",
+    "url": "https://namu.wiki/w/%EC%B9%B4%EB%B4%87%20%EC%95%84%EC%9D%B4%EB%88%84%ED%81%AC",
+    "title": "카봇 아이누크 - 나무위키",
+    "exists": true,
+    "combine_to": [],
+    "is_member": false,
+    "has_constituent_field": false
+  },
+  {
+    "name": "카봇 스타피너",
+    "url": "https://namu.wiki/w/%EC%B9%B4%EB%B4%87%20%EC%8A%A4%ED%83%80%ED%94%BC%EB%84%88",
+    "title": "카봇 스타피너 - 나무위키",
+    "exists": true,
+    "combine_to": [],
+    "is_member": false,
+    "has_constituent_field": false
+  },
+  {
+    "name": "카봇 스피너블",
+    "url": "https://namu.wiki/w/%EC%B9%B4%EB%B4%87%20%EC%8A%A4%ED%94%BC%EB%84%88%EB%B8%94",
+    "title": "카봇 스피너블 - 나무위키",
+    "exists": true,
+    "combine_to": [],
+    "is_member": false,
+    "has_constituent_field": false
+  },
+  {
+    "name": "카봇 버디가드",
+    "url": "https://namu.wiki/w/%EC%B9%B4%EB%B4%87%20%EB%B2%84%EB%94%94%EA%B0%80%EB%93%9C",
+    "title": "카봇 버디가드 - 나무위키",
+    "exists": true,
+    "combine_to": [],
+    "is_member": false,
+    "has_constituent_field": false
+  },
+  {
+    "name": "카봇 유니크루저",
+    "url": "https://namu.wiki/w/%EC%B9%B4%EB%B4%87%20%EC%9C%A0%EB%8B%88%ED%81%AC%EB%A3%A8%EC%A0%80",
+    "title": "카봇 유니크루저 - 나무위키",
+    "exists": true,
+    "combine_to": [],
+    "is_member": false,
+    "has_constituent_field": false
+  },
+  {
+    "name": "카봇 제트크루저",
+    "url": "https://namu.wiki/w/%EC%B9%B4%EB%B4%87%20%EC%A0%9C%ED%8A%B8%ED%81%AC%EB%A3%A8%EC%A0%80",
+    "title": "카봇 제트크루저 - 나무위키",
+    "exists": true,
+    "combine_to": [],
+    "is_member": false,
+    "has_constituent_field": false
+  },
+  {
+    "name": "카봇 메디언트",
+    "url": "https://namu.wiki/w/%EC%B9%B4%EB%B4%87%20%EB%A9%94%EB%94%94%EC%96%B8%ED%8A%B8",
+    "title": "카봇 메디언트 - 나무위키",
+    "exists": true,
+    "combine_to": [],
+    "is_member": false,
+    "has_constituent_field": false
+  },
+  {
+    "name": "카봇 파이언트",
+    "url": "https://namu.wiki/w/%EC%B9%B4%EB%B4%87%20%ED%8C%8C%EC%9D%B4%EC%96%B8%ED%8A%B8",
+    "title": "카봇 파이언트 - 나무위키",
+    "exists": true,
+    "combine_to": [],
+    "is_member": false,
+    "has_constituent_field": false
+  },
+  {
+    "name": "카봇 라이캅스",
+    "url": "https://namu.wiki/w/%EC%B9%B4%EB%B4%87%20%EB%9D%BC%EC%9D%B4%EC%BA%85%EC%8A%A4",
+    "title": "카봇 라이캅스 - 나무위키",
+    "exists": true,
+    "combine_to": [],
+    "is_member": false,
+    "has_constituent_field": false
+  },
+  {
+    "name": "카봇 앵그리퍼프",
+    "url": "https://namu.wiki/w/%EC%B9%B4%EB%B4%87%20%EC%95%B5%EA%B7%B8%EB%A6%AC%ED%8D%BC%ED%94%84",
+    "title": "카봇 앵그리퍼프 - 나무위키",
+    "exists": true,
+    "combine_to": [],
+    "is_member": false,
+    "has_constituent_field": false
+  },
+  {
+    "name": "카봇 테크노마스터",
+    "url": "https://namu.wiki/w/%EC%B9%B4%EB%B4%87%20%ED%85%8C%ED%81%AC%EB%85%B8%EB%A7%88%EC%8A%A4%ED%84%B0",
+    "title": "카봇 테크노마스터 - 나무위키",
+    "exists": true,
+    "combine_to": [],
+    "is_member": false,
+    "has_constituent_field": false
+  },
+  {
+    "name": "카봇 파워크루저",
+    "url": "https://namu.wiki/w/%EC%B9%B4%EB%B4%87%20%ED%8C%8C%EC%9B%8C%ED%81%AC%EB%A3%A8%EC%A0%80",
+    "title": "카봇 파워크루저 - 나무위키",
+    "exists": true,
+    "combine_to": [],
+    "is_member": false,
+    "has_constituent_field": false
+  },
+  {
+    "name": "카봇 모:반",
+    "url": "https://namu.wiki/w/%EC%B9%B4%EB%B4%87%20%EB%AA%A8%3A%EB%B0%98",
+    "title": "카봇 모:반 - 나무위키",
+    "exists": true,
+    "combine_to": [],
+    "is_member": false,
+    "has_constituent_field": true
+  },
+  {
+    "name": "카봇 울티맥스",
+    "url": "https://namu.wiki/w/%EC%B9%B4%EB%B4%87%20%EC%9A%B8%ED%8B%B0%EB%A7%A5%EC%8A%A4",
+    "title": "카봇 울티맥스 - 나무위키",
+    "exists": true,
+    "combine_to": [],
+    "is_member": false,
+    "has_constituent_field": true
+  },
+  {
+    "name": "카봇 마이티로",
+    "url": "https://namu.wiki/w/%EC%B9%B4%EB%B4%87%20%EB%A7%88%EC%9D%B4%ED%8B%B0%EB%A1%9C",
+    "title": "카봇 마이티로 - 나무위키",
+    "exists": true,
+    "combine_to": [],
+    "is_member": false,
+    "has_constituent_field": false
+  },
+  {
+    "name": "카봇 저스포스",
+    "url": "https://namu.wiki/w/%EC%B9%B4%EB%B4%87%20%EC%A0%80%EC%8A%A4%ED%8F%AC%EC%8A%A4",
+    "title": "카봇 저스포스 - 나무위키",
+    "exists": true,
+    "combine_to": [],
+    "is_member": false,
+    "has_constituent_field": false
+  },
+  {
+    "name": "카봇 레드와일러",
+    "url": "https://namu.wiki/w/%EC%B9%B4%EB%B4%87%20%EB%A0%88%EB%93%9C%EC%99%80%EC%9D%BC%EB%9F%AC",
+    "title": "카봇 레드와일러 - 나무위키",
+    "exists": true,
+    "combine_to": [],
+    "is_member": false,
+    "has_constituent_field": false
+  },
+  {
+    "name": "카봇 나이트호퍼",
+    "url": "https://namu.wiki/w/%EC%B9%B4%EB%B4%87%20%EB%82%98%EC%9D%B4%ED%8A%B8%ED%98%B8%ED%8D%BC",
+    "title": "카봇 나이트호퍼 - 나무위키",
+    "exists": true,
+    "combine_to": [],
+    "is_member": false,
+    "has_constituent_field": false
+  },
+  {
+    "name": "카봇 맥스도저",
+    "url": "https://namu.wiki/w/%EC%B9%B4%EB%B4%87%20%EB%A7%A5%EC%8A%A4%EB%8F%84%EC%A0%80",
+    "title": "카봇 맥스도저 - 나무위키",
+    "exists": true,
+    "combine_to": [],
+    "is_member": false,
+    "has_constituent_field": false
+  },
+  {
+    "name": "카봇 샌드버스터",
+    "url": "https://namu.wiki/w/%EC%B9%B4%EB%B4%87%20%EC%83%8C%EB%93%9C%EB%B2%84%EC%8A%A4%ED%84%B0",
+    "title": "카봇 샌드버스터 - 나무위키",
+    "exists": true,
+    "combine_to": [],
+    "is_member": false,
+    "has_constituent_field": false
+  },
+  {
+    "name": "카봇 록캔",
+    "url": "https://namu.wiki/w/%EC%B9%B4%EB%B4%87%20%EB%A1%9D%EC%BA%94",
+    "title": "카봇 록캔 - 나무위키",
+    "exists": true,
+    "combine_to": [],
+    "is_member": false,
+    "has_constituent_field": false
+  },
+  {
+    "name": "카봇 베어하이더",
+    "url": "https://namu.wiki/w/%EC%B9%B4%EB%B4%87%20%EB%B2%A0%EC%96%B4%ED%95%98%EC%9D%B4%EB%8D%94",
+    "title": "카봇 베어하이더 - 나무위키",
+    "exists": true,
+    "combine_to": [],
+    "is_member": false,
+    "has_constituent_field": false
+  },
+  {
+    "name": "카봇 이글하이더",
+    "url": "https://namu.wiki/w/%EC%B9%B4%EB%B4%87%20%EC%9D%B4%EA%B8%80%ED%95%98%EC%9D%B4%EB%8D%94",
+    "title": "카봇 이글하이더 - 나무위키",
+    "exists": true,
+    "combine_to": [],
+    "is_member": false,
+    "has_constituent_field": false
+  },
+  {
+    "name": "카봇 스크류붐바",
+    "url": "https://namu.wiki/w/%EC%B9%B4%EB%B4%87%20%EC%8A%A4%ED%81%AC%EB%A5%98%EB%B6%90%EB%B0%94",
+    "title": "카봇 스크류붐바 - 나무위키",
+    "exists": true,
+    "combine_to": [],
+    "is_member": false,
+    "has_constituent_field": false
+  },
+  {
+    "name": "카봇 파워붐바",
+    "url": "https://namu.wiki/w/%EC%B9%B4%EB%B4%87%20%ED%8C%8C%EC%9B%8C%EB%B6%90%EB%B0%94",
+    "title": "카봇 파워붐바 - 나무위키",
+    "exists": true,
+    "combine_to": [],
+    "is_member": false,
+    "has_constituent_field": false
+  },
+  {
+    "name": "카봇 드릴버스트",
+    "url": "https://namu.wiki/w/%EC%B9%B4%EB%B4%87%20%EB%93%9C%EB%A6%B4%EB%B2%84%EC%8A%A4%ED%8A%B8",
+    "title": "카봇 드릴버스트 - 나무위키",
+    "exists": true,
+    "combine_to": [],
+    "is_member": false,
+    "has_constituent_field": false
+  },
+  {
+    "name": "카봇 스톰다이버",
+    "url": "https://namu.wiki/w/%EC%B9%B4%EB%B4%87%20%EC%8A%A4%ED%86%B0%EB%8B%A4%EC%9D%B4%EB%B2%84",
+    "title": "카봇 스톰다이버 - 나무위키",
+    "exists": true,
+    "combine_to": [],
+    "is_member": false,
+    "has_constituent_field": false
+  },
+  {
+    "name": "카봇 라란자",
+    "url": "https://namu.wiki/w/%EC%B9%B4%EB%B4%87%20%EB%9D%BC%EB%9E%80%EC%9E%90",
+    "title": "카봇 라란자 - 나무위키",
+    "exists": true,
+    "combine_to": [],
+    "is_member": false,
+    "has_constituent_field": false
+  },
+  {
+    "name": "카봇 도저밤밤",
+    "url": "https://namu.wiki/w/%EC%B9%B4%EB%B4%87%20%EB%8F%84%EC%A0%80%EB%B0%A4%EB%B0%A4",
+    "title": "카봇 도저밤밤 - 나무위키",
+    "exists": true,
+    "combine_to": [],
+    "is_member": false,
+    "has_constituent_field": false
+  },
+  {
+    "name": "카봇 레미밤밤",
+    "url": "https://namu.wiki/w/%EC%B9%B4%EB%B4%87%20%EB%A0%88%EB%AF%B8%EB%B0%A4%EB%B0%A4",
+    "title": "카봇 레미밤밤 - 나무위키",
+    "exists": true,
+    "combine_to": [],
+    "is_member": false,
+    "has_constituent_field": false
+  },
+  {
+    "name": "카봇 아레스밤밤",
+    "url": "https://namu.wiki/w/%EC%B9%B4%EB%B4%87%20%EC%95%84%EB%A0%88%EC%8A%A4%EB%B0%A4%EB%B0%A4",
+    "title": "카봇 아레스밤밤 - 나무위키",
+    "exists": true,
+    "combine_to": [],
+    "is_member": false,
+    "has_constituent_field": false
+  },
+  {
+    "name": "카봇 포레밤밤",
+    "url": "https://namu.wiki/w/%EC%B9%B4%EB%B4%87%20%ED%8F%AC%EB%A0%88%EB%B0%A4%EB%B0%A4",
+    "title": "카봇 포레밤밤 - 나무위키",
+    "exists": true,
+    "combine_to": [],
+    "is_member": false,
+    "has_constituent_field": false
+  },
+  {
+    "name": "카봇 큐어밤밤",
+    "url": "https://namu.wiki/w/%EC%B9%B4%EB%B4%87%20%ED%81%90%EC%96%B4%EB%B0%A4%EB%B0%A4",
+    "title": "카봇 큐어밤밤 - 나무위키",
+    "exists": true,
+    "combine_to": [],
+    "is_member": false,
+    "has_constituent_field": false
+  },
+  {
+    "name": "카봇 윙버드젬",
+    "url": "https://namu.wiki/w/%EC%B9%B4%EB%B4%87%20%EC%9C%99%EB%B2%84%EB%93%9C%EC%A0%AC",
+    "title": "카봇 윙버드젬 - 나무위키",
+    "exists": true,
+    "combine_to": [
+      "카봇 윙버드젬, 카봇 톡시젬, 카봇 캥복스젬"
+    ],
+    "is_member": true,
+    "has_constituent_field": true
+  },
+  {
+    "name": "카봇 디고베어젬",
+    "url": "https://namu.wiki/w/%EC%B9%B4%EB%B4%87%20%EB%94%94%EA%B3%A0%EB%B2%A0%EC%96%B4%EC%A0%AC",
+    "title": "카봇 디고베어젬 - 나무위키",
+    "exists": true,
+    "combine_to": [],
+    "is_member": false,
+    "has_constituent_field": true
+  },
+  {
+    "name": "카봇 토터젬",
+    "url": "https://namu.wiki/w/%EC%B9%B4%EB%B4%87%20%ED%86%A0%ED%84%B0%EC%A0%AC",
+    "title": "카봇 토터젬 - 나무위키",
+    "exists": true,
+    "combine_to": [],
+    "is_member": false,
+    "has_constituent_field": false
+  },
+  {
+    "name": "카봇 톡시젬",
+    "url": "https://namu.wiki/w/%EC%B9%B4%EB%B4%87%20%ED%86%A1%EC%8B%9C%EC%A0%AC",
+    "title": "인피니툴 - 나무위키",
+    "exists": true,
+    "combine_to": [],
+    "is_member": false,
+    "has_constituent_field": true
+  },
+  {
+    "name": "카봇 스나이퍼젬",
+    "url": "https://namu.wiki/w/%EC%B9%B4%EB%B4%87%20%EC%8A%A4%EB%82%98%EC%9D%B4%ED%8D%BC%EC%A0%AC",
+    "title": "카봇 스나이퍼젬 - 나무위키",
+    "exists": true,
+    "combine_to": [],
+    "is_member": false,
+    "has_constituent_field": false
+  },
+  {
+    "name": "카봇 캥복스젬",
+    "url": "https://namu.wiki/w/%EC%B9%B4%EB%B4%87%20%EC%BA%A5%EB%B3%B5%EC%8A%A4%EC%A0%AC",
+    "title": "카봇 캥복스젬 - 나무위키",
+    "exists": true,
+    "combine_to": [],
+    "is_member": false,
+    "has_constituent_field": false
+  },
+  {
+    "name": "카봇 로어젬",
+    "url": "https://namu.wiki/w/%EC%B9%B4%EB%B4%87%20%EB%A1%9C%EC%96%B4%EC%A0%AC",
+    "title": "카봇 로어젬 - 나무위키",
+    "exists": true,
+    "combine_to": [],
+    "is_member": false,
+    "has_constituent_field": false
+  },
+  {
+    "name": "카봇 레포스",
+    "url": "https://namu.wiki/w/%EC%B9%B4%EB%B4%87%20%EB%A0%88%ED%8F%AC%EC%8A%A4",
+    "title": "카봇 레포스 - 나무위키",
+    "exists": true,
+    "combine_to": [],
+    "is_member": false,
+    "has_constituent_field": false
+  },
+  {
+    "name": "카봇 일렉트롬",
+    "url": "https://namu.wiki/w/%EC%B9%B4%EB%B4%87%20%EC%9D%BC%EB%A0%89%ED%8A%B8%EB%A1%AC",
+    "title": "카봇 일렉트롬 - 나무위키",
+    "exists": true,
+    "combine_to": [],
+    "is_member": false,
+    "has_constituent_field": false
+  },
+  {
+    "name": "카봇 라이프 X",
+    "url": "https://namu.wiki/w/%EC%B9%B4%EB%B4%87%20%EB%9D%BC%EC%9D%B4%ED%94%84%20X",
+    "title": "카봇 라이프 X - 나무위키",
+    "exists": true,
+    "combine_to": [
+      "카봇 펜타스톰 X 라이프 캐논 모드"
+    ],
+    "is_member": true,
+    "has_constituent_field": false
+  },
+  {
+    "name": "카봇 빅터",
+    "url": "https://namu.wiki/w/%EC%B9%B4%EB%B4%87%20%EB%B9%85%ED%84%B0",
+    "title": "카봇 빅터 - 나무위키",
+    "exists": true,
+    "combine_to": [],
+    "is_member": false,
+    "has_constituent_field": false
+  },
+  {
+    "name": "카봇 티라쿵",
+    "url": "https://namu.wiki/w/%EC%B9%B4%EB%B4%87%20%ED%8B%B0%EB%9D%BC%EC%BF%B5",
+    "title": "카봇 티라쿵 - 나무위키",
+    "exists": true,
+    "combine_to": [],
+    "is_member": false,
+    "has_constituent_field": false
+  },
+  {
+    "name": "카봇 펀치마스터",
+    "url": "https://namu.wiki/w/%EC%B9%B4%EB%B4%87%20%ED%8E%80%EC%B9%98%EB%A7%88%EC%8A%A4%ED%84%B0",
+    "title": "카봇 펀치마스터 - 나무위키",
+    "exists": true,
+    "combine_to": [],
+    "is_member": false,
+    "has_constituent_field": false
+  },
+  {
+    "name": "카봇 호프",
+    "url": "https://namu.wiki/w/%EC%B9%B4%EB%B4%87%20%ED%98%B8%ED%94%84",
+    "title": "카봇 호프 - 나무위키",
+    "exists": true,
+    "combine_to": [],
+    "is_member": false,
+    "has_constituent_field": false
+  },
+  {
+    "name": "카봇 캐논 X",
+    "url": "https://namu.wiki/w/%EC%B9%B4%EB%B4%87%20%EC%BA%90%EB%85%BC%20X",
+    "title": "카봇 캐논 X - 나무위키",
+    "exists": true,
+    "combine_to": [
+      "그랜드 카봇 GX"
+    ],
+    "is_member": true,
+    "has_constituent_field": false
+  },
+  {
+    "name": "카봇 하이드",
+    "url": "https://namu.wiki/w/%EC%B9%B4%EB%B4%87%20%ED%95%98%EC%9D%B4%EB%93%9C",
+    "title": "카봇 하이드 - 나무위키",
+    "exists": true,
+    "combine_to": [],
+    "is_member": false,
+    "has_constituent_field": false
+  },
+  {
+    "name": "카봇 빅포트",
+    "url": "https://namu.wiki/w/%EC%B9%B4%EB%B4%87%20%EB%B9%85%ED%8F%AC%ED%8A%B8",
+    "title": "카봇 빅포트 - 나무위키",
+    "exists": true,
+    "combine_to": [
+      "카봇 울트라포트",
+      "카봇 울트라포트GX"
+    ],
+    "is_member": true,
+    "has_constituent_field": false
+  },
+  {
+    "name": "카봇 EV 커맨더",
+    "url": "https://namu.wiki/w/%EC%B9%B4%EB%B4%87%20EV%20%EC%BB%A4%EB%A7%A8%EB%8D%94",
+    "title": "카봇 EV 커맨더 - 나무위키",
+    "exists": true,
+    "combine_to": [
+      "카봇 울트라포트",
+      "카봇 울트라포트 GX"
+    ],
+    "is_member": true,
+    "has_constituent_field": false
+  },
+  {
+    "name": "카봇 티라클레스",
+    "url": "https://namu.wiki/w/%EC%B9%B4%EB%B4%87%20%ED%8B%B0%EB%9D%BC%ED%81%B4%EB%A0%88%EC%8A%A4",
+    "title": "카봇 티라클레스 - 나무위키",
+    "exists": true,
+    "combine_to": [],
+    "is_member": false,
+    "has_constituent_field": false
+  },
+  {
+    "name": "카봇 트리톤",
+    "url": "https://namu.wiki/w/%EC%B9%B4%EB%B4%87%20%ED%8A%B8%EB%A6%AC%ED%86%A4",
+    "title": "카봇 트리톤 - 나무위키",
+    "exists": true,
+    "combine_to": [],
+    "is_member": false,
+    "has_constituent_field": false
+  },
+  {
+    "name": "카봇 테라제트",
+    "url": "https://namu.wiki/w/%EC%B9%B4%EB%B4%87%20%ED%85%8C%EB%9D%BC%EC%A0%9C%ED%8A%B8",
+    "title": "카봇 테라제트 - 나무위키",
+    "exists": true,
+    "combine_to": [],
+    "is_member": false,
+    "has_constituent_field": false
+  },
+  {
+    "name": "카봇 테고",
+    "url": "https://namu.wiki/w/%EC%B9%B4%EB%B4%87%20%ED%85%8C%EA%B3%A0",
+    "title": "카봇 테고 - 나무위키",
+    "exists": true,
+    "combine_to": [],
+    "is_member": false,
+    "has_constituent_field": false
+  },
+  {
+    "name": "카봇 에이샤크",
+    "url": "https://namu.wiki/w/%EC%B9%B4%EB%B4%87%20%EC%97%90%EC%9D%B4%EC%83%A4%ED%81%AC",
+    "title": "카봇 에이샤크 - 나무위키",
+    "exists": true,
+    "combine_to": [],
+    "is_member": false,
+    "has_constituent_field": false
+  },
+  {
+    "name": "카봇 크라이언",
+    "url": "https://namu.wiki/w/%EC%B9%B4%EB%B4%87%20%ED%81%AC%EB%9D%BC%EC%9D%B4%EC%96%B8",
+    "title": "카봇 크라이언 - 나무위키",
+    "exists": true,
+    "combine_to": [
+      "카봇 티라이오"
+    ],
+    "is_member": true,
+    "has_constituent_field": false
+  },
+  {
+    "name": "카봇 팔로",
+    "url": "https://namu.wiki/w/%EC%B9%B4%EB%B4%87%20%ED%8C%94%EB%A1%9C",
+    "title": "카봇 팔로 - 나무위키",
+    "exists": true,
+    "combine_to": [],
+    "is_member": false,
+    "has_constituent_field": false
+  },
+  {
+    "name": "카봇 마이모스",
+    "url": "https://namu.wiki/w/%EC%B9%B4%EB%B4%87%20%EB%A7%88%EC%9D%B4%EB%AA%A8%EC%8A%A4",
+    "title": "카봇 마이모스 - 나무위키",
+    "exists": true,
+    "combine_to": [],
+    "is_member": false,
+    "has_constituent_field": false
+  },
+  {
+    "name": "카봇 티라투스",
+    "url": "https://namu.wiki/w/%EC%B9%B4%EB%B4%87%20%ED%8B%B0%EB%9D%BC%ED%88%AC%EC%8A%A4",
+    "title": "카봇 티라이오 - 나무위키",
+    "exists": true,
+    "combine_to": [
+      "카봇 티라이오"
+    ],
+    "is_member": true,
+    "has_constituent_field": true
+  },
+  {
+    "name": "카봇 코어",
+    "url": "https://namu.wiki/w/%EC%B9%B4%EB%B4%87%20%EC%BD%94%EC%96%B4",
+    "title": "카봇 티라이오 - 나무위키",
+    "exists": true,
+    "combine_to": [
+      "카봇 티라이오"
+    ],
+    "is_member": true,
+    "has_constituent_field": true
+  },
+  {
+    "name": "카봇 그린팜",
+    "url": "https://namu.wiki/w/%EC%B9%B4%EB%B4%87%20%EA%B7%B8%EB%A6%B0%ED%8C%9C",
+    "title": "카봇 그린팜 - 나무위키",
+    "exists": true,
+    "combine_to": [],
+    "is_member": false,
+    "has_constituent_field": false
+  },
+  {
+    "name": "카봇 스카이거너",
+    "url": "https://namu.wiki/w/%EC%B9%B4%EB%B4%87%20%EC%8A%A4%EC%B9%B4%EC%9D%B4%EA%B1%B0%EB%84%88",
+    "title": "카봇 스카이거너 - 나무위키",
+    "exists": true,
+    "combine_to": [],
+    "is_member": false,
+    "has_constituent_field": false
+  },
+  {
+    "name": "카봇 소나다이버",
+    "url": "https://namu.wiki/w/%EC%B9%B4%EB%B4%87%20%EC%86%8C%EB%82%98%EB%8B%A4%EC%9D%B4%EB%B2%84",
+    "title": "카봇 소나다이버 - 나무위키",
+    "exists": true,
+    "combine_to": [],
+    "is_member": false,
+    "has_constituent_field": false
+  },
+  {
+    "name": "피노쿵",
+    "url": "https://namu.wiki/w/%ED%94%BC%EB%85%B8%EC%BF%B5",
+    "title": "피노쿵 - 나무위키",
+    "exists": true,
+    "combine_to": [],
+    "is_member": false,
+    "has_constituent_field": false
+  },
+  {
+    "name": "아르케쿵",
+    "url": "https://namu.wiki/w/%EC%95%84%EB%A5%B4%EC%BC%80%EC%BF%B5",
+    "title": "아르케쿵 - 나무위키",
+    "exists": true,
+    "combine_to": [],
+    "is_member": false,
+    "has_constituent_field": false
+  },
+  {
+    "name": "디메트로쿵",
+    "url": "https://namu.wiki/w/%EB%94%94%EB%A9%94%ED%8A%B8%EB%A1%9C%EC%BF%B5",
+    "title": "디메트로쿵 - 나무위키",
+    "exists": true,
+    "combine_to": [],
+    "is_member": false,
+    "has_constituent_field": false
+  },
+  {
+    "name": "파키케쿵",
+    "url": "https://namu.wiki/w/%ED%8C%8C%ED%82%A4%EC%BC%80%EC%BF%B5",
+    "title": "파키케쿵 - 나무위키",
+    "exists": true,
+    "combine_to": [],
+    "is_member": false,
+    "has_constituent_field": false
+  },
+  {
+    "name": "람포린",
+    "url": "https://namu.wiki/w/%EB%9E%8C%ED%8F%AC%EB%A6%B0",
+    "title": "람포린 - 나무위키",
+    "exists": true,
+    "combine_to": [],
+    "is_member": false,
+    "has_constituent_field": false
+  },
+  {
+    "name": "라고",
+    "url": "https://namu.wiki/w/%EB%9D%BC%EA%B3%A0",
+    "title": "라고 - 나무위키",
+    "exists": true,
+    "combine_to": [],
+    "is_member": false,
+    "has_constituent_field": false
+  },
+  {
+    "name": "미리내프라임",
+    "url": "https://namu.wiki/w/%EB%AF%B8%EB%A6%AC%EB%82%B4%ED%94%84%EB%9D%BC%EC%9E%84",
+    "title": "유니티 카봇 - 나무위키",
+    "exists": true,
+    "combine_to": [
+      "에반 프라임"
+    ],
+    "is_member": true,
+    "has_constituent_field": true
+  }
+]
