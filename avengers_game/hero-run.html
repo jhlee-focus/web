@@ -709,8 +709,22 @@ for(let _i = 0; _i < HERO_COUNT; _i++){
 }
 let score, hp, hero, enemies, blocks, particles, popups, bullets;
 let eTimer, bTimer, fireTimer;
-/* 하이스코어 — localStorage에 영속 저장 */
-let hiScore = +(localStorage.getItem('mcu_hs_run') || 0);
+/* 하이스코어 — localStorage 에 영속 저장.
+   localStorage 가 막힌 환경(시크릿 모드 / 일부 iframe / quota 가득 / 권한 차단)에서도
+   게임이 죽지 않도록 try/catch 로 감싼 helper 를 통해서만 접근한다. */
+function getStoredHighScore(){
+  try { return +(localStorage.getItem('mcu_hs_run') || 0); }
+  catch(_) { return 0; }
+}
+function saveHighScore(s){
+  try { localStorage.setItem('mcu_hs_run', String(s)); }
+  catch(_) { /* 저장 실패는 무시 — 게임은 계속 동작 */ }
+}
+function clearHighScore(){
+  try { localStorage.removeItem('mcu_hs_run'); }
+  catch(_) {}
+}
+let hiScore = getStoredHighScore();
 const GAME_TIME = 60;
 let timeLeft = GAME_TIME;
 
@@ -1257,7 +1271,7 @@ function updateAndDraw(dt){
       e.dead = true;
       const pts = e.score || 1;
       score += pts;
-      if(score > hiScore){ hiScore = score; localStorage.setItem('mcu_hs_run', hiScore); }
+      if(score > hiScore){ hiScore = score; saveHighScore(hiScore); }
       burst(e.x+eSize/2, e.y+eSize/2, '#FFD700', 14);
       popup(e.x+eSize/2, e.y, '+' + pts + ' ⭐');
     } else {
@@ -1268,7 +1282,7 @@ function updateAndDraw(dt){
         e.dead = true;
         const pts = e.score || 1;
         score += pts;
-        if(score > hiScore){ hiScore = score; localStorage.setItem('mcu_hs_run', hiScore); }
+        if(score > hiScore){ hiScore = score; saveHighScore(hiScore); }
         burst(e.x+eSize/2, e.y+eSize/2, '#FFD700', 14);
         popup(e.x+eSize/2, e.y, '+' + pts + ' ⭐');
       } else {
@@ -1353,7 +1367,7 @@ function updateAndDraw(dt){
             e.dead = true;
             const pts = e.score || 1;
             score += pts;
-            if(score > hiScore){ hiScore = score; localStorage.setItem('mcu_hs_run', hiScore); }
+            if(score > hiScore){ hiScore = score; saveHighScore(hiScore); }
             burst(e.x+eSize/2, e.y+eSize/2, '#FFD700', 18);
             popup(e.x+eSize/2, e.y, '+' + pts + ' ⭐');
           } else {
@@ -1385,7 +1399,7 @@ function updateAndDraw(dt){
             e.dead = true;
             const pts = e.score || 1;
             score += pts;
-            if(score > hiScore){ hiScore = score; localStorage.setItem('mcu_hs_run', hiScore); }
+            if(score > hiScore){ hiScore = score; saveHighScore(hiScore); }
             burst(e.x+eSize/2, e.y+eSize/2, '#FFD700', 18);
             popup(e.x+eSize/2, e.y, '+' + pts + ' ⭐');
           } else {
@@ -2021,7 +2035,7 @@ window.addEventListener('load', function(){
   if(btnHiReset) btnHiReset.addEventListener('click', function(){
     if(!confirm('최고 점수를 초기화할까요?')) return;
     hiScore = 0;
-    try { localStorage.removeItem('mcu_hs_run'); } catch(e) {}
+    clearHighScore();
     updateHiScoreText();
   });
 

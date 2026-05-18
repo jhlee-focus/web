@@ -14,7 +14,8 @@
     body {
       font-family:'Noto Sans KR',sans-serif;
       background:linear-gradient(135deg,#0d0d0d 0%,#1a0000 50%,#2a0a0a 100%);
-      height:100dvh; height:100vh;
+      /* dvh fallback 패턴: 구버전(vh) 먼저 → 신버전(dvh)이 cascade로 덮어쓰기 */
+      height:100vh; height:100dvh;
       display:flex; flex-direction:column; align-items:center;
       overflow:hidden;
       padding: clamp(4px,1.2vh,8px) 10px clamp(6px,1.5vh,max(12px,env(safe-area-inset-bottom,12px)));
@@ -1009,8 +1010,9 @@ async function init() {
   if (allImages.length === 0) {
     document.getElementById('gameArea').innerHTML =
       `<div class="error-msg">이미지를 찾을 수 없습니다.<br>
-       <b>퍼즐 이미지</b> 폴더에 이미지를 넣고<br>
-       <b>update-images.bat</b>을 실행해 주세요.</div>`;
+       <b>puzzle_images</b> 폴더에 이미지를 추가한 뒤<br>
+       <b>puzzle_images/images.js</b> 의 목록을 갱신해 주세요.<br>
+       <small>(자세한 방법은 README 참고)</small></div>`;
     return;
   }
   imgIdx = Math.floor(Math.random() * allImages.length);
