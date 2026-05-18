@@ -28,6 +28,7 @@
                    "Noto Sans KR", "Apple SD Gothic Neo", sans-serif;
       -webkit-font-smoothing: antialiased;
       overflow: hidden;
+      height: 100vh;   /* 구형 브라우저 fallback */
       height: 100dvh;
       width: 100vw;
       user-select: none;
@@ -39,6 +40,7 @@
     body {
       display: flex;
       flex-direction: column;
+      height: 100vh;   /* 구형 브라우저 fallback */
       height: 100dvh;
     }
 
@@ -497,12 +499,12 @@
     </div>
 
     <!-- 카운트다운 -->
-    <div class="countdown" id="countdown">
+    <div class="countdown" id="countdown" aria-live="assertive" aria-atomic="true">
       <div class="num" id="cdNum">3</div>
     </div>
 
     <!-- 승리 모달 -->
-    <div class="win" id="winOverlay">
+    <div class="win" id="winOverlay" role="dialog" aria-modal="true" aria-labelledby="winLine">
       <div class="win-box">
         <span class="win-emoji">🦄</span>
         <div class="win-time"><span id="winTime">0.00</span><span class="unit">초</span></div>
@@ -576,6 +578,7 @@
       penaltyMs: 0,
       rafId: null,
       cdTimer: null,
+      winTimer: null,
       unicornId: null,
       foundEl: null,
       best: { easy: null, medium: null, hard: null, extreme: null },
@@ -908,8 +911,13 @@
       startWalkingUnicorn(wrapEl);
 
       const elapsed = currentElapsed();
-      // 1.4s 트랜지션 + 약간의 여유 → 1.7s 후 승리 모달
-      setTimeout(() => showWin(elapsed), 1700);
+      // 1.4s 트랜지션 + 약간의 여유 → 1.7s 후 승리 모달.
+      // 도중에 "처음으로" / 난이도 전환이 일어나면 이 타이머는 취소되어야 함.
+      if (state.winTimer) clearTimeout(state.winTimer);
+      state.winTimer = setTimeout(() => {
+        state.winTimer = null;
+        showWin(elapsed);
+      }, 1700);
     }
 
     /* ─── 걸어 나오는 유니콘 ─────────────────────────
@@ -1055,6 +1063,8 @@
     }
 
     function newGame() {
+      // 직전 게임의 승리 모달 예약 타이머가 있으면 취소
+      if (state.winTimer) { clearTimeout(state.winTimer); state.winTimer = null; }
       winOverlay.classList.remove('show');
       startOverlay.classList.add('hide');
       hideWalkingUnicorn();
@@ -1068,11 +1078,12 @@
 
     /* ─── 게임 첫 화면으로 돌아가기 ─── */
     function toStartScreen() {
-      // 진행 중 타이머/카운트다운/페널티/이동 모두 정리
+      // 진행 중 타이머/카운트다운/페널티/이동/예약된 승리 모달 모두 정리
       stopTimer();
       stopMovement();
       movementState.horses = [];
-      if (state.cdTimer) { clearInterval(state.cdTimer); state.cdTimer = null; }
+      if (state.cdTimer)  { clearInterval(state.cdTimer);  state.cdTimer  = null; }
+      if (state.winTimer) { clearTimeout(state.winTimer);  state.winTimer = null; }
       state.finishing = false;
       state.penaltyMs = 0;
       state.unicornId = null;
