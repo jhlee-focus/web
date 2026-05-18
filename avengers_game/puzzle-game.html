@@ -14,7 +14,8 @@
     body {
       font-family:'Noto Sans KR', sans-serif;
       background:linear-gradient(135deg,#0d0d0d 0%,#1a0000 50%,#2a0a0a 100%);
-      height:100dvh; height:100vh;
+      /* dvh fallback 패턴: 구버전(vh) 먼저 → 신버전(dvh)이 cascade로 덮어쓰기 */
+      height:100vh; height:100dvh;
       display:flex; flex-direction:column; align-items:center;
       overflow:hidden;
       padding:8px 10px max(14px, env(safe-area-inset-bottom, 14px));
@@ -412,9 +413,10 @@ function resizeAndRender() {
   const wW = wrapper.clientWidth, wH = wrapper.clientHeight;
 
   // 이미지를 hidden img로 로드해 aspect ratio 확인
-  const img = new Image();
-  img.onload = () => {
-    const imgRatio = img.naturalWidth / img.naturalHeight;
+  // 레이아웃 계산은 헬퍼로 분리 — 이미지 로드 실패 시에도 동일 경로로 fallback 적용.
+  // (이전 구현은 img.naturalWidth/Height 를 직접 할당했지만 두 속성은 read-only 라
+  //  sloppy 모드에선 조용히 무시되어 NaN 레이아웃이 생기는 버그가 있었음.)
+  function applyPuzzleLayout(imgRatio){
     const gap = 3; // 타일 간 간격(px)
 
     // 그리드 크기: 가용 공간 안에서 이미지 비율 유지
@@ -449,12 +451,11 @@ function resizeAndRender() {
     hint.style.backgroundImage = `url('${IMAGE_BASE + allImages[imgIdx]}')`;
 
     updatePositions(true /* instant */);
-  };
-  img.onerror = () => {
-    // 비율 모를 때 16:9 fallback
-    img.naturalWidth = 1920; img.naturalHeight = 1080;
-    img.onload(); // 재호출 (crude but works)
-  };
+  }
+
+  const img = new Image();
+  img.onload  = () => applyPuzzleLayout(img.naturalWidth / img.naturalHeight);
+  img.onerror = () => applyPuzzleLayout(16 / 9);   // 이미지 못 불러왔을 때 안전한 기본 비율
   img.src = IMAGE_BASE + allImages[imgIdx];
 }
 
@@ -609,8 +610,9 @@ async function init() {
     document.getElementById('puzzleWrapper').innerHTML =
       `<div class="error-msg">
         이미지를 찾을 수 없습니다.<br>
-        <b>퍼즐 이미지</b> 폴더에 이미지를 넣고<br>
-        <b>update-images.bat</b>을 실행해 주세요.
+        <b>puzzle_images</b> 폴더에 이미지를 추가한 뒤<br>
+        <b>puzzle_images/images.js</b> 의 목록을 갱신해 주세요.<br>
+        <small>(자세한 방법은 README 참고)</small>
       </div>`;
     return;
   }
