@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>한글 색칠 놀이터</title>
+<link rel="icon" href="../sweetklogo.png">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --pink: #ec4899;
+    --pink-soft: #fce7f3;
+    --pink-line: #fbcfe8;
+    --blue: #3b82f6;
+    --blue-soft: #dbeafe;
+    --gray: #6b7280;
+    --gray-line: #e5e7eb;
+    --bg: #fffcf0;
+  }
+  html, body {
+    background: var(--bg);
+    color: #1f2937;
+    font-family: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont,
+                 "Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+  }
+  body {
+    padding: 24px 16px 40px;
+    max-width: 1180px;
+    margin: 0 auto;
+    user-select: none;
+  }
+
+  /* Header */
+  .app-header {
+    background: white;
+    border-radius: 24px;
+    border-bottom: 4px solid var(--pink-line);
+    box-shadow: 0 10px 30px rgba(236,72,153,0.08);
+    padding: 20px 24px;
+    margin-bottom: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .brand .logo {
+    width: 48px; height: 48px;
+    background: var(--pink);
+    border-radius: 16px;
+    display: flex; align-items: center; justify-content: center;
+    color: white;
+    box-shadow: 0 6px 14px rgba(236,72,153,0.35);
+  }
+  .brand h1 {
+    font-size: 22px;
+    font-weight: 900;
+    letter-spacing: -0.02em;
+    color: #1f2937;
+  }
+  .brand p {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--pink);
+    margin-top: 2px;
+  }
+
+  .controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+  }
+  .control-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #f9fafb;
+    padding: 6px 12px;
+    border-radius: 12px;
+    border: 1px solid var(--gray-line);
+    min-width: 0;
+  }
+  .control-group .icon { color: #9ca3af; flex-shrink: 0; }
+  .control-group .label {
+    font-size: 12px;
+    font-weight: 800;
+    color: #9ca3af;
+    white-space: nowrap;
+  }
+  .control-group input {
+    border: none;
+    background: transparent;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 700;
+    color: #1f2937;
+    outline: none;
+    min-width: 0;
+    width: 110px;
+  }
+  .control-group input::placeholder { color: #d1d5db; }
+  .control-group input[type="date"] { width: 130px; cursor: pointer; }
+
+  .word-group {
+    background: var(--pink-soft);
+    border-color: var(--pink-soft);
+  }
+  .word-group .icon { color: var(--pink); }
+  .word-group .label { color: var(--pink); }
+
+  .actions { display: flex; gap: 8px; margin-left: auto; flex-wrap: wrap; }
+  .btn {
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    font-weight: 800;
+    border-radius: 12px;
+    padding: 10px 14px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    transition: transform .1s ease, background .15s ease;
+  }
+  .btn:active { transform: scale(0.96); }
+  .btn-ghost {
+    background: #f3f4f6;
+    color: var(--gray);
+  }
+  .btn-ghost:hover { background: #e5e7eb; }
+  .btn-blue {
+    background: var(--blue-soft);
+    color: var(--blue);
+  }
+  .btn-blue:hover { background: #bfdbfe; }
+  .btn-red {
+    background: #fee2e2;
+    color: #ef4444;
+  }
+  .btn-red:hover { background: #fecaca; }
+  .btn-primary {
+    background: var(--pink);
+    color: white;
+    box-shadow: 0 6px 14px rgba(236,72,153,0.35);
+  }
+  .btn-primary:hover { background: #db2777; }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  /* Slide */
+  .slide {
+    aspect-ratio: 297 / 210;
+    width: 100%;
+    max-width: 1122px;
+    margin: 0 auto;
+    background: white;
+    border-radius: 14px;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.12);
+    border: 1px solid var(--gray-line);
+    display: flex;
+    overflow: hidden;
+    position: relative;
+  }
+  .slide-half { width: 50%; height: 100%; }
+  .slide-left {
+    border-right: 1px solid var(--gray-line);
+    padding: 22px;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+  }
+  .info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    padding: 0 8px;
+    margin-bottom: 16px;
+  }
+  .info-cell {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 2px solid var(--pink-soft);
+    padding-bottom: 4px;
+    min-width: 130px;
+    flex: 1;
+  }
+  .info-cell .icon { color: var(--pink-line); }
+  .info-cell .label { font-size: 13px; font-weight: 900; color: var(--pink-line); }
+  .info-cell .value { font-size: 18px; font-weight: 900; color: #374151; }
+  .info-cell .placeholder { color: #f3f4f6; }
+  .info-cell.date .value { font-variant-numeric: tabular-nums; }
+
+  .image-slot {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    position: relative;
+    min-height: 0;
+  }
+  .image-slot img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    pointer-events: none;
+  }
+  .empty-guide {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    color: #e5e7eb;
+    text-align: center;
+  }
+  .empty-guide .dashed {
+    border: 4px dashed #f3f4f6;
+    border-radius: 40px;
+    padding: 36px 48px;
+    transform: rotate(-8deg);
+    color: #d1d5db;
+  }
+  .empty-guide .dashed p {
+    font-weight: 900;
+    font-size: 26px;
+    line-height: 1.25;
+  }
+  .empty-guide .hint {
+    font-size: 11px;
+    font-weight: 800;
+    color: #d1d5db;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+  }
+  .clear-image-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 32px; height: 32px;
+    background: #fee2e2;
+    color: #ef4444;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .clear-image-btn:hover { background: #fecaca; }
+
+  .slide-brand {
+    position: absolute;
+    bottom: 16px;
+    left: 28px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--pink-line);
+    opacity: 0.55;
+  }
+  .slide-brand span {
+    font-size: 10px;
+    font-weight: 900;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+  }
+
+  .slide-right {
+    background: #fafafa;
+    padding: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .writing-grid {
+    width: 100%;
+    display: grid;
+    border-top: 1px solid #111;
+    border-left: 1px solid #111;
+    background: white;
+    border-radius: 2px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+    overflow: hidden;
+  }
+  .cell {
+    aspect-ratio: 1 / 1;
+    border-right: 1px solid #111;
+    border-bottom: 1px solid #111;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+  .cell .glyph {
+    line-height: 0.9;
+    display: inline-block;
+    color: white;
+    -webkit-text-stroke: 1.5px var(--blue);
+    paint-order: stroke fill;
+  }
+  .glyph.w900 { font-weight: 900; }
+  .glyph.w700 { font-weight: 700; }
+  .glyph.w400 { font-weight: 400; }
+
+  /* Hidden file input */
+  #file-input { display: none; }
+
+  /* Loading overlay */
+  .overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(255,255,255,0.6);
+    backdrop-filter: blur(4px);
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .overlay-card {
+    background: white;
+    padding: 36px 44px;
+    border-radius: 24px;
+    border: 4px solid var(--pink-soft);
+    box-shadow: 0 20px 60px rgba(0,0,0,0.18);
+    text-align: center;
+  }
+  .spinner {
+    width: 60px; height: 60px;
+    margin: 0 auto 18px;
+    border: 4px solid var(--pink-soft);
+    border-top-color: var(--pink);
+    border-radius: 50%;
+    animation: spin 0.9s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .overlay-card p {
+    font-size: 17px;
+    font-weight: 900;
+    color: #1f2937;
+  }
+
+  /* Responsive */
+  @media (max-width: 720px) {
+    .actions { margin-left: 0; width: 100%; justify-content: stretch; }
+    .actions .btn { flex: 1; justify-content: center; }
+    .control-group input { width: 90px; }
+    .empty-guide .dashed { padding: 22px 28px; }
+    .empty-guide .dashed p { font-size: 18px; }
+  }
+
+  /* Print */
+  @media print {
+    @page { size: A4 landscape; margin: 0; }
+    html, body { background: white !important; padding: 0 !important; margin: 0 !important; max-width: none; }
+    .no-print { display: none !important; }
+    .slide {
+      width: 297mm !important;
+      height: 210mm !important;
+      max-width: none !important;
+      margin: 0 !important;
+      border: none !important;
+      border-radius: 0 !important;
+      box-shadow: none !important;
+      aspect-ratio: auto;
+    }
+    .slide-brand { opacity: 0.35; }
+  }
+</style>
+</head>
+<body>
+
+<header class="app-header no-print">
+  <div class="brand">
+    <div class="logo">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12 21s-7-4.35-7-10a4.5 4.5 0 0 1 8-2.83A4.5 4.5 0 0 1 19 11c0 5.65-7 10-7 10z"/>
+      </svg>
+    </div>
+    <div>
+      <h1>한글 색칠 놀이터</h1>
+      <p>좋아하는 그림 위에 글자를 따라 써봐요!</p>
+    </div>
+  </div>
+
+  <div class="controls">
+    <div class="control-group word-group">
+      <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>
+      <span class="label">단어</span>
+      <input id="word-input" type="text" maxlength="12" placeholder="예: 하츄핑">
+    </div>
+
+    <div class="control-group">
+      <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      <span class="label">이름</span>
+      <input id="name-input" type="text" maxlength="10" placeholder="아이 이름">
+    </div>
+
+    <div class="control-group">
+      <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      <span class="label">날짜</span>
+      <input id="date-input" type="date">
+    </div>
+
+    <input id="file-input" type="file" accept="image/*">
+
+    <div class="actions">
+      <button class="btn btn-ghost" id="upload-btn" title="이미지 올리기">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+        그림
+      </button>
+      <button class="btn btn-blue" id="pdf-btn" title="PDF 저장">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        PDF
+      </button>
+      <button class="btn btn-primary" id="print-btn">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+        프린트
+      </button>
+    </div>
+  </div>
+</header>
+
+<main>
+  <section class="slide" id="slide">
+    <div class="slide-half slide-left">
+      <div class="info-row">
+        <div class="info-cell name">
+          <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          <span class="label">이름:</span>
+          <span class="value" id="slide-name"><span class="placeholder">________________</span></span>
+        </div>
+        <div class="info-cell date">
+          <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          <span class="label">날짜:</span>
+          <span class="value" id="slide-date"><span class="placeholder">____ / __ / __</span></span>
+        </div>
+      </div>
+
+      <div class="image-slot" id="image-slot">
+        <div class="empty-guide" id="empty-guide">
+          <div class="dashed">
+            <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin: 0 auto 14px; display:block;"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>
+            <p>여기에 도안을</p>
+            <p>붙여넣어요!</p>
+          </div>
+          <span class="hint">Ctrl + V</span>
+        </div>
+        <img id="slide-image" alt="" hidden crossorigin="anonymous">
+        <button class="clear-image-btn no-print" id="clear-image" hidden title="그림 지우기">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+
+      <div class="slide-brand">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21s-7-4.35-7-10a4.5 4.5 0 0 1 8-2.83A4.5 4.5 0 0 1 19 11c0 5.65-7 10-7 10z"/></svg>
+        <span>한글 색칠 놀이터</span>
+      </div>
+    </div>
+
+    <div class="slide-half slide-right">
+      <div class="writing-grid" id="writing-grid"></div>
+    </div>
+  </section>
+</main>
+
+<div class="overlay no-print" id="overlay" hidden>
+  <div class="overlay-card">
+    <div class="spinner"></div>
+    <p id="overlay-text">PDF 만드는 중...</p>
+  </div>
+</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "html2canvas": "https://esm.sh/html2canvas@1.4.1",
+    "jspdf": "https://esm.sh/jspdf@2.5.1"
+  }
+}
+</script>
+
+<script type="module">
+import html2canvas from 'html2canvas';
+import { jsPDF } from 'jspdf';
+
+const state = {
+  text: '하츄핑',
+  name: '',
+  date: '',
+  image: null,
+};
+
+const $ = (id) => document.getElementById(id);
+
+const wordInput = $('word-input');
+const nameInput = $('name-input');
+const dateInput = $('date-input');
+const fileInput = $('file-input');
+const uploadBtn = $('upload-btn');
+const pdfBtn = $('pdf-btn');
+const printBtn = $('print-btn');
+const clearImageBtn = $('clear-image');
+const slideImage = $('slide-image');
+const emptyGuide = $('empty-guide');
+const slideNameEl = $('slide-name');
+const slideDateEl = $('slide-date');
+const gridEl = $('writing-grid');
+const overlay = $('overlay');
+const overlayText = $('overlay-text');
+const slideEl = $('slide');
+
+wordInput.value = state.text;
+
+function formatDate(iso) {
+  if (!iso) return '';
+  const [y, m, d] = iso.split('-');
+  return `${y} / ${m} / ${d}`;
+}
+
+function renderInfo() {
+  if (state.name) {
+    slideNameEl.textContent = state.name;
+  } else {
+    slideNameEl.innerHTML = '<span class="placeholder">________________</span>';
+  }
+  if (state.date) {
+    slideDateEl.textContent = formatDate(state.date);
+  } else {
+    slideDateEl.innerHTML = '<span class="placeholder">____ / __ / __</span>';
+  }
+}
+
+function renderImage() {
+  if (state.image) {
+    slideImage.src = state.image;
+    slideImage.hidden = false;
+    emptyGuide.hidden = true;
+    clearImageBtn.hidden = false;
+  } else {
+    slideImage.removeAttribute('src');
+    slideImage.hidden = true;
+    emptyGuide.hidden = false;
+    clearImageBtn.hidden = true;
+  }
+}
+
+function renderGrid() {
+  const chars = Array.from(state.text);
+  const cols = Math.max(chars.length, 1);
+  gridEl.style.gridTemplateColumns = `repeat(${cols}, minmax(0, 1fr))`;
+
+  const rows = ['w900', 'w700', 'w400'];
+  const cellWidthRatio = 50 / cols;
+  const fontVw = Math.max(2.4, Math.min(7.2, cellWidthRatio * 0.75));
+
+  const html = [];
+  for (const w of rows) {
+    if (chars.length === 0) {
+      html.push('<div class="cell"></div>');
+      continue;
+    }
+    for (const c of chars) {
+      html.push(`<div class="cell"><span class="glyph ${w}" style="font-size:${fontVw}vw">${escape(c)}</span></div>`);
+    }
+  }
+  gridEl.innerHTML = html.join('');
+}
+
+function escape(s) {
+  return s.replace(/[&<>"']/g, (ch) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[ch]));
+}
+
+function render() {
+  renderInfo();
+  renderImage();
+  renderGrid();
+}
+
+function processFile(file) {
+  if (!file || !file.type.startsWith('image/')) return;
+  const reader = new FileReader();
+  reader.onloadend = () => {
+    state.image = reader.result;
+    render();
+  };
+  reader.readAsDataURL(file);
+}
+
+wordInput.addEventListener('input', (e) => {
+  state.text = e.target.value;
+  renderGrid();
+});
+nameInput.addEventListener('input', (e) => {
+  state.name = e.target.value.trim();
+  renderInfo();
+});
+dateInput.addEventListener('input', (e) => {
+  state.date = e.target.value;
+  renderInfo();
+});
+fileInput.addEventListener('change', (e) => {
+  const f = e.target.files && e.target.files[0];
+  if (f) processFile(f);
+  fileInput.value = '';
+});
+uploadBtn.addEventListener('click', () => fileInput.click());
+clearImageBtn.addEventListener('click', () => {
+  state.image = null;
+  render();
+});
+
+window.addEventListener('paste', (e) => {
+  const items = e.clipboardData && e.clipboardData.items;
+  if (!items) return;
+  for (const it of items) {
+    if (it.type && it.type.startsWith('image/')) {
+      const f = it.getAsFile();
+      if (f) { processFile(f); e.preventDefault(); break; }
+    }
+  }
+});
+
+// Drag & drop on the image slot
+const imageSlot = $('image-slot');
+['dragenter','dragover'].forEach(ev =>
+  imageSlot.addEventListener(ev, (e) => { e.preventDefault(); imageSlot.style.background = '#fef3f7'; })
+);
+['dragleave','drop'].forEach(ev =>
+  imageSlot.addEventListener(ev, (e) => { e.preventDefault(); imageSlot.style.background = ''; })
+);
+imageSlot.addEventListener('drop', (e) => {
+  const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+  if (f) processFile(f);
+});
+
+printBtn.addEventListener('click', () => window.print());
+
+pdfBtn.addEventListener('click', async () => {
+  overlayText.textContent = 'PDF 만드는 중...';
+  overlay.hidden = false;
+  // Let overlay paint
+  await new Promise(r => setTimeout(r, 60));
+  try {
+    const canvas = await html2canvas(slideEl, {
+      scale: 2,
+      useCORS: true,
+      allowTaint: true,
+      backgroundColor: '#ffffff',
+      logging: false,
+    });
+    const imgData = canvas.toDataURL('image/jpeg', 0.95);
+    const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+    const pageW = pdf.internal.pageSize.getWidth();
+    const pageH = pdf.internal.pageSize.getHeight();
+    // Fit canvas into page preserving aspect, center
+    const canvasRatio = canvas.width / canvas.height;
+    const pageRatio = pageW / pageH;
+    let w, h;
+    if (canvasRatio >= pageRatio) {
+      w = pageW; h = pageW / canvasRatio;
+    } else {
+      h = pageH; w = pageH * canvasRatio;
+    }
+    const x = (pageW - w) / 2;
+    const y = (pageH - h) / 2;
+    pdf.addImage(imgData, 'JPEG', x, y, w, h);
+    const safe = (state.text || '한글놀이').replace(/[\\/:*?"<>|]/g, '');
+    pdf.save(`한글놀이_${safe}.pdf`);
+  } catch (err) {
+    console.error('PDF 저장 실패:', err);
+    alert('PDF 저장 중 문제가 생겼어요. 잠시 후 다시 해보세요.');
+  } finally {
+    overlay.hidden = true;
+  }
+});
+
+render();
+</script>
+</body>
+</html>
