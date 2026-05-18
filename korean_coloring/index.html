@@ -300,10 +300,19 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    container-type: size;
+    min-width: 0;
+    min-height: 0;
   }
+  /* Grid sizes itself as the largest cols:3 rectangle fitting the slide-right
+     content box, so cells are always square regardless of word length. */
   .writing-grid {
-    width: 100%;
+    --cols: 1;
+    width: min(100cqw, calc(100cqh * var(--cols) / 3));
+    height: min(100cqh, calc(100cqw * 3 / var(--cols)));
     display: grid;
+    grid-template-columns: repeat(var(--cols), 1fr);
+    grid-template-rows: repeat(3, 1fr);
     border-top: 1px solid #111;
     border-left: 1px solid #111;
     background: white;
@@ -312,20 +321,24 @@
     overflow: hidden;
   }
   .cell {
-    aspect-ratio: 1 / 1;
     border-right: 1px solid #111;
     border-bottom: 1px solid #111;
     display: flex;
     align-items: center;
     justify-content: center;
     overflow: hidden;
+    min-width: 0;
+    min-height: 0;
+    container-type: size;
   }
   .cell .glyph {
-    line-height: 0.9;
+    line-height: 1;
     display: inline-block;
     color: white;
     -webkit-text-stroke: 1.5px var(--blue);
     paint-order: stroke fill;
+    /* Font scales to ~68% of cell's shorter side; cells are square so cqmin = cqw = cqh. */
+    font-size: 68cqmin;
   }
   .glyph.w700 { font-weight: 700; }
   .glyph.w400 { font-weight: 400; }
@@ -512,10 +525,16 @@
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 
+function todayLocalISO() {
+  const d = new Date();
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
 const state = {
   text: '하츄핑',
   name: '',
-  date: '',
+  date: todayLocalISO(),
   image: null,
 };
 
@@ -539,6 +558,7 @@ const overlayText = $('overlay-text');
 const slideEl = $('slide');
 
 wordInput.value = state.text;
+dateInput.value = state.date;
 
 function formatDate(iso) {
   if (!iso) return '';
@@ -576,12 +596,9 @@ function renderImage() {
 function renderGrid() {
   const chars = Array.from(state.text);
   const cols = Math.max(chars.length, 1);
-  gridEl.style.gridTemplateColumns = `repeat(${cols}, minmax(0, 1fr))`;
+  gridEl.style.setProperty('--cols', String(cols));
 
   const rows = ['w700', 'w400', 'w300'];
-  const cellWidthRatio = 50 / cols;
-  const fontVw = Math.max(2.4, Math.min(7.2, cellWidthRatio * 0.75));
-
   const html = [];
   for (const w of rows) {
     if (chars.length === 0) {
@@ -589,7 +606,7 @@ function renderGrid() {
       continue;
     }
     for (const c of chars) {
-      html.push(`<div class="cell"><span class="glyph ${w}" style="font-size:${fontVw}vw">${escape(c)}</span></div>`);
+      html.push(`<div class="cell"><span class="glyph ${w}">${escape(c)}</span></div>`);
     }
   }
   gridEl.innerHTML = html.join('');
