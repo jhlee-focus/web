@@ -1,0 +1,17 @@
+# clock_twins 자산 재생성에 필요한 Python 패키지.
+# 앱(HTML/JS) 실행에는 필요 없음 — 로컬 정적 서버만 있으면 됨.
+#
+# 설치:
+#   pip install -r clock_twins/requirements.txt
+#
+# Python 3.10+ 권장 (3.12에서 검증).
+
+# 이미지 처리 — 512x512 WebP 변환, RGBA 합성
+Pillow>=10.0.0,<12.0.0
+
+# 엑셀 → JS 변환 (티니핑 메타데이터, 포켓몬 진화 트리)
+openpyxl>=3.1.0,<4.0.0
+
+# 자동 배경 제거 (ISNet-general-use 모델)
+# 처음 실행 시 모델 가중치(~150MB) 자동 다운로드
+rembg>=2.0.0,<3.0.0

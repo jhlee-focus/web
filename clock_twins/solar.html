@@ -644,17 +644,31 @@ function makeTierBadge(tier, fontSize) {
 }
 
 // ── 검색 ──
+// 검색 매칭 — 공백·괄호·대시·앰퍼샌드·점 무시, 대소문자 무시
+function normalizeName(s) {
+  return String(s || '').toLowerCase().replace(/[\s()\[\]{}\-_&·.\/]/g, '');
+}
 function findSolarMatch(query) {
-  var q = (query || '').replace(/\s+/g, '');
+  var q = normalizeName(query);
   if (!q) return null;
   for (var i = 0; i < allSolar.length; i++) {
-    if (allSolar[i].name === q) return allSolar[i];
+    if (normalizeName(allSolar[i].name) === q) return allSolar[i];
   }
   return null;
 }
 function cssEscape(s) {
   if (window.CSS && typeof window.CSS.escape === 'function') return window.CSS.escape(s);
   return String(s).replace(/[^a-zA-Z0-9_\- -￿]/g, function(c) { return '\\' + c; });
+}
+
+// 이미지 로드 실패 시 placeholder (404, 네트워크 실패, 파일 손상 등)
+var IMG_PLACEHOLDER = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" fill="%23ffffff" fill-opacity="0.08" rx="8"/><text x="32" y="44" text-anchor="middle" font-size="32" font-family="system-ui">🌑</text></svg>';
+function attachImgFallback(img) {
+  img.onerror = function () {
+    if (img.__fb) return;
+    img.__fb = true;
+    img.src = IMG_PLACEHOLDER;
+  };
 }
 
 // ── 모드 관리 ──
@@ -739,6 +753,7 @@ function buildDex() {
       var imgWrap = document.createElement('div');
       imgWrap.className = 'dex-img-wrap';
       var img = document.createElement('img');
+      attachImgFallback(img);
       img.src = c.file;
       img.alt = c.name;
       img.draggable = false;
@@ -1199,6 +1214,7 @@ function layout() {
     marker.style.top = (R + markerDist * Math.sin(angle)) + 'px';
 
     var img = document.createElement('img');
+    attachImgFallback(img);
     // 핼리혜성은 궤도 모드에서 전용 이미지(꼬리 강조)를 사용
     img.src = (orbitOn && char.name === '핼리혜성')
       ? 'img_solar/SS-12-1_핼리혜성_궤도모드.webp'

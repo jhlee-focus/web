@@ -538,14 +538,27 @@ var basicCharacters = basicTeenieping;
 var allCharacters = allTeenieping;
 
 // --- 검색 매칭 (페어 한쪽 입력만으로도 페어 전체 매칭) ---
+// 검색 매칭 — 공백·괄호·대시·점 무시, 대소문자 무시
+// '&'는 합체 핑 (예: '왕눈이&하늘이') 매칭을 위해 normalize에서 제거하되,
+// 합체 한쪽 이름만 검색하는 케이스도 별도로 처리.
+function normalizeName(s) {
+  return String(s || '').toLowerCase().replace(/[\s()\[\]{}\-_&·.\/]/g, '');
+}
 function matchesTeeniepingQuery(name, q) {
   if (!q) return false;
-  if (name === q) return true;
-  if (name.indexOf('&') !== -1 && name.split('&').indexOf(q) !== -1) return true;
+  var nName = normalizeName(name);
+  if (nName === q) return true;
+  // 합체 핑 한쪽 이름 매칭 (예: 'name=왕눈이&하늘이', q='왕눈이')
+  if (name.indexOf('&') !== -1) {
+    var parts = name.split('&');
+    for (var i = 0; i < parts.length; i++) {
+      if (normalizeName(parts[i]) === q) return true;
+    }
+  }
   return false;
 }
 function findTeeniepingMatch(query) {
-  var q = (query || '').replace(/\s+/g, '');
+  var q = normalizeName(query);
   if (!q) return null;
   for (var i = 0; i < allCharacters.length; i++) {
     if (matchesTeeniepingQuery(allCharacters[i].name, q)) return allCharacters[i];
@@ -557,6 +570,16 @@ function cssEscape(s) {
   return String(s).replace(/[^a-zA-Z0-9_\- -￿]/g, function(c) {
     return '\\' + c;
   });
+}
+
+// 이미지 로드 실패 시 placeholder
+var IMG_PLACEHOLDER = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" fill="%23ffffff" fill-opacity="0.08" rx="8"/><text x="32" y="44" text-anchor="middle" font-size="32" font-family="system-ui">🌸</text></svg>';
+function attachImgFallback(img) {
+  img.onerror = function () {
+    if (img.__fb) return;
+    img.__fb = true;
+    img.src = IMG_PLACEHOLDER;
+  };
 }
 
 // --- 모드 관리 ---
@@ -676,6 +699,7 @@ function buildDex() {
       var imgWrap = document.createElement('div');
       imgWrap.className = 'dex-img-wrap';
       var img = document.createElement('img');
+      attachImgFallback(img);
       img.src = char.file;
       img.alt = char.name;
       img.draggable = false;
@@ -884,6 +908,7 @@ function layout() {
     marker.style.top = (R + markerDist * Math.sin(angle)) + 'px';
 
     var img = document.createElement('img');
+    attachImgFallback(img);
     img.src = char.file;
     img.alt = char.name;
     img.draggable = false;

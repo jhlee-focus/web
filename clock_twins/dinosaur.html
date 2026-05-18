@@ -744,17 +744,32 @@ var GEN_LABELS = {
 };
 
 // ── 검색 ──
+// 검색 매칭 — 공백·괄호·대시·앰퍼샌드·점 무시, 대소문자 무시
+function normalizeName(s) {
+  return String(s || '').toLowerCase().replace(/[\s()\[\]{}\-_&·.\/]/g, '');
+}
 function findDinosaurMatch(query) {
-  var q = (query || '').replace(/\s+/g, '');
+  var q = normalizeName(query);
   if (!q) return null;
   for (var i = 0; i < allCharacters.length; i++) {
-    if (allCharacters[i].name === q) return allCharacters[i];
+    if (normalizeName(allCharacters[i].name) === q) return allCharacters[i];
+    if (allCharacters[i].en && normalizeName(allCharacters[i].en) === q) return allCharacters[i];
   }
   return null;
 }
 function cssEscape(s) {
   if (window.CSS && typeof window.CSS.escape === 'function') return window.CSS.escape(s);
   return String(s).replace(/[^a-zA-Z0-9_\- -￿]/g, function(c) { return '\\' + c; });
+}
+
+// 이미지 로드 실패 시 placeholder (404, 네트워크 실패, 파일 손상 등)
+var IMG_PLACEHOLDER = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" fill="%23ffffff" fill-opacity="0.08" rx="8"/><text x="32" y="44" text-anchor="middle" font-size="32" font-family="system-ui">🦴</text></svg>';
+function attachImgFallback(img) {
+  img.onerror = function () {
+    if (img.__fb) return;
+    img.__fb = true;
+    img.src = IMG_PLACEHOLDER;
+  };
 }
 
 // ── 모드 ──
@@ -908,10 +923,11 @@ function buildDex() {
 // iframe 자체는 pointer-events:none 으로 막혀 있어서, 모든 터치는 .abc-song-tap-shield
 // 버튼이 받는다. 이 버튼이 YT.Player API의 playVideo()/pauseVideo()를 호출해 재생만 제어 →
 // 영상 제목·로고·"YouTube에서 보기" 링크 클릭으로 외부 이동 0건 보장.
-var __abcSongAPIState = 'idle';  // 'idle' | 'loading' | 'ready'
+var __abcSongAPIState = 'idle';  // 'idle' | 'loading' | 'ready' | 'failed'
 var __abcSongAPIQueue = [];
 function ensureYouTubeAPI(cb) {
-  if (__abcSongAPIState === 'ready' && window.YT && window.YT.Player) { cb(); return; }
+  if (__abcSongAPIState === 'ready' && window.YT && window.YT.Player) { cb(null); return; }
+  if (__abcSongAPIState === 'failed') { cb(new Error('YT IFrame API failed to load')); return; }
   __abcSongAPIQueue.push(cb);
   if (__abcSongAPIState !== 'idle') return;
   __abcSongAPIState = 'loading';
@@ -920,17 +936,59 @@ function ensureYouTubeAPI(cb) {
     __abcSongAPIState = 'ready';
     if (typeof prev === 'function') { try { prev(); } catch (e) {} }
     var q = __abcSongAPIQueue; __abcSongAPIQueue = [];
-    q.forEach(function (fn) { try { fn(); } catch (e) {} });
+    q.forEach(function (fn) { try { fn(null); } catch (e) {} });
   };
   var tag = document.createElement('script');
   tag.src = 'https://www.youtube.com/iframe_api';
+  tag.onerror = function () {
+    // 네트워크 차단·오프라인·CSP 등으로 API 스크립트 자체가 못 받아진 경우
+    __abcSongAPIState = 'failed';
+    var q = __abcSongAPIQueue; __abcSongAPIQueue = [];
+    var err = new Error('YT IFrame API script failed to load');
+    q.forEach(function (fn) { try { fn(err); } catch (e) {} });
+  };
   document.head.appendChild(tag);
 }
+
+// 영상 영역에 fallback 메시지 표시 — API 로드 실패 / Player 생성 실패 공용
+function showAbcSongFallback(frameBox, reason) {
+  // 기존 자식 (placeholder div, tap shield 등) 모두 제거
+  while (frameBox.firstChild) frameBox.removeChild(frameBox.firstChild);
+  var msg = document.createElement('div');
+  msg.style.cssText = 'position:absolute;inset:0;display:flex;flex-direction:column;' +
+    'align-items:center;justify-content:center;gap:8px;padding:16px;text-align:center;' +
+    'color:#ffe5b3;font-weight:600;font-size:14px;background:rgba(0,0,0,0.45);';
+  var icon = document.createElement('div');
+  icon.style.cssText = 'font-size:32px;line-height:1;opacity:0.85;';
+  icon.textContent = '🎬';
+  msg.appendChild(icon);
+  var line1 = document.createElement('div');
+  line1.textContent = '영상을 불러올 수 없어요';
+  msg.appendChild(line1);
+  var line2 = document.createElement('div');
+  line2.style.cssText = 'opacity:0.7;font-size:12px;font-weight:500;';
+  line2.textContent = '인터넷 연결을 확인하고 잠시 후 다시 시도해주세요';
+  msg.appendChild(line2);
+  frameBox.appendChild(msg);
+  if (reason) console.warn('ABC song embed unavailable:', reason);
+}
 function initAbcSongPlayer(holderId, tapShield, playIcon) {
-  ensureYouTubeAPI(function () {
+  var frameBox = tapShield.parentElement; // .abc-song-frame
+  // 8초 안에 onReady가 안 뜨면 fallback. (API 스크립트는 받았는데 iframe 핸드셰이크 실패 등)
+  var readyTimer = setTimeout(function () {
+    if (frameBox && frameBox.isConnected) {
+      showAbcSongFallback(frameBox, 'YT player onReady timeout');
+    }
+  }, 8000);
+  ensureYouTubeAPI(function (apiErr) {
+    if (apiErr) {
+      clearTimeout(readyTimer);
+      if (frameBox && frameBox.isConnected) showAbcSongFallback(frameBox, apiErr);
+      return;
+    }
     var holder = document.getElementById(holderId);
     // holder가 DOM에서 사라졌다면 (모드 빠른 전환) 그냥 종료
-    if (!holder) return;
+    if (!holder) { clearTimeout(readyTimer); return; }
     var player;
     try {
       player = new YT.Player(holderId, {
@@ -946,6 +1004,7 @@ function initAbcSongPlayer(holderId, tapShield, playIcon) {
         events: {
           onReady: function () {
             // 생성된 iframe에는 pointer-events:none이 CSS로 들어가 있음
+            clearTimeout(readyTimer);
             tapShield.addEventListener('click', function () {
               try {
                 var st = player.getPlayerState();
@@ -956,6 +1015,13 @@ function initAbcSongPlayer(holderId, tapShield, playIcon) {
                 }
               } catch (e) {}
             });
+          },
+          onError: function (e) {
+            // YT.PlayerState 오류 (영상 삭제, 임베드 불가 등)
+            clearTimeout(readyTimer);
+            if (frameBox && frameBox.isConnected) {
+              showAbcSongFallback(frameBox, 'YT onError data=' + e.data);
+            }
           },
           onStateChange: function (e) {
             if (!tapShield.isConnected) {
@@ -974,9 +1040,10 @@ function initAbcSongPlayer(holderId, tapShield, playIcon) {
         }
       });
     } catch (e) {
-      // YT.Player 생성 실패 시 — 최소한 외부 이동은 막힘 (pointer-events:none),
-      // 다만 재생도 못함. 사용자에게 안내.
-      console.warn('YouTube API player init failed:', e);
+      // YT.Player 생성 실패 시 — 외부 이동은 pointer-events:none으로 막혀 있지만
+      // 재생은 안 되니 fallback 메시지로 안내
+      clearTimeout(readyTimer);
+      if (frameBox && frameBox.isConnected) showAbcSongFallback(frameBox, e);
     }
   });
 }
@@ -989,6 +1056,7 @@ function makeDexItem(c, itemSize, fontSize, showAbc) {
   var imgWrap = document.createElement('div');
   imgWrap.className = 'dex-img-wrap';
   var img = document.createElement('img');
+  attachImgFallback(img);
   img.src = c.file;
   img.alt = c.name;
   img.draggable = false;
@@ -1229,6 +1297,7 @@ function layout() {
     marker.style.left = (R + markerDist * Math.cos(angle)) + 'px';
     marker.style.top = (R + markerDist * Math.sin(angle)) + 'px';
     var img = document.createElement('img');
+    attachImgFallback(img);
     img.src = char.file;
     img.alt = char.name;
     img.draggable = false;
