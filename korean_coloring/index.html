@@ -7,6 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <title>한글 색칠 놀이터</title>
 <link rel="icon" href="../sweetklogo.png">
+<link rel="stylesheet" href="osk.css">
 <style>
   @font-face {
     font-family: "Nanum Barun Gothic";
@@ -390,6 +391,26 @@
     .empty-guide .dashed p { font-size: 18px; }
   }
 
+  /* On-screen keyboard wrapper (fixed at bottom; pink theme) */
+  .osk-wrapper {
+    position: fixed;
+    left: 50%;
+    bottom: 16px;
+    transform: translateX(-50%);
+    width: min(640px, calc(100vw - 24px));
+    z-index: 100;
+    --osk-primary: var(--pink);
+    --osk-primary-dark: #be185d;
+    --osk-active-bg: var(--pink-soft);
+    --osk-text: #831843;
+  }
+  .osk-wrapper .osk {
+    margin: 0;
+    background: white;
+    box-shadow: 0 -8px 40px rgba(0,0,0,0.18);
+    border: 1px solid var(--gray-line);
+  }
+
   /* Print */
   @media print {
     @page { size: A4 landscape; margin: 0; }
@@ -428,13 +449,13 @@
     <div class="control-group word-group">
       <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>
       <span class="label">단어</span>
-      <input id="word-input" type="text" maxlength="12" placeholder="예: 하츄핑">
+      <input id="word-input" type="text" maxlength="12" placeholder="예: 하츄핑" autocomplete="off" inputmode="none">
     </div>
 
     <div class="control-group">
       <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
       <span class="label">이름</span>
-      <input id="name-input" type="text" maxlength="10" placeholder="아이 이름">
+      <input id="name-input" type="text" maxlength="10" placeholder="아이 이름" autocomplete="off" inputmode="none">
     </div>
 
     <div class="control-group">
@@ -511,6 +532,12 @@
     <p id="overlay-text">PDF 만드는 중...</p>
   </div>
 </div>
+
+<div class="osk-wrapper no-print">
+  <div id="osk" class="osk" hidden></div>
+</div>
+
+<script src="osk.js"></script>
 
 <script type="importmap">
 {
@@ -723,6 +750,71 @@ pdfBtn.addEventListener('click', async () => {
 });
 
 render();
+
+// ── On-screen keyboard wiring ─────────────────────────────────────────
+const oskRoot = $('osk');
+const oskInputs = [wordInput, nameInput];
+let oskCurrentInput = null;
+
+// Per-input state-sync. We must NOT dispatch an 'input' event back at the
+// input, because osk.js attaches its own listener that resyncs the IME
+// buffer from input.value on every external 'input' event — that would
+// reset compose state mid-syllable and turn typing into raw jamo.
+function syncStateFromOsk(input) {
+  if (input === wordInput) {
+    state.text = input.value;
+    renderGrid();
+  } else if (input === nameInput) {
+    state.name = input.value.trim();
+    renderInfo();
+  }
+}
+
+function showOskFor(input) {
+  if (oskCurrentInput === input && !oskRoot.hidden) return;
+  if (oskCurrentInput && oskCurrentInput !== input) {
+    oskCurrentInput.removeAttribute('readonly');
+  }
+  window.OnScreenKeyboard.attach({
+    input,
+    oskRoot,
+    onCommit: () => hideOsk(),
+    onDismiss: () => hideOsk(),
+    onChange: () => syncStateFromOsk(input),
+  });
+  input.setAttribute('readonly', '');
+  oskCurrentInput = input;
+  oskRoot.hidden = false;
+}
+
+function hideOsk() {
+  oskRoot.hidden = true;
+  if (oskCurrentInput) {
+    oskCurrentInput.removeAttribute('readonly');
+    oskCurrentInput.blur();
+    oskCurrentInput = null;
+  }
+}
+
+oskInputs.forEach((input) => {
+  // pointerdown clears readonly so the tap actually focuses on iOS, then
+  // the focus handler shows the OSK and re-sets readonly to suppress the
+  // native virtual keyboard.
+  input.addEventListener('pointerdown', () => input.removeAttribute('readonly'), { passive: true });
+  input.addEventListener('focus', () => showOskFor(input));
+});
+
+// Date input opens the native date picker — close OSK to avoid overlap.
+dateInput.addEventListener('focus', hideOsk);
+
+// Pointerdown outside OSK + non-OSK inputs dismisses.
+document.addEventListener('pointerdown', (e) => {
+  if (!oskCurrentInput) return;
+  const t = e.target;
+  if (oskRoot.contains(t)) return;
+  if (oskInputs.includes(t)) return;
+  hideOsk();
+});
 </script>
 </body>
 </html>
