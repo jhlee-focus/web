@@ -7,8 +7,28 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <title>한글 색칠 놀이터</title>
 <link rel="icon" href="../sweetklogo.png">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
 <style>
+  @font-face {
+    font-family: "Nanum Barun Gothic";
+    font-style: normal;
+    font-weight: 300;
+    font-display: swap;
+    src: url("fonts/nanum-barun-gothic/NanumBarunGothicLight.otf") format("opentype");
+  }
+  @font-face {
+    font-family: "Nanum Barun Gothic";
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url("fonts/nanum-barun-gothic/NanumBarunGothic.otf") format("opentype");
+  }
+  @font-face {
+    font-family: "Nanum Barun Gothic";
+    font-style: normal;
+    font-weight: 700;
+    font-display: swap;
+    src: url("fonts/nanum-barun-gothic/NanumBarunGothicBold.otf") format("opentype");
+  }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   [hidden] { display: none !important; }
   :root {
@@ -24,8 +44,8 @@
   html, body {
     background: var(--bg);
     color: #1f2937;
-    font-family: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont,
-                 "Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+    font-family: "Nanum Barun Gothic", -apple-system, BlinkMacSystemFont,
+                 "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", sans-serif;
     -webkit-font-smoothing: antialiased;
     min-height: 100vh;
   }
@@ -307,9 +327,9 @@
     -webkit-text-stroke: 1.5px var(--blue);
     paint-order: stroke fill;
   }
-  .glyph.w900 { font-weight: 900; }
   .glyph.w700 { font-weight: 700; }
   .glyph.w400 { font-weight: 400; }
+  .glyph.w300 { font-weight: 300; }
 
   /* Hidden file input */
   #file-input { display: none; }
@@ -558,7 +578,7 @@ function renderGrid() {
   const cols = Math.max(chars.length, 1);
   gridEl.style.gridTemplateColumns = `repeat(${cols}, minmax(0, 1fr))`;
 
-  const rows = ['w900', 'w700', 'w400'];
+  const rows = ['w700', 'w400', 'w300'];
   const cellWidthRatio = 50 / cols;
   const fontVw = Math.max(2.4, Math.min(7.2, cellWidthRatio * 0.75));
 
