@@ -71,6 +71,14 @@
 
 <!-- ============= 게임 ============= -->
 <section id="game" class="screen" hidden>
+  <div class="game-toolbar">
+    <span class="toolbar-label">카드 표현</span>
+    <div id="card-style-toggle" class="seg-toggle" role="tablist">
+      <button type="button" data-style="simple" class="active" role="tab">심플</button>
+      <button type="button" data-style="image" role="tab">이미지</button>
+    </div>
+  </div>
+
   <div id="players-panel" class="players-panel"></div>
 
   <div id="trick-area" class="trick-area">
@@ -115,6 +123,6 @@
 
 </main>
 
-<script type="module" src="js/main.js?v=3"></script>
+<script type="module" src="js/main.js?v=4"></script>
 </body>
 </html>
