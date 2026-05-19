@@ -381,8 +381,8 @@ button.icon {
   width: 56px;
   height: 78px;
   border-radius: 8px;
-  background: var(--bg-elev-2);
-  border: 1px solid var(--border-strong);
+  background: #f4ebd5;
+  border: 1px solid rgba(0, 0, 0, 0.18);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -390,33 +390,47 @@ button.icon {
   font-size: 22px;
   color: var(--text);
   cursor: pointer;
-  transition: transform 0.1s, border-color 0.15s, background 0.15s;
+  transition: transform 0.1s, box-shadow 0.15s, filter 0.15s;
   user-select: none;
   position: relative;
   font-variant-numeric: tabular-nums;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
 }
-.card:hover { background: var(--bg-elev); border-color: var(--accent); }
+.card:hover { transform: translateY(-2px); filter: brightness(1.04); }
 .card.selected {
   transform: translateY(-10px);
-  border-color: var(--accent);
-  background: rgba(124, 156, 255, 0.18);
+  box-shadow: 0 0 0 2px var(--accent), 0 6px 18px rgba(124, 156, 255, 0.45);
 }
 .card.disabled {
   cursor: not-allowed;
   opacity: 0.4;
 }
 .card.locked { cursor: default; }
-.card.locked:hover { background: var(--bg-elev-2); border-color: var(--border-strong); }
+.card.locked:hover { transform: none; filter: none; }
 
-.card.rank-1 { color: var(--gold); border-color: rgba(245, 193, 79, 0.45); }
-.card.rank-2, .card.rank-3 { color: var(--gold); }
-.card.rank-4, .card.rank-5, .card.rank-6 { color: var(--silver); }
-.card.rank-7, .card.rank-8, .card.rank-9 { color: var(--text); }
-.card.rank-10, .card.rank-11, .card.rank-12 { color: var(--bronze); }
+/* ===== 카드별 색 테마 (이미지 일러스트 색감 반영) ===== */
+.card.rank-1  { background: #f4ebd5; color: #8b1e2c; border-color: rgba(139, 30, 44, 0.35); }
+.card.rank-2  { background: #ebe0f0; color: #5a318b; border-color: rgba(90, 49, 139, 0.35); }
+.card.rank-3  { background: #dde9f3; color: #1c3565; border-color: rgba(28, 53, 101, 0.35); }
+.card.rank-4  { background: #e6ecda; color: #2d5b1f; border-color: rgba(45, 91, 31, 0.35); }
+.card.rank-5  { background: #ece3d2; color: #5a3a1f; border-color: rgba(90, 58, 31, 0.35); }
+.card.rank-6  { background: #f0d8de; color: #7a1d24; border-color: rgba(122, 29, 36, 0.35); }
+.card.rank-7  { background: #ebe0f3; color: #4d2b80; border-color: rgba(77, 43, 128, 0.35); }
+.card.rank-8  { background: #d9e3ec; color: #1f3a5c; border-color: rgba(31, 58, 92, 0.35); }
+.card.rank-9  { background: #e3ecd7; color: #2e5024; border-color: rgba(46, 80, 36, 0.35); }
+.card.rank-10 { background: #ede2d0; color: #3b2a18; border-color: rgba(59, 42, 24, 0.35); }
+.card.rank-11 { background: #f0d6d2; color: #6a1f24; border-color: rgba(106, 31, 36, 0.35); }
+.card.rank-12 { background: #ede1d2; color: #2f2756; border-color: rgba(47, 39, 86, 0.35); }
+
 .card.jester {
-  color: var(--jester);
-  border-color: rgba(192, 132, 252, 0.55);
-  background: rgba(192, 132, 252, 0.08);
+  background: #f0e4d2;
+  color: #b9213c;
+  border: 1px solid transparent;
+  background-image:
+    linear-gradient(#f0e4d2, #f0e4d2),
+    linear-gradient(135deg, #d0405a 0 33%, #5dac3a 33% 66%, #3a6ec4 66% 100%);
+  background-origin: border-box;
+  background-clip: padding-box, border-box;
   font-size: 18px;
 }
 .card.jester::after { content: "J"; }
