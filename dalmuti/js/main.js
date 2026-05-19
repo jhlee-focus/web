@@ -73,6 +73,12 @@ const els = {
   roundEndList: $("round-end-list"),
 
   toast: $("toast"),
+
+  // 플레이 방법
+  helpBtn: $("help-btn"),
+  helpModal: $("help-modal"),
+  helpCloseBtn: $("help-close-btn"),
+  helpCloseBtnBottom: $("help-close-btn-bottom"),
 };
 
 // ================ 상태 ================
@@ -424,6 +430,21 @@ els.cardStyleToggle.addEventListener("click", (e) => {
   const btn = e.target.closest("button[data-style]");
   if (!btn) return;
   applyCardStyle(btn.dataset.style);
+});
+
+// ================ 플레이 방법 모달 ================
+function openHelp() { els.helpModal.hidden = false; }
+function closeHelp() { els.helpModal.hidden = true; }
+els.helpBtn?.addEventListener("click", openHelp);
+els.helpCloseBtn?.addEventListener("click", closeHelp);
+els.helpCloseBtnBottom?.addEventListener("click", closeHelp);
+// 모달 바깥(backdrop) 클릭 시 닫기
+els.helpModal?.addEventListener("click", (e) => {
+  if (e.target === els.helpModal) closeHelp();
+});
+// Esc 키로 닫기
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && !els.helpModal.hidden) closeHelp();
 });
 
 // ================ 이벤트: 방 나가기 ================
