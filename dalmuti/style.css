@@ -509,6 +509,13 @@ button.icon {
   font-weight: 600;
 }
 
+.hand-cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+  align-content: flex-start;
+}
 .hand-cards.small .card {
   width: 44px;
   height: 62px;
@@ -532,6 +539,8 @@ button.icon {
   border-radius: var(--radius-lg);
   padding: 28px;
   max-width: 480px;
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
   width: calc(100% - 32px);
 }
 .modal-card h3 {
