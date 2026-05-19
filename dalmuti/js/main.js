@@ -9,6 +9,7 @@ import {
   renderRoundEndModal,
   showToast,
   validateSelection,
+  setCardStyle,
 } from "./ui.js";
 
 // ================ DOM 헬퍼 ================
@@ -45,6 +46,7 @@ const els = {
   startGameBtn: $("start-game-btn"),
 
   // 게임 화면
+  cardStyleToggle: $("card-style-toggle"),
   playersPanel: $("players-panel"),
   trickCards: $("trick-cards"),
   trickInfo: $("trick-info"),
@@ -94,6 +96,10 @@ function init() {
   const stored = client.loadStoredNickname();
   if (stored) els.nicknameInput.value = stored;
   els.nicknameInput.focus();
+
+  // 카드 표현 스타일 복원 (localStorage 영속)
+  const savedStyle = localStorage.getItem("dalmuti.cardStyle") === "image" ? "image" : "simple";
+  applyCardStyle(savedStyle, { skipRender: true });
 
   // URL 해시에 방 코드 있으면 자동 채움 (#room=AB23CD)
   const m = location.hash.match(/room=([A-Z0-9]+)/i);
@@ -294,6 +300,23 @@ function renderAll() {
   renderTaxModal(client, els, taxSelection);
   renderRoundEndModal(client, els);
 }
+
+// ================ 카드 표현 모드 ================
+function applyCardStyle(style, { skipRender = false } = {}) {
+  setCardStyle(style);
+  localStorage.setItem("dalmuti.cardStyle", style);
+  // 토글 버튼 active 상태 갱신
+  for (const btn of els.cardStyleToggle.querySelectorAll("button")) {
+    btn.classList.toggle("active", btn.dataset.style === style);
+  }
+  if (!skipRender) renderAll();
+}
+
+els.cardStyleToggle.addEventListener("click", (e) => {
+  const btn = e.target.closest("button[data-style]");
+  if (!btn) return;
+  applyCardStyle(btn.dataset.style);
+});
 
 // 페이지 떠날 때 호스트라면 host_left broadcast
 window.addEventListener("beforeunload", () => {
