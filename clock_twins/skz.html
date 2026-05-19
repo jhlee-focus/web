@@ -554,7 +554,7 @@
 
 <div class="digital-row" id="digitalRow">
   <div class="digital-time" id="digitalTime"></div>
-  <span class="credit">Stray Kids</span>
+  <span class="credit">Stay 둥둥이들과 함께 만듦</span>
 </div>
 
 <script src="skz_data.js"></script>
@@ -935,7 +935,8 @@ function layout() {
   // hour numbers + markers
   var markerR = R * 0.78;
   var numR = R * 0.92;
-  var markerSize = Math.max(36, S * 0.085);
+  // SKZ 시계는 인물·SKZOO 디테일이 살아야 하므로 다른 시계보다 마커를 약 +30% 크게
+  var markerSize = Math.max(46, S * 0.11);
   var nameSize = Math.max(11, S * 0.025);
 
   for (var h = 1; h <= 12; h++) {
