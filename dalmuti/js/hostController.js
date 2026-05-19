@@ -16,10 +16,11 @@ import {
 import { chooseAction, chooseDalmutiReturn } from "./aiPlayer.js";
 import { joinPrivateChannel } from "./realtime.js";
 
-const AI_TURN_DELAY_MIN = 700;
-const AI_TURN_DELAY_MAX = 1500;
-const ROUND_END_DELAY_MS = 4500;
-const TAX_AUTO_DELAY_MS = 1500;
+// AI 봇 액션 간 텀. 사용자가 흐름을 눈으로 따라가기 편하도록 여유있게.
+const AI_TURN_DELAY_MIN = 1500;
+const AI_TURN_DELAY_MAX = 2800;
+const ROUND_END_DELAY_MS = 5500;
+const TAX_AUTO_DELAY_MS = 2500;
 
 export class HostController {
   constructor({ roomCode, players, publicChannel, onLocalStateChange }) {

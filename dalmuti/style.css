@@ -263,13 +263,11 @@ button.icon {
 }
 
 .players-panel {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
   gap: 8px;
 }
 .player-tile {
-  flex: 1 1 140px;
-  min-width: 140px;
   padding: 10px 14px;
   background: var(--bg-elev);
   border: 1px solid var(--border);
@@ -277,6 +275,7 @@ button.icon {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  min-width: 0;
 }
 .player-tile.is-turn {
   border-color: var(--accent);
@@ -582,18 +581,17 @@ button.icon {
 
 /* ===== 반응형 ===== */
 
-/* 와이드 데스크탑 — 플레이어 패널을 한 줄에 펼치기 */
+/* 와이드 데스크탑 — 트릭 간격만 조정 (기본 grid 가 알아서 펼침) */
 @media (min-width: 1100px) {
-  .player-tile { flex: 1 1 0; min-width: 160px; }
   .trick-cards { gap: 8px; }
 }
 
-/* 태블릿 / 작은 노트북 (~900px) */
+/* 태블릿 / 작은 노트북 (~900px) — 3열 grid */
 @media (max-width: 900px) {
-  .player-tile { flex: 1 1 calc(33.333% - 6px); min-width: 0; }
+  .players-panel { grid-template-columns: repeat(3, 1fr); }
 }
 
-/* 일반 모바일 / 큰 폰 (~720px) — 기존 동작 유지 + 더 촘촘하게 */
+/* 일반 모바일 / 큰 폰 (~720px) — 2열 grid, 더 촘촘하게 */
 @media (max-width: 720px) {
   .screen { padding: 18px 14px 36px; }
   .card-block { padding: 22px; }
@@ -601,7 +599,8 @@ button.icon {
   .card { width: 48px; height: 66px; font-size: 19px; }
   .hand-cards.small .card { width: 38px; height: 54px; font-size: 16px; }
   #game:not([hidden]) { gap: 12px; }
-  .player-tile { flex: 1 1 calc(50% - 4px); padding: 9px 12px; }
+  .players-panel { grid-template-columns: repeat(2, 1fr); }
+  .player-tile { padding: 9px 12px; }
   .trick-area { padding: 16px; min-height: 110px; }
   .hand-area { padding: 16px; gap: 14px; }
 }
@@ -619,7 +618,7 @@ button.icon {
 
   #game:not([hidden]) { gap: 10px; }
 
-  .player-tile { padding: 7px 10px; gap: 2px; flex: 1 1 calc(50% - 5px); min-width: 0; }
+  .player-tile { padding: 7px 10px; gap: 2px; }
   .player-tile .name-row { flex-wrap: wrap; gap: 4px; }
   .player-tile .nickname { font-size: 12.5px; flex: 1 1 100%; }
   .player-tile .badge { font-size: 9.5px; padding: 1px 5px; max-width: 100%; }
@@ -646,7 +645,7 @@ button.icon {
 @media (max-width: 380px) {
   .card { width: 38px; height: 54px; font-size: 16px; }
   .card.jester { font-size: 13px; }
-  .player-tile { padding: 6px 8px; flex: 1 1 calc(50% - 5px); }
+  .player-tile { padding: 6px 8px; }
   .player-tile .nickname { font-size: 12px; }
   .trick-area { min-height: 80px; padding: 10px; }
   .hand-area { padding: 10px; }
@@ -660,6 +659,7 @@ button.icon {
   .screen { padding: 10px 14px 16px; }
   #game:not([hidden]) { gap: 8px; }
 
+  .players-panel { grid-template-columns: repeat(3, 1fr); }
   .player-tile { padding: 6px 10px; gap: 1px; }
   .player-tile .nickname { font-size: 12px; }
   .player-tile .meta { font-size: 10.5px; }
