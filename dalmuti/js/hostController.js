@@ -11,6 +11,7 @@ import {
   applyPass,
   finishTaxPhase,
   publicView,
+  pickForcedLeadCard,
   RANK_TITLE,
 } from "./game.js";
 import { chooseAction, chooseDalmutiReturn } from "./aiPlayer.js";
@@ -24,6 +25,10 @@ const AI_TURN_FAST_MIN = 250;
 const AI_TURN_FAST_MAX = 500;
 const ROUND_END_DELAY_MS = 5500;
 const TAX_AUTO_DELAY_MS = 2500;
+// 인간 턴 제한 시간. 지나면 자동 패스(또는 강제 1장 송출).
+const HUMAN_TURN_TIMEOUT_MS = 30000;
+// 방을 나간 플레이어의 턴을 강제 진행할 때의 짧은 지연.
+const LEFT_AUTO_DELAY_MS = 350;
 
 export class HostController {
   constructor({ roomCode, players, publicChannel, onLocalStateChange }) {
@@ -34,9 +39,25 @@ export class HostController {
     this.state = createInitialState(players);
     this.privateChannels = {}; // { [playerId]: channel }
     this.aiTimer = null;
+    this.humanTurnTimer = null;
     this.advanceTimer = null;
     this.taxTimer = null;
+    this.leftPlayers = new Set(); // 방을 나간 인간 player id 들
     this.disposed = false;
+  }
+
+  // 인간 플레이어가 방을 나갔다는 신호. presence_leave 감지 시 room.js 에서 호출.
+  async markPlayerLeft(playerId) {
+    if (this.disposed) return;
+    if (this.leftPlayers.has(playerId)) return;
+    if (!this.state.players.find((p) => p.id === playerId)) return;
+    this.leftPlayers.add(playerId);
+    this.state.leftPlayers = [...this.leftPlayers];
+    await this.broadcastAll();
+    // 현재 그 사람 차례면 강제 진행
+    if (this.state.currentTurn === playerId && this.state.phase === "play") {
+      this.scheduleAutoTurn();
+    }
   }
 
   // 인간 플레이어가 입장하면 private 채널을 연다(호스트가 손패 송신용).
@@ -60,7 +81,7 @@ export class HostController {
     this.state = startNewRound(this.state);
     await this.broadcastAll();
     this.maybeAutoTax();
-    this.scheduleAITurn();
+    this.scheduleAutoTurn();
   }
 
   // tax 단계 진입 시: AI dalmuti 가 자동 픽 → finishTaxPhase 호출
@@ -104,7 +125,7 @@ export class HostController {
     this.taxTimer = setTimeout(async () => {
       this.state = finishTaxPhase(this.state);
       await this.broadcastAll();
-      this.scheduleAITurn();
+      this.scheduleAutoTurn();
     }, TAX_AUTO_DELAY_MS);
   }
 
@@ -126,7 +147,7 @@ export class HostController {
     if (allDone) {
       this.state = finishTaxPhase(this.state);
       await this.broadcastAll();
-      this.scheduleAITurn();
+      this.scheduleAutoTurn();
     } else {
       await this.broadcastAll();
     }
@@ -164,7 +185,7 @@ export class HostController {
     }
 
     await this.broadcastAll();
-    this.scheduleAITurn();
+    this.scheduleAutoTurn();
   }
 
   // 라운드의 남은 활성(=손패 있는) 플레이어가 모두 AI 인가?
@@ -176,26 +197,64 @@ export class HostController {
     return activeNonAI.length === 0;
   }
 
-  scheduleAITurn() {
+  // 통합 자동 진행기. 현재 턴이:
+  //  - AI → chooseAction 후 자동 액션 (정상/fast 속도)
+  //  - 나간 플레이어 → 즉시 강제 진행 (트릭이 있으면 패스, 없으면 최약 카드 1장)
+  //  - 인간 (활성) → 30s 타이머. 지나면 자동 패스/강제 송출.
+  scheduleAutoTurn() {
     if (this.disposed) return;
     clearTimeout(this.aiTimer);
+    clearTimeout(this.humanTurnTimer);
+    this.aiTimer = null;
+    this.humanTurnTimer = null;
+
     if (this.state.phase !== "play") return;
     const turn = this.state.currentTurn;
     if (!turn) return;
     const p = this.state.players.find((pp) => pp.id === turn);
-    if (!p || !p.isAI) return;
+    if (!p) return;
 
-    const fast = this._onlyAIsActive();
-    const min = fast ? AI_TURN_FAST_MIN : AI_TURN_DELAY_MIN;
-    const max = fast ? AI_TURN_FAST_MAX : AI_TURN_DELAY_MAX;
-    const delay = min + Math.floor(Math.random() * (max - min));
-    this.aiTimer = setTimeout(() => {
-      if (this.disposed) return;
-      const currentTurn = this.state.currentTurn;
-      if (currentTurn !== turn) return; // 상태가 바뀌었으면 재예약된 다른 타이머가 처리
-      const action = chooseAction(this.state, turn);
-      this.receiveAction(turn, action);
-    }, delay);
+    if (this.leftPlayers.has(turn)) {
+      // 나간 사람 → 짧은 지연 후 강제 액션
+      this.aiTimer = setTimeout(() => {
+        if (this.disposed || this.state.currentTurn !== turn) return;
+        this._executeForcedAction(turn);
+      }, LEFT_AUTO_DELAY_MS);
+      return;
+    }
+
+    if (p.isAI) {
+      const fast = this._onlyAIsActive();
+      const min = fast ? AI_TURN_FAST_MIN : AI_TURN_DELAY_MIN;
+      const max = fast ? AI_TURN_FAST_MAX : AI_TURN_DELAY_MAX;
+      const delay = min + Math.floor(Math.random() * (max - min));
+      this.aiTimer = setTimeout(() => {
+        if (this.disposed || this.state.currentTurn !== turn) return;
+        const action = chooseAction(this.state, turn);
+        this.receiveAction(turn, action);
+      }, delay);
+      return;
+    }
+
+    // 활성 인간 → 30s 시간 제한
+    this.humanTurnTimer = setTimeout(() => {
+      if (this.disposed || this.state.currentTurn !== turn) return;
+      this._executeForcedAction(turn);
+    }, HUMAN_TURN_TIMEOUT_MS);
+  }
+
+  // 트릭에 lead 있으면 패스, 없으면(리드 자리) 가장 약한 카드 1장.
+  _executeForcedAction(playerId) {
+    const trick = this.state.currentTrick;
+    if (trick.leadCount !== null) {
+      this.receiveAction(playerId, { type: "pass" });
+      return;
+    }
+    const player = this.state.players.find((p) => p.id === playerId);
+    const card = pickForcedLeadCard(player?.hand);
+    if (card !== null) {
+      this.receiveAction(playerId, { type: "play", cards: [card] });
+    }
   }
 
   async advanceRound() {
@@ -204,11 +263,17 @@ export class HostController {
     this.state = startNewRound(this.state);
     await this.broadcastAll();
     this.maybeAutoTax();
-    this.scheduleAITurn();
+    this.scheduleAutoTurn();
   }
 
   async broadcastAll() {
     if (this.disposed) return;
+    // 현재 턴이 시작된 시각 stamp (카운트다운 UI 용)
+    if (this.state.phase === "play" && this.state.currentTurn) {
+      this.state.turnStartedAt = Date.now();
+    } else {
+      this.state.turnStartedAt = 0;
+    }
     const pub = publicView(this.state);
     this.onLocalStateChange?.(this.state, pub);
     if (this.publicChannel.online) {
@@ -236,9 +301,11 @@ export class HostController {
 
   clearTimers() {
     clearTimeout(this.aiTimer);
+    clearTimeout(this.humanTurnTimer);
     clearTimeout(this.advanceTimer);
     clearTimeout(this.taxTimer);
     this.aiTimer = null;
+    this.humanTurnTimer = null;
     this.advanceTimer = null;
     this.taxTimer = null;
   }

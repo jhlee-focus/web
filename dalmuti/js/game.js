@@ -356,10 +356,12 @@ export function createInitialState(players) {
     })),
     seatOrder,
     finishedOrder: [],
+    leftPlayers: [],        // 도중에 방을 나간 playerId 들
     currentTurn: null,
     currentTrick: freshTrick(),
     taxState: null,
     lastEvent: null,
+    turnStartedAt: 0,       // 현재 턴이 시작된 시각 (ms epoch) — 카운트다운용
   };
 }
 
@@ -370,6 +372,7 @@ export function cloneState(state) {
     players: state.players.map((p) => ({ ...p, hand: [...p.hand] })),
     seatOrder: [...state.seatOrder],
     finishedOrder: [...state.finishedOrder],
+    leftPlayers: state.leftPlayers ? [...state.leftPlayers] : [],
     currentTrick: {
       ...state.currentTrick,
       passedThisTrick: [...state.currentTrick.passedThisTrick],
@@ -399,4 +402,12 @@ export function publicView(state) {
     rank: p.rank,
   }));
   return view;
+}
+
+// 강제 액션(나간 사람 또는 타임아웃)이 트릭 리드 위치에서 내야 할 카드.
+// 가장 약한(=숫자가 가장 높은) 카드 1장을 단독으로 낸다.
+export function pickForcedLeadCard(hand) {
+  if (!hand || hand.length === 0) return null;
+  const sorted = [...hand].sort((a, b) => a - b);
+  return sorted[sorted.length - 1];
 }
