@@ -367,10 +367,30 @@ client.addEventListener("private_changed", () => {
   renderAll();
 });
 
-client.addEventListener("host_left", () => {
-  showToast(els, "호스트가 방을 떠나 게임이 종료되었습니다.", 5000);
-  setTimeout(async () => {
-    await client.leave();
+// ================ 호스트 마이그레이션 ================
+// 호스트가 나가면 가장 먼저 들어온 사람이 자동으로 호스트가 됨.
+// 게임 중이었으면 라운드 abort 후 대기실로 (AI 슬롯 유지).
+client.addEventListener("became_host", (e) => {
+  const aiCount = e.detail?.aiSlotsCarried ?? 0;
+  const note = aiCount > 0 ? ` (AI ${aiCount}명 유지)` : "";
+  showToast(els, `당신이 새 호스트가 됐어요${note}`, 5000);
+  selection.clear();
+  taxSelection.clear();
+  showLobby();
+  showLobbySection("room");
+});
+
+client.addEventListener("host_changed", (e) => {
+  showToast(els, `${e.detail?.newHostNickname ?? "다른 분"}이(가) 새 호스트가 됐어요`, 4000);
+  selection.clear();
+  taxSelection.clear();
+  showLobby();
+  showLobbySection("room");
+});
+
+client.addEventListener("host_left_no_recovery", () => {
+  showToast(els, "방에 아무도 남지 않아 종료됐어요.", 5000);
+  setTimeout(() => {
     location.hash = "";
     showLobby();
     showLobbySection("entry");

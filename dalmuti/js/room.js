@@ -16,7 +16,7 @@ import { MIN_PLAYERS, MAX_PLAYERS } from "../config.js";
 
 // 클라이언트 이벤트:
 //   "lobby_changed", "game_started", "state_changed", "private_changed",
-//   "host_left", "joined", "error"
+//   "host_changed", "became_host", "host_left_no_recovery", "joined", "error"
 export class GameClient extends EventTarget {
   constructor() {
     super();
@@ -56,16 +56,20 @@ export class GameClient extends EventTarget {
   async createRoom() {
     this.role = "host";
     this.roomCode = generateRoomCode();
+    this._joinedAt = Date.now();
     await this._openPublicChannel();
     if (this.publicChannel.online) {
       await this.publicChannel.track({
         playerId: this.myId,
         nickname: this.nickname,
         isHost: true,
+        joinedAt: this._joinedAt,
       });
     }
     // 호스트도 자기 자신은 presentPlayers 에 직접 추가 (offline / online 둘 다)
-    this._refreshPresent([{ playerId: this.myId, nickname: this.nickname, isHost: true }]);
+    this._refreshPresent([
+      { playerId: this.myId, nickname: this.nickname, isHost: true, joinedAt: this._joinedAt },
+    ]);
     this.emit("joined", { role: "host", roomCode: this.roomCode });
     this.emit("lobby_changed");
   }
@@ -80,6 +84,7 @@ export class GameClient extends EventTarget {
     }
     this.role = "guest";
     this.roomCode = (code || "").toUpperCase();
+    this._joinedAt = Date.now();
     await this._openPublicChannel();
     this.privateChannel = await joinPrivateChannel(this.roomCode, this.myId, {
       onBroadcast: (event, payload) => this._onPrivate(event, payload),
@@ -89,6 +94,7 @@ export class GameClient extends EventTarget {
         playerId: this.myId,
         nickname: this.nickname,
         isHost: false,
+        joinedAt: this._joinedAt,
       });
     }
     this.emit("joined", { role: "guest", roomCode: this.roomCode });
@@ -131,8 +137,106 @@ export class GameClient extends EventTarget {
       }
     }
 
+    // 호스트가 presence 에서 사라졌으면 → 마이그레이션 (graceful 안 한 채로 끊긴 경우)
+    const prevHost = this.presentPlayers.find((p) => p.isHost);
+    const stillHasHost = unique.find((p) => p.isHost);
+    const hostDisappeared = prevHost && !stillHasHost && this.role === "guest";
+
     this.presentPlayers = unique;
     this.emit("lobby_changed");
+
+    if (hostDisappeared && !this._migrating) {
+      this._handleHostMigration();
+    }
+  }
+
+  // ============================================================
+  // 호스트 마이그레이션 — 호스트가 나가면 가장 먼저 들어온 사람이 새 호스트가 됨.
+  // 게임 중이었으면 라운드 abort → 대기실로 복귀 (AI 슬롯 유지).
+  // ============================================================
+  async _handleHostMigration() {
+    if (this._migrating) return;
+    this._migrating = true;
+    try {
+      // presence 안정화 대기
+      await new Promise((r) => setTimeout(r, 250));
+
+      // 후보 = 현재 presence 에 isHost 아닌 사람들 (이전 호스트 제외), joinedAt 오름차순
+      const candidates = this.presentPlayers
+        .filter((p) => !p.isHost)
+        .sort((a, b) => (a.joinedAt || 0) - (b.joinedAt || 0));
+
+      if (candidates.length === 0) {
+        // 남은 사람 없음 → 채널 정리하고 로비로
+        await this.leave();
+        this.emit("host_left_no_recovery");
+        return;
+      }
+
+      const newHostInfo = candidates[0];
+
+      // AI 슬롯 인계 (게임 진행 중이었으면 publicState 의 AI들, 아니면 기존 aiSlots)
+      let aiSlotsToCarry = [];
+      if (this.publicState?.players?.length) {
+        aiSlotsToCarry = this.publicState.players
+          .filter((p) => p.isAI)
+          .map((p) => ({ id: p.id, nickname: p.nickname, isAI: true }));
+      } else if (this.aiSlots?.length) {
+        aiSlotsToCarry = [...this.aiSlots];
+      }
+
+      // 기존 host 컨트롤러는 폐기 (내가 이전 host 였을 일은 없지만 안전상)
+      if (this.host) {
+        try { await this.host.dispose(); } catch {}
+        this.host = null;
+      }
+      // 게임 상태 리셋 → 대기실로
+      this.publicState = null;
+      this.myHand = [];
+      this.aiSlots = aiSlotsToCarry;
+
+      if (newHostInfo.playerId === this.myId) {
+        // 내가 새 호스트
+        this.role = "host";
+        if (this.publicChannel?.online) {
+          try {
+            await this.publicChannel.track({
+              playerId: this.myId,
+              nickname: this.nickname,
+              isHost: true,
+              joinedAt: this._joinedAt,
+            });
+          } catch {}
+        }
+        // 가져온 AI 슬롯을 다른 클라이언트에 다시 broadcast
+        this._broadcastRoomMeta();
+        this.emit("became_host", {
+          aiSlotsCarried: aiSlotsToCarry.length,
+          newHostNickname: this.nickname,
+        });
+      } else {
+        // 누군가 다른 사람이 호스트
+        this.role = "guest";
+        if (this.publicChannel?.online) {
+          try {
+            await this.publicChannel.track({
+              playerId: this.myId,
+              nickname: this.nickname,
+              isHost: false,
+              joinedAt: this._joinedAt,
+            });
+          } catch {}
+        }
+        this.emit("host_changed", { newHostNickname: newHostInfo.nickname });
+      }
+
+      this.emit("lobby_changed");
+      this.emit("state_changed");
+      this.emit("private_changed");
+    } finally {
+      // 마이그레이션 후 1초간 재실행 방지 (presence 잔여 이벤트가 또 트리거하지 않도록)
+      setTimeout(() => { this._migrating = false; }, 1000);
+    }
   }
 
   _onBroadcast(event, payload) {
@@ -157,7 +261,8 @@ export class GameClient extends EventTarget {
         this.host.submitDalmutiPick(payload.playerId, payload.cards);
       }
     } else if (event === "host_left") {
-      this.emit("host_left");
+      // 호스트가 정상 종료 broadcast → 마이그레이션 트리거
+      this._handleHostMigration();
     }
   }
 
