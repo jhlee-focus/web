@@ -1,7 +1,7 @@
 # 둥둥이 시계 (clock_twins)
 
-어린이를 위한 4개의 테마 아날로그 시계 모음 — **티니핑 · 포켓몬 · 태양계 · 공룡**.  
-각 시계는 12시 자리에 12개의 캐릭터(또는 행성/공룡)가 배치되고, 도감 모드에서 전체 라인업을 탐색할 수 있다.
+어린이를 위한 5개의 테마 아날로그 시계 모음 — **티니핑 · 포켓몬 · 태양계 · 공룡 · 스트레이키즈(SKZ)**.  
+각 시계는 12시 자리에 12개의 캐릭터(또는 행성/공룡/멤버)가 배치되고, 도감 모드에서 전체 라인업을 탐색할 수 있다.
 
 ## 빠른 실행
 
@@ -19,11 +19,12 @@ python -m http.server --bind 127.0.0.1 8000
 
 | 파일 | 시계 | 자산 폴더 | 데이터 |
 |---|---|---|---|
-| `index.html` | 4개 시계 카드 허브 | — | — |
+| `index.html` | 5개 시계 카드 허브 | — | — |
 | `teenieping.html` | 티니핑 시계 | `img_teenieping/` | `teenieping_list.js` |
 | `pokemon.html` | 포켓몬 시계 (9세대) | `img_pokemon/`, `img_pokemon/dot/` | `pokemon_data.js`, `pokemon_gen1.js` ~ `pokemon_gen9.js`, `pokemon_evolutions.js` |
 | `solar.html` | 태양계 시계 | `img_solar/` | `solar_data.js` |
 | `dinosaur.html` | 공룡 시계 (가사 ABC 26 + 시대별 56) | `img_dinosaur/` | `dinosaur_data.js` |
+| `skz.html` | SKZ 시계 (멤버 8 + SKZOO 8 페어) | `img_skz/` | `skz_data.js` |
 
 모든 페이지에 공통으로 들어가는 컴포넌트:
 - `osk.css` + `osk.js` — 한글 화면 키보드 (모바일 검색용)
