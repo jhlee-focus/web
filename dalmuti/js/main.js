@@ -25,6 +25,8 @@ const els = {
   nicknameInput: $("nickname-input"),
   continueBtn: $("continue-btn"),
   onlineStatusValue: $("online-status-value"),
+  joinViaLinkBanner: $("join-via-link-banner"),
+  joinViaLinkCode: $("join-via-link-code"),
 
   // 입장 선택 화면
   entryScreen: $("entry-screen"),
@@ -106,10 +108,16 @@ function init() {
   const savedStyle = localStorage.getItem("dalmuti.cardStyle") === "image" ? "image" : "simple";
   applyCardStyle(savedStyle, { skipRender: true });
 
-  // URL 해시에 방 코드 있으면 자동 채움 (#room=AB23CD)
+  // URL 해시에 방 코드 있으면 자동 채움 + 안내 배너 표시
   const m = location.hash.match(/room=([A-Z0-9]+)/i);
   if (m) {
-    els.roomCodeInput.value = m[1].toUpperCase();
+    const code = m[1].toUpperCase();
+    els.roomCodeInput.value = code;
+    if (isOnlineMode()) {
+      els.joinViaLinkBanner.hidden = false;
+      els.joinViaLinkCode.textContent = code;
+      els.continueBtn.textContent = "이 방으로 입장";
+    }
   }
 }
 
