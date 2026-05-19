@@ -19,6 +19,9 @@ import { joinPrivateChannel } from "./realtime.js";
 // AI 봇 액션 간 텀. 사용자가 흐름을 눈으로 따라가기 편하도록 여유있게.
 const AI_TURN_DELAY_MIN = 1500;
 const AI_TURN_DELAY_MAX = 2800;
+// 인간 플레이어가 전부 라운드를 끝낸 상태에서는 빠르게 진행.
+const AI_TURN_FAST_MIN = 250;
+const AI_TURN_FAST_MAX = 500;
 const ROUND_END_DELAY_MS = 5500;
 const TAX_AUTO_DELAY_MS = 2500;
 
@@ -164,6 +167,15 @@ export class HostController {
     this.scheduleAITurn();
   }
 
+  // 라운드의 남은 활성(=손패 있는) 플레이어가 모두 AI 인가?
+  // 모든 인간이 이미 finishedOrder 에 들어가 있으면 → "관전 모드" → AI 끼리는 빠르게 진행.
+  _onlyAIsActive() {
+    const activeNonAI = this.state.players.filter(
+      (p) => !p.isAI && !this.state.finishedOrder.includes(p.id),
+    );
+    return activeNonAI.length === 0;
+  }
+
   scheduleAITurn() {
     if (this.disposed) return;
     clearTimeout(this.aiTimer);
@@ -173,8 +185,10 @@ export class HostController {
     const p = this.state.players.find((pp) => pp.id === turn);
     if (!p || !p.isAI) return;
 
-    const delay =
-      AI_TURN_DELAY_MIN + Math.floor(Math.random() * (AI_TURN_DELAY_MAX - AI_TURN_DELAY_MIN));
+    const fast = this._onlyAIsActive();
+    const min = fast ? AI_TURN_FAST_MIN : AI_TURN_DELAY_MIN;
+    const max = fast ? AI_TURN_FAST_MAX : AI_TURN_DELAY_MAX;
+    const delay = min + Math.floor(Math.random() * (max - min));
     this.aiTimer = setTimeout(() => {
       if (this.disposed) return;
       const currentTurn = this.state.currentTurn;
