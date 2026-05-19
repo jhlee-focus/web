@@ -13,6 +13,7 @@
   <a href="../" class="back-link" aria-label="홈으로">←</a>
   <h1>달무티</h1>
   <span class="header-tag">The Great Dalmuti</span>
+  <button id="help-btn" class="help-btn" type="button">플레이 방법</button>
 </header>
 
 <main id="app">
@@ -131,11 +132,82 @@
   </div>
 </section>
 
+<!-- ============= 플레이 방법 모달 ============= -->
+<div id="help-modal" class="modal" hidden>
+  <div class="modal-card help-card">
+    <div class="help-head">
+      <h3>달무티 플레이 방법</h3>
+      <button id="help-close-btn" class="ghost icon" aria-label="닫기">×</button>
+    </div>
+
+    <section class="help-section">
+      <h4>🎯 게임 목표</h4>
+      <p>손에 든 카드를 가장 먼저 모두 내려놓는 사람이 다음 라운드의 <strong>Greater Dalmuti(왕)</strong>가 됩니다. 꼴찌는 <strong>Greater Peon(농노)</strong>가 되어 다음 라운드에 세금을 바쳐야 해요.</p>
+    </section>
+
+    <section class="help-section">
+      <h4>🃏 카드 구성 (총 80장)</h4>
+      <ul>
+        <li><strong>1~12 숫자 카드</strong>: 숫자 N이 적힌 카드가 N장씩 (1은 1장, 12는 12장). 낮은 숫자일수록 강함.</li>
+        <li><strong>광대(Joker) 2장</strong>: 와일드카드. 다른 숫자와 함께 내면 그 숫자처럼 취급.</li>
+      </ul>
+    </section>
+
+    <section class="help-section">
+      <h4>👥 인원 / 시작</h4>
+      <p>4~8명이 함께 플레이. 카드는 균등 분배. <strong>첫 라운드</strong>는 광대 카드를 가진 사람이 시작.</p>
+    </section>
+
+    <section class="help-section">
+      <h4>💰 세금/조공 (2라운드부터)</h4>
+      <ul>
+        <li><strong>Greater Peon</strong>(꼴찌) → <strong>Greater Dalmuti</strong>(1등): 가장 좋은 카드(낮은 숫자) 2장 자동 송출. 달무티는 원하는 카드 2장 답례.</li>
+        <li><strong>Lesser Peon</strong>(꼴찌 직전) → <strong>Lesser Dalmuti</strong>(2등): 같은 식으로 1장.</li>
+        <li>중간 계급(Merchant)은 세금 없음.</li>
+      </ul>
+    </section>
+
+    <section class="help-section">
+      <h4>🎴 플레이 진행</h4>
+      <ul>
+        <li>리드(첫 손) 위치에서: 같은 숫자 N장(또는 광대 섞기) 묶음 내기. 1장도 OK, 5장도 OK.</li>
+        <li>다음 사람들: 같은 N장이지만 <strong>더 낮은 숫자</strong>로 깨거나 패스.</li>
+        <li>광대는 다른 숫자와 함께 내면 그 숫자처럼 취급. 광대만 N장 내면 "1"로 취급(최강).</li>
+        <li>모두 패스하면 마지막에 낸 사람이 다음 트릭을 리드.</li>
+        <li>손패를 다 털면 그 라운드 순위가 결정됨.</li>
+      </ul>
+    </section>
+
+    <section class="help-section">
+      <h4>🏆 계급 (4명 기준)</h4>
+      <ul>
+        <li>1등: Greater Dalmuti (위대한 달무티)</li>
+        <li>2등: Lesser Dalmuti</li>
+        <li>(5명 이상은 중간 = Merchant)</li>
+        <li>꼴찌 직전: Lesser Peon</li>
+        <li>꼴찌: Greater Peon</li>
+      </ul>
+    </section>
+
+    <section class="help-section">
+      <h4>⏱ 이 버전의 룰</h4>
+      <ul>
+        <li>인간 턴 제한시간 <strong>30초</strong> — 지나면 자동 패스/강제 송출.</li>
+        <li>도중에 나간 플레이어는 자동으로 패스 처리.</li>
+        <li>호스트가 떠나면 가장 먼저 입장한 사람이 자동으로 새 호스트가 됨.</li>
+        <li>혁명/대혁명/자선 룰은 아직 미구현(MVP).</li>
+      </ul>
+    </section>
+
+    <button id="help-close-btn-bottom" class="primary big">알겠어요</button>
+  </div>
+</div>
+
 <!-- ============= 토스트 ============= -->
 <div id="toast" class="toast" hidden></div>
 
 </main>
 
-<script type="module" src="js/main.js?v=9"></script>
+<script type="module" src="js/main.js?v=10"></script>
 </body>
 </html>
