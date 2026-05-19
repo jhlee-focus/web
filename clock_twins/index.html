@@ -26,12 +26,12 @@
     text-align: center;
   }
   .cards {
-    /* 4개 카드 — 데스크톱·태블릿은 1×4, 좁은 화면은 2×2 그리드로 자동 폴백 */
+    /* 5개 카드 — 데스크톱은 1×5, 중간 화면은 3×2, 모바일은 2×3 그리드 */
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: clamp(12px, 2.5vw, 28px);
+    grid-template-columns: repeat(5, 1fr);
+    gap: clamp(12px, 2.5vw, 24px);
     width: 100%;
-    max-width: 1100px;
+    max-width: 1280px;
   }
   .card {
     aspect-ratio: 1 / 1;
@@ -74,6 +74,9 @@
   .card.dinosaur { --card-bg: linear-gradient(160deg, #1b3d2b, #2e5f3e 35%, #5c3a14 80%, #3a2812); }
   .card.dinosaur { box-shadow: 0 8px 28px rgba(27,61,43,0.4), inset 0 0 0 2px rgba(255,183,77,0.5); }
   .card.dinosaur:hover { box-shadow: 0 16px 40px rgba(27,61,43,0.6), inset 0 0 0 2px rgba(255,183,77,0.85); }
+  .card.skz { --card-bg: linear-gradient(160deg, #0d0d1a, #1a1a2e 35%, #2d1a2e 75%, #1a0d14); }
+  .card.skz { box-shadow: 0 8px 28px rgba(13,13,26,0.5), inset 0 0 0 2px rgba(255,23,68,0.55); }
+  .card.skz:hover { box-shadow: 0 16px 40px rgba(13,13,26,0.7), inset 0 0 0 2px rgba(255,23,68,0.9); }
   .card img {
     width: 50%;
     aspect-ratio: 1;
@@ -94,6 +97,8 @@
   .card.solar .card-sub { color: rgba(255,213,79,0.75); }
   .card.dinosaur .card-label { color: #ffb74d; text-shadow: 0 0 12px rgba(255,183,77,0.5), 0 1px 3px rgba(0,0,0,0.4); }
   .card.dinosaur .card-sub { color: rgba(255,183,77,0.78); }
+  .card.skz .card-label { color: #ff1744; text-shadow: 0 0 12px rgba(255,23,68,0.6), 0 1px 3px rgba(0,0,0,0.5); }
+  .card.skz .card-sub { color: rgba(255,214,0,0.8); }
   .card-sub {
     font-size: clamp(12px, 1.6vw, 14px);
     color: rgba(0,0,0,0.55);
@@ -114,8 +119,12 @@
     90% { opacity: 0.18; }
     100% { transform: translateY(-10vh) rotate(360deg); opacity: 0; }
   }
-  /* 좁은 화면: 1×4 그리드가 너무 좁아져서 2×2로 폴백 */
-  @media (max-width: 700px) {
+  /* 중간 화면: 5×1 그리드가 좁아져서 3×2로 폴백 (마지막 줄 2개) */
+  @media (max-width: 950px) {
+    .cards { grid-template-columns: repeat(3, 1fr); max-width: 95vw; }
+  }
+  /* 좁은 화면: 2×3 폴백 */
+  @media (max-width: 600px) {
     .cards { grid-template-columns: repeat(2, 1fr); max-width: 95vw; }
     .card { aspect-ratio: 1 / 1; max-height: none; }
     .card img { width: 50%; }
@@ -148,10 +157,15 @@
     <div class="card-label">공룡 시계</div>
     <div class="card-sub">쿵쾅쿵쾅, 공룡들이 살아나</div>
   </a>
+  <a class="card skz" href="skz.html">
+    <img src="img_skz/SKZ-09_울프찬.webp" alt="SKZ 시계" draggable="false">
+    <div class="card-label">SKZ 시계</div>
+    <div class="card-sub">스트레이키즈와 SKZOO 친구들</div>
+  </a>
 </div>
 <script>
-  // 떠다니는 하트 + 포켓볼 + 별/행성 이모지
-  var symbols = ['💗','💖','💕','✨','⚪','🔴','🪐','🌟','⭐','☄️','💫','🦖','🦕','🌿','🦴'];
+  // 떠다니는 하트 + 포켓볼 + 별/행성 + 공룡 + SKZ 이모지
+  var symbols = ['💗','💖','💕','✨','⚪','🔴','🪐','🌟','⭐','☄️','💫','🦖','🦕','🌿','🦴','🎵','🧭','⚡'];
   for (var i = 0; i < 18; i++) {
     var el = document.createElement('div');
     el.className = 'floating';

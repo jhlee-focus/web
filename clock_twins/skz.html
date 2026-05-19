@@ -1,0 +1,1089 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>SKZ 시계</title>
+<link rel="stylesheet" href="osk.css">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; overflow: hidden; }
+  body {
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+  body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    /* Nachimbong: 검정/네이비/와인 다크 그라디언트 */
+    background: linear-gradient(135deg, #0d0d1a 0%, #1a1a2e 30%, #2d1a2e 70%, #1a0d14 100%);
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    color: #fff;
+  }
+  h1 {
+    color: #ff1744;
+    text-shadow: 0 0 12px rgba(255,23,68,0.45), 0 1px 3px rgba(0,0,0,0.6);
+    letter-spacing: 0.18em;
+  }
+  .clock-wrapper { position: relative; }
+  .clock-face {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    /* Nachimbong: 흰·실버 손잡이 */
+    background: radial-gradient(circle at 35% 35%, #ffffff 0%, #f5f5f5 30%, #cfd8dc 65%, #78909c 100%);
+    box-shadow:
+      0 0 0 calc(var(--s) * 0.013) rgba(213,0,0,0.55),
+      0 0 0 calc(var(--s) * 0.026) rgba(255,213,0,0.25),
+      0 calc(var(--s) * 0.013) calc(var(--s) * 0.053) rgba(0,0,0,0.5),
+      inset 0 0 calc(var(--s) * 0.1) rgba(120,144,156,0.25);
+  }
+  .hour-marker {
+    position: absolute;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 35;
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.3s ease;
+    cursor: pointer;
+  }
+  .hour-marker:hover {
+    transform: translate(-50%, -50%) scale(1.35);
+    z-index: 50;
+    filter: drop-shadow(0 4px 12px rgba(255,23,68,0.55));
+  }
+  .hour-marker img {
+    width: 100%; height: 100%; object-fit: contain;
+    filter: drop-shadow(0 2px 6px rgba(0,0,0,0.45));
+  }
+  .hour-marker .char-name {
+    position: absolute; bottom: -1.6em; left: 50%;
+    transform: translateX(-50%);
+    font-weight: 700; color: #ff1744;
+    white-space: nowrap; opacity: 0;
+    transition: opacity 0.3s ease;
+    text-shadow: 0 0 4px rgba(0,0,0,0.9), 0 0 8px rgba(0,0,0,0.7), 0 1px 2px rgba(0,0,0,0.8);
+    pointer-events: none;
+  }
+  .hour-marker:hover .char-name { opacity: 1; }
+  .hour-number {
+    position: absolute; font-weight: 800;
+    color: rgba(33, 33, 33, 0.75);
+    transform: translate(-50%, -50%);
+    z-index: 5; pointer-events: none;
+  }
+  .hand {
+    position: absolute; bottom: 50%; left: 50%;
+    transform-origin: bottom center;
+    z-index: 30; will-change: transform;
+  }
+  .hand-hour {
+    height: 22%;
+    background: linear-gradient(to top, #d50000, #ff5252);
+    box-shadow: 0 0 8px rgba(213,0,0,0.5);
+  }
+  .hand-minute {
+    height: 30%;
+    background: linear-gradient(to top, #1a1a1a, #424242);
+    box-shadow: 0 0 6px rgba(0,0,0,0.5);
+  }
+  .hand-second {
+    height: 35%;
+    background: linear-gradient(to top, #ffd600, #ffeb3b);
+    box-shadow: 0 0 4px rgba(255,214,0,0.6);
+  }
+  .center-dot {
+    position: absolute; top: 50%; left: 50%;
+    border-radius: 50%;
+    background: radial-gradient(circle, #fff, #d50000);
+    box-shadow: 0 0 12px rgba(213,0,0,0.7);
+    z-index: 40;
+  }
+  .digital-time {
+    font-weight: 700; color: #ff1744;
+    letter-spacing: 0.2em;
+    background: rgba(255,255,255,0.06);
+    border-radius: 999px;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 2px 12px rgba(0,0,0,0.4), inset 0 0 0 1px rgba(255,23,68,0.3);
+  }
+  .digital-row { position: relative; display: inline-block; }
+  .credit {
+    position: absolute; left: calc(100% + 0.5em); top: 50%;
+    transform: translateY(-50%);
+    color: #ff1744; font-weight: 700; letter-spacing: 0.02em;
+    pointer-events: none; white-space: nowrap;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.6);
+  }
+  .sparkle {
+    position: absolute; border-radius: 50%;
+    background: rgba(255,214,0,0.85);
+    animation: sparkle 3s infinite ease-in-out;
+    z-index: 2; pointer-events: none;
+  }
+  @keyframes sparkle {
+    0%, 100% { opacity: 0; transform: scale(0); }
+    50% { opacity: 1; transform: scale(1); }
+  }
+  .floating-heart {
+    position: fixed; opacity: 0.2;
+    animation: floatUp linear infinite;
+    pointer-events: none; z-index: 0;
+  }
+  @keyframes floatUp {
+    0% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
+    10% { opacity: 0.2; }
+    90% { opacity: 0.2; }
+    100% { transform: translateY(-10vh) rotate(360deg); opacity: 0; }
+  }
+  .hour-marker.active img {
+    filter: drop-shadow(0 0 10px rgba(255,23,68,0.7)) drop-shadow(0 2px 6px rgba(0,0,0,0.45));
+  }
+  .heart-pulse {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none; z-index: -1;
+  }
+  .heart-pulse .pulse-ring {
+    border-radius: 50%;
+    border: 2px solid rgba(255,23,68,0.55);
+    animation: pulseRing 2s infinite ease-out;
+  }
+  @keyframes pulseRing {
+    0% { transform: scale(0.6); opacity: 0.85; }
+    100% { transform: scale(1.7); opacity: 0; }
+  }
+  .tick {
+    position: absolute;
+    background: rgba(33,33,33,0.4);
+    transform-origin: center var(--radius);
+    border-radius: 1px;
+    z-index: 1;
+  }
+
+  .mode-controls {
+    display: flex; align-items: center; gap: 8px; z-index: 50;
+  }
+  .mode-btn {
+    border: 2px solid rgba(255,23,68,0.4);
+    background: rgba(255,255,255,0.06);
+    color: #ff1744; font-weight: 700;
+    border-radius: 999px;
+    cursor: pointer;
+    backdrop-filter: blur(10px);
+    transition: all 0.3s ease;
+    outline: none;
+  }
+  .mode-btn:hover { background: rgba(255,23,68,0.15); }
+  .mode-btn.mode-active {
+    background: linear-gradient(135deg, #d50000, #ff5252);
+    color: #fff;
+    border-color: transparent;
+    box-shadow: 0 2px 12px rgba(213,0,0,0.55);
+  }
+  .refresh-btn {
+    border: 2px solid rgba(255,214,0,0.4);
+    background: rgba(255,255,255,0.06);
+    color: #ffd600;
+    border-radius: 50%;
+    cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center;
+    backdrop-filter: blur(10px);
+    transition: all 0.3s ease, transform 0.5s ease;
+    outline: none;
+  }
+  .refresh-btn:hover { background: rgba(255,214,0,0.18); transform: rotate(180deg); }
+  .refresh-btn:active { transform: rotate(360deg); }
+
+  /* 도감 모드 */
+  .dex-wrap {
+    width: 92vw; max-width: 1100px;
+    display: flex; flex-direction: column; align-items: stretch;
+    gap: 10px;
+    height: calc(100dvh - 130px);
+    min-height: 0;
+  }
+  .sort-tabs {
+    display: flex; gap: 8px;
+    justify-content: center;
+    padding: 2px 0 4px;
+    flex-wrap: wrap;
+  }
+  .sort-tab {
+    border: 2px solid rgba(255,23,68,0.35);
+    background: rgba(255,255,255,0.06);
+    color: #ff1744;
+    font-weight: 700; font-size: 13px;
+    border-radius: 999px;
+    padding: 6px 14px;
+    cursor: pointer;
+    backdrop-filter: blur(10px);
+    transition: all 0.25s ease;
+    outline: none;
+    white-space: nowrap;
+  }
+  .sort-tab:hover { background: rgba(255,23,68,0.18); }
+  .sort-tab.active {
+    background: linear-gradient(135deg, #d50000, #ff5252);
+    color: #fff;
+    border-color: transparent;
+    box-shadow: 0 2px 8px rgba(213,0,0,0.55);
+  }
+  .dex-section { margin-bottom: 22px; }
+  .dex-section-title {
+    font-weight: 800;
+    color: #ff1744;
+    font-size: 18px;
+    letter-spacing: 0.04em;
+    padding: 8px 12px 6px;
+    border-bottom: 2px solid rgba(255,23,68,0.35);
+    margin-bottom: 10px;
+    background: rgba(0,0,0,0.35);
+    backdrop-filter: blur(6px);
+    border-radius: 8px 8px 0 0;
+  }
+  .dex-section-title .count {
+    color: #ffd600; font-weight: 600; font-size: 13px;
+    margin-left: 8px; opacity: 0.9;
+    letter-spacing: 0;
+  }
+  .dex-container {
+    width: 100%;
+    flex: 1 1 0;
+    min-height: 0;
+    overflow-y: auto; overflow-x: hidden;
+    padding: 8px;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255,23,68,0.3) transparent;
+  }
+  .dex-container::-webkit-scrollbar { width: 6px; }
+  .dex-container::-webkit-scrollbar-thumb { background: rgba(255,23,68,0.3); border-radius: 3px; }
+  .dex-grid {
+    display: grid;
+    gap: 12px;
+    padding: 6px 4px;
+  }
+  /* 페어 모드는 멤버↔SKZOO 2-칼럼 카드 */
+  .pair-grid {
+    display: grid;
+    gap: 14px;
+    padding: 6px 4px;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  }
+  .pair-card {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px;
+    background: rgba(0,0,0,0.35);
+    border: 1.5px solid rgba(255,23,68,0.28);
+    border-radius: 14px;
+    backdrop-filter: blur(6px);
+  }
+  .pair-card .pair-side {
+    flex: 1 1 0;
+    display: flex; flex-direction: column; align-items: center;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+  }
+  .pair-card .pair-side:hover { transform: scale(1.05); }
+  .pair-card .pair-side img {
+    width: 96px; height: 96px; object-fit: contain;
+    filter: drop-shadow(0 2px 8px rgba(0,0,0,0.5));
+  }
+  .pair-card .pair-side .pair-name {
+    font-weight: 700; color: #ffe5b3;
+    font-size: 13px; margin-top: 4px;
+    text-align: center;
+  }
+  .pair-card .pair-link {
+    font-size: 22px; color: #ff1744;
+    opacity: 0.7;
+    user-select: none;
+  }
+  .dex-item {
+    display: flex; flex-direction: column;
+    align-items: center;
+    padding: 8px;
+    background: rgba(0,0,0,0.3);
+    border: 1.5px solid rgba(255,23,68,0.22);
+    border-radius: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    backdrop-filter: blur(4px);
+  }
+  .dex-item:hover {
+    border-color: rgba(255,23,68,0.65);
+    background: rgba(213,0,0,0.16);
+    transform: translateY(-3px);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.45);
+  }
+  .dex-item.dex-found-flash {
+    animation: foundFlash 0.7s ease-out;
+  }
+  @keyframes foundFlash {
+    0% { box-shadow: 0 0 0 0 rgba(255,214,0,0.85); }
+    100% { box-shadow: 0 0 0 18px rgba(255,214,0,0); }
+  }
+  .dex-img-wrap {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .dex-img-wrap img {
+    max-width: 100%; max-height: 100%;
+    object-fit: contain;
+    filter: drop-shadow(0 2px 8px rgba(0,0,0,0.45));
+  }
+  .dex-item .dex-name {
+    font-weight: 700; color: #ffe5b3;
+    text-align: center; white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis;
+    max-width: 100%; margin-top: 4px;
+  }
+  .dex-item .dex-en {
+    font-style: italic;
+    color: rgba(255,229,179,0.62);
+    font-size: 10px; margin-top: 1px;
+    max-width: 100%;
+    white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis;
+    letter-spacing: 0.2px;
+  }
+
+  /* 도감 오버레이 */
+  .dex-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.82);
+    backdrop-filter: blur(10px);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: safe center;
+    padding: 4vh 16px 8vh;
+    overflow-y: auto;
+    z-index: 1000;
+    cursor: pointer;
+    animation: fadeIn 0.2s ease;
+  }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes popIn {
+    0% { transform: scale(0.7); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  .dex-overlay-imgwrap { flex-shrink: 0; }
+  .dex-overlay img {
+    max-width: 42vmin; max-height: 42vmin;
+    object-fit: contain;
+    filter: drop-shadow(0 6px 24px rgba(255,23,68,0.3)) drop-shadow(0 4px 16px rgba(0,0,0,0.6));
+    animation: popIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .dex-overlay-name {
+    color: #ff1744; font-weight: 800; margin-top: 14px;
+    text-shadow: 0 2px 12px rgba(0,0,0,0.85);
+    font-size: clamp(20px, 4vmin, 32px);
+    animation: popIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .dex-overlay-en {
+    color: rgba(255,229,179,0.72); font-style: italic; font-weight: 600;
+    margin-top: 4px;
+    font-size: clamp(13px, 2.4vmin, 17px);
+    text-shadow: 0 1px 8px rgba(0,0,0,0.6);
+    letter-spacing: 0.3px;
+    animation: popIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .info-chips {
+    display: flex; flex-wrap: wrap;
+    gap: 6px; margin-top: 12px;
+    justify-content: center; max-width: 90vw;
+    animation: popIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .info-chip {
+    padding: 5px 12px;
+    border-radius: 999px;
+    font-size: clamp(11px, 1.8vmin, 14px);
+    font-weight: 700;
+    color: #fff;
+    white-space: nowrap;
+  }
+  .info-chip.kind-멤버  { background: linear-gradient(135deg, #d50000, #ff5252); }
+  .info-chip.kind-SKZOO { background: linear-gradient(135deg, #fbc02d, #ffd600); color: #1a1a1a; }
+  .info-chip.role       { background: linear-gradient(135deg, #424242, #757575); }
+  .info-chip.species    { background: linear-gradient(135deg, #6a1b9a, #ce93d8); }
+  .info-chip.origin     { background: linear-gradient(135deg, #1565c0, #64b5f6); }
+  .info-chip.year       { background: linear-gradient(135deg, #00838f, #4dd0e1); }
+  .blurb {
+    color: #fff;
+    margin-top: 14px;
+    font-size: clamp(13px, 2.2vmin, 16px);
+    line-height: 1.6;
+    text-align: center;
+    max-width: 76vmin;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.7);
+    animation: popIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .pair-link-row {
+    margin-top: 14px;
+    display: flex;
+    align-items: center; gap: 10px;
+    font-size: clamp(12px, 2vmin, 15px);
+    color: rgba(255,229,179,0.82);
+    animation: popIn 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .pair-link-row button {
+    border: 1.5px solid rgba(255,23,68,0.5);
+    background: rgba(213,0,0,0.18);
+    color: #ff5252;
+    font-weight: 700;
+    border-radius: 999px;
+    padding: 6px 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .pair-link-row button:hover {
+    background: rgba(213,0,0,0.45);
+    color: #fff;
+  }
+
+  /* 도감 검색 행 (홈 버튼·기본 모드 같은 외부 chrome 유지) */
+  .dex-search-row {
+    display: flex; align-items: center; gap: 8px;
+    width: 100%;
+  }
+  .dex-search-input {
+    flex: 1;
+    padding: 10px 16px;
+    border: 2px solid rgba(255,23,68,0.4);
+    background: rgba(255,255,255,0.06);
+    color: #fff;
+    border-radius: 999px;
+    font-size: 14px;
+    outline: none;
+    backdrop-filter: blur(10px);
+    transition: border-color 0.2s ease;
+  }
+  .dex-search-input::placeholder { color: rgba(255,255,255,0.45); }
+  .dex-search-input:focus { border-color: rgba(255,23,68,0.85); }
+  .dex-search-input.error { border-color: #ff1744; background: rgba(255,23,68,0.18); }
+  @keyframes shakeX {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-6px); }
+    40% { transform: translateX(6px); }
+    60% { transform: translateX(-4px); }
+    80% { transform: translateX(4px); }
+  }
+  .shake-x { animation: shakeX 0.4s ease-out; }
+  .dex-search-msg {
+    margin-left: 8px;
+    color: #ff5252;
+    font-size: 12px;
+    font-weight: 600;
+    min-height: 1em;
+  }
+  .dex-search-btn {
+    width: 38px; height: 38px;
+    border: 0; border-radius: 50%;
+    background: linear-gradient(135deg, #d50000, #ff5252);
+    color: #fff; font-weight: 700;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  /* 홈 버튼 */
+  .home-btn {
+    position: fixed; top: 14px; left: 14px;
+    z-index: 100;
+    border: 2px solid rgba(255,214,0,0.45);
+    background: rgba(255,255,255,0.06);
+    color: #ffd600; font-weight: 700;
+    border-radius: 999px;
+    padding: 6px 14px;
+    cursor: pointer;
+    backdrop-filter: blur(10px);
+    text-decoration: none;
+    font-size: 13px;
+  }
+  .home-btn:hover { background: rgba(255,214,0,0.18); }
+</style>
+</head>
+<body>
+
+<a href="index.html" class="home-btn">🏠 홈으로</a>
+
+<h1 id="title">🎵 SKZ 시계 🎵</h1>
+
+<div class="mode-controls" id="modeControls">
+  <button id="btnRandom" class="mode-btn mode-active">🎲 전체 모드</button>
+  <button id="btnDex"    class="mode-btn">📒 도감 모드</button>
+  <button id="btnRefresh" class="refresh-btn" title="새로 섞기">⟳</button>
+</div>
+
+<!-- 도감 모드 -->
+<div id="dexWrap" class="dex-wrap" style="display:none">
+  <div class="sort-tabs">
+    <button id="btnDexPair"   class="sort-tab active">🌟 페어 (8쌍)</button>
+    <button id="btnDexMember" class="sort-tab">👥 멤버</button>
+    <button id="btnDexSkzoo"  class="sort-tab">🐺 SKZOO</button>
+  </div>
+  <div class="dex-search-row">
+    <input type="text" id="dexSearchInput" class="dex-search-input"
+           placeholder="이름으로 찾기 (예: 방찬, Bang Chan, 울프찬)">
+    <button id="dexSearchBtn" class="dex-search-btn" aria-label="검색">🔍</button>
+    <span id="dexSearchMsg" class="dex-search-msg"></span>
+  </div>
+  <div id="dexContainer" class="dex-container"></div>
+</div>
+
+<!-- 도감 오버레이 -->
+<div id="dexOverlay" class="dex-overlay" style="display:none">
+  <div class="dex-overlay-imgwrap" id="dexOverlayImgWrap">
+    <img id="dexOverlayImg" src="" alt="">
+  </div>
+  <div id="dexOverlayName" class="dex-overlay-name"></div>
+  <div id="dexOverlayChips" class="info-chips"></div>
+  <div id="dexOverlayBlurb" class="blurb"></div>
+  <div id="dexOverlayPair" class="pair-link-row"></div>
+</div>
+
+<!-- 시계 -->
+<div class="clock-wrapper" id="clockWrapper">
+  <div class="clock-face" id="clockFace"></div>
+</div>
+
+<div class="digital-row" id="digitalRow">
+  <div class="digital-time" id="digitalTime"></div>
+  <span class="credit">Stray Kids</span>
+</div>
+
+<script src="skz_data.js"></script>
+<script src="osk.js"></script>
+<script>
+'use strict';
+
+// ── 공용 유틸 (P1 패턴 그대로) ────────────────────────────────
+function cssEscape(s) {
+  if (window.CSS && typeof window.CSS.escape === 'function') return window.CSS.escape(s);
+  return String(s).replace(/[^a-zA-Z0-9_\- -￿]/g, function(c) { return '\\' + c; });
+}
+function normalizeName(s) {
+  return String(s || '').toLowerCase().replace(/[\s()\[\]{}\-_&·./]/g, '');
+}
+var IMG_PLACEHOLDER = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" fill="%23ffffff" fill-opacity="0.08" rx="8"/><text x="32" y="44" text-anchor="middle" font-size="32" font-family="system-ui">🎵</text></svg>';
+function attachImgFallback(img) {
+  img.onerror = function () {
+    if (img.__fb) return;
+    img.__fb = true;
+    img.src = IMG_PLACEHOLDER;
+  };
+}
+
+// ── 모드 ────────────────────────────────────────────────────
+var currentMode = 'random';   // 'random' | 'dex'
+var dexSubmode  = 'pair';     // 'pair' | 'member' | 'skzoo'
+var characters = [];          // 시계 마커에 쓰이는 현재 12
+
+function getRandomCharacters() {
+  var shuffled = allSkz.slice();
+  for (var i = shuffled.length - 1; i > 0; i--) {
+    var j = Math.floor(Math.random() * (i + 1));
+    var t = shuffled[i]; shuffled[i] = shuffled[j]; shuffled[j] = t;
+  }
+  return shuffled.slice(0, 12).map(function (c, i) {
+    return Object.assign({}, c, { hour: i + 1 });
+  });
+}
+
+function setMode(mode) {
+  currentMode = mode;
+  document.getElementById('btnRandom').classList.toggle('mode-active', mode === 'random');
+  document.getElementById('btnDex').classList.toggle('mode-active', mode === 'dex');
+
+  var clockWrapper = document.getElementById('clockWrapper');
+  var digitalRow   = document.getElementById('digitalRow');
+  var dexWrap      = document.getElementById('dexWrap');
+  var refresh      = document.getElementById('btnRefresh');
+
+  if (mode === 'dex') {
+    clockWrapper.style.display = 'none';
+    digitalRow.style.display = 'none';
+    dexWrap.style.display = 'flex';
+    refresh.style.display = 'none';
+    buildDex();
+  } else {
+    clockWrapper.style.display = 'block';
+    digitalRow.style.display = 'inline-block';
+    dexWrap.style.display = 'none';
+    refresh.style.display = 'inline-flex';
+    resetDexSearchUI();
+    characters = getRandomCharacters();
+    layout();
+  }
+}
+
+function setDexSubmode(sm) {
+  dexSubmode = sm;
+  document.getElementById('btnDexPair').classList.toggle('active',   sm === 'pair');
+  document.getElementById('btnDexMember').classList.toggle('active', sm === 'member');
+  document.getElementById('btnDexSkzoo').classList.toggle('active',  sm === 'skzoo');
+  var dc = document.getElementById('dexContainer');
+  dc.dataset.built = '';
+  dc.innerHTML = '';
+  buildDex();
+}
+
+function resetDexSearchUI() {
+  var inp = document.getElementById('dexSearchInput');
+  var msg = document.getElementById('dexSearchMsg');
+  if (inp) { inp.value = ''; inp.classList.remove('error', 'shake-x'); }
+  if (msg) msg.textContent = '';
+}
+
+// ── 도감 빌드 ───────────────────────────────────────────────
+function buildDex() {
+  var container = document.getElementById('dexContainer');
+  if (container.dataset.built === '1') return;
+  container.innerHTML = '';
+  container.scrollTop = 0;
+
+  var vw = window.innerWidth;
+  var itemSize = Math.max(80, Math.min(140, vw / 8));
+  var fontSize = Math.max(11, itemSize * 0.13);
+
+  if (dexSubmode === 'pair') {
+    // 8 쌍 카드: 멤버 ↔ SKZOO
+    var members = allSkz.filter(function (c) { return c.kind === '멤버'; });
+    var title = document.createElement('div');
+    title.className = 'dex-section-title';
+    title.innerHTML = '🌟 멤버-SKZOO 페어 <span class="count">(8쌍)</span>';
+    container.appendChild(title);
+    var grid = document.createElement('div');
+    grid.className = 'pair-grid';
+    members.forEach(function (m) {
+      var skzoo = findSkzPair(m);
+      grid.appendChild(makePairCard(m, skzoo));
+    });
+    container.appendChild(grid);
+  } else {
+    var filtered = (dexSubmode === 'member')
+      ? allSkz.filter(function (c) { return c.kind === '멤버'; })
+      : allSkz.filter(function (c) { return c.kind === 'SKZOO'; });
+    var title2 = document.createElement('div');
+    title2.className = 'dex-section-title';
+    title2.innerHTML = (dexSubmode === 'member' ? '👥 멤버' : '🐺 SKZOO')
+      + ' <span class="count">(' + filtered.length + '명)</span>';
+    container.appendChild(title2);
+    var grid2 = document.createElement('div');
+    grid2.className = 'dex-grid';
+    grid2.style.gridTemplateColumns = 'repeat(auto-fill, minmax(' + itemSize + 'px, 1fr))';
+    filtered.forEach(function (c) { grid2.appendChild(makeDexItem(c, itemSize, fontSize)); });
+    container.appendChild(grid2);
+  }
+  container.dataset.built = '1';
+}
+
+function makeDexItem(c, itemSize, fontSize) {
+  var item = document.createElement('div');
+  item.className = 'dex-item';
+  item.dataset.name = c.name;
+
+  var imgWrap = document.createElement('div');
+  imgWrap.className = 'dex-img-wrap';
+  var img = document.createElement('img');
+  attachImgFallback(img);
+  img.src = c.file;
+  img.alt = c.name;
+  img.draggable = false;
+  img.loading = 'lazy';
+  imgWrap.appendChild(img);
+  item.appendChild(imgWrap);
+
+  var name = document.createElement('div');
+  name.className = 'dex-name';
+  name.textContent = c.name;
+  name.style.fontSize = fontSize + 'px';
+  item.appendChild(name);
+
+  if (c.en) {
+    var en = document.createElement('div');
+    en.className = 'dex-en';
+    en.textContent = c.en;
+    en.style.fontSize = Math.max(9, fontSize * 0.78) + 'px';
+    item.appendChild(en);
+  }
+
+  item.addEventListener('click', function () { showDexOverlay(c); });
+  return item;
+}
+
+function makePairCard(member, skzoo) {
+  var card = document.createElement('div');
+  card.className = 'pair-card';
+  function side(c) {
+    var s = document.createElement('div');
+    s.className = 'pair-side';
+    var img = document.createElement('img');
+    attachImgFallback(img);
+    img.src = c.file;
+    img.alt = c.name;
+    img.draggable = false;
+    img.loading = 'lazy';
+    s.appendChild(img);
+    var nm = document.createElement('div');
+    nm.className = 'pair-name';
+    nm.textContent = c.name + (c.en ? '  ' + c.en : '');
+    s.appendChild(nm);
+    s.addEventListener('click', function () { showDexOverlay(c); });
+    return s;
+  }
+  card.appendChild(side(member));
+  var link = document.createElement('div');
+  link.className = 'pair-link';
+  link.textContent = '↔';
+  card.appendChild(link);
+  if (skzoo) card.appendChild(side(skzoo));
+  return card;
+}
+
+// ── 오버레이 ────────────────────────────────────────────────
+function showDexOverlay(c) {
+  var overlay      = document.getElementById('dexOverlay');
+  var overlayImg   = document.getElementById('dexOverlayImg');
+  var overlayName  = document.getElementById('dexOverlayName');
+  var chipsRow     = document.getElementById('dexOverlayChips');
+  var blurbEl      = document.getElementById('dexOverlayBlurb');
+  var pairRow      = document.getElementById('dexOverlayPair');
+
+  overlayImg.src = c.file;
+  overlayImg.alt = c.name;
+  attachImgFallback(overlayImg);
+  overlayName.textContent = c.name;
+
+  // 영문명 (오버레이 영문)
+  var overlayEn = document.getElementById('dexOverlayEn');
+  if (!overlayEn) {
+    overlayEn = document.createElement('div');
+    overlayEn.id = 'dexOverlayEn';
+    overlayEn.className = 'dex-overlay-en';
+    overlayName.parentNode.insertBefore(overlayEn, overlayName.nextSibling);
+  }
+  overlayEn.textContent = c.en || '';
+  overlayEn.style.display = c.en ? '' : 'none';
+
+  // 칩 — 종류별로 다른 정보 표시
+  chipsRow.innerHTML = '';
+  function chip(cls, txt) {
+    if (!txt) return;
+    var e = document.createElement('span');
+    e.className = 'info-chip ' + cls;
+    e.textContent = txt;
+    chipsRow.appendChild(e);
+  }
+  chip('kind-' + c.kind, c.kind);
+  if (c.kind === '멤버') {
+    chip('role',   c.role);
+    chip('year',   c.birthYear ? c.birthYear + '년생' : '');
+    chip('origin', c.origin);
+  } else {
+    chip('species', c.species ? '동물: ' + c.species : '');
+    chip('origin',  c.color ? '색: ' + c.color : '');
+  }
+
+  blurbEl.textContent = c.blurb || '';
+
+  // 페어 링크
+  pairRow.innerHTML = '';
+  var pair = findSkzPair(c);
+  if (pair) {
+    var lbl = document.createElement('span');
+    lbl.textContent = (c.kind === '멤버' ? '동물 친구' : '담당 멤버') + ' →';
+    pairRow.appendChild(lbl);
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.textContent = pair.name + (pair.en ? '  ' + pair.en : '');
+    btn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      showDexOverlay(pair);
+    });
+    pairRow.appendChild(btn);
+  }
+
+  overlay.style.display = 'flex';
+  overlay.onclick = function () { overlay.style.display = 'none'; };
+}
+
+// ── 검색 ────────────────────────────────────────────────────
+function findSkzMatch(query) {
+  var q = normalizeName(query);
+  if (!q) return null;
+  for (var i = 0; i < allSkz.length; i++) {
+    if (normalizeName(allSkz[i].name) === q) return allSkz[i];
+    if (allSkz[i].en && normalizeName(allSkz[i].en) === q) return allSkz[i];
+  }
+  return null;
+}
+function flashDexSearchError(msg) {
+  var inp = document.getElementById('dexSearchInput');
+  var msgEl = document.getElementById('dexSearchMsg');
+  if (msgEl) msgEl.textContent = msg || '';
+  if (!inp) return;
+  inp.classList.add('error');
+  inp.classList.remove('shake-x');
+  void inp.offsetWidth;
+  inp.classList.add('shake-x');
+}
+function clearDexSearchError() {
+  var inp = document.getElementById('dexSearchInput');
+  var msgEl = document.getElementById('dexSearchMsg');
+  if (inp) inp.classList.remove('error', 'shake-x');
+  if (msgEl) msgEl.textContent = '';
+}
+function dexPreciseJump(container, item, onArrive) {
+  if (container) {
+    container.querySelectorAll('img[loading="lazy"]').forEach(function (img) { img.loading = 'eager'; });
+  }
+  requestAnimationFrame(function () {
+    requestAnimationFrame(function () {
+      var itemRect = item.getBoundingClientRect();
+      var contRect = container.getBoundingClientRect();
+      var target = container.scrollTop + (itemRect.top - contRect.top)
+                   - (container.clientHeight / 2) + (itemRect.height / 2);
+      target = Math.max(0, Math.min(target, container.scrollHeight - container.clientHeight));
+      if (typeof container.scrollTo === 'function') container.scrollTo({ top: target, behavior: 'smooth' });
+      else container.scrollTop = target;
+      item.classList.remove('dex-found-flash');
+      void item.offsetWidth;
+      item.classList.add('dex-found-flash');
+      if (onArrive) setTimeout(onArrive, 700);
+    });
+  });
+}
+function gotoSkz(query) {
+  var found = findSkzMatch(query);
+  if (!found) { flashDexSearchError('찾는 친구가 없어요'); return; }
+  clearDexSearchError();
+  if (currentMode !== 'dex') setMode('dex');
+  // 현재 sub-mode에서 셀이 없으면 그 종류에 맞는 sub-mode로 자동 전환
+  // (멤버를 검색했으면 멤버 sub-mode / SKZOO를 검색했으면 SKZOO sub-mode)
+  var inCurrent = false;
+  if (dexSubmode === 'pair') inCurrent = true; // pair mode shows both
+  else if (dexSubmode === 'member' && found.kind === '멤버') inCurrent = true;
+  else if (dexSubmode === 'skzoo' && found.kind === 'SKZOO') inCurrent = true;
+  if (!inCurrent) setDexSubmode(found.kind === '멤버' ? 'member' : 'skzoo');
+  var container = document.getElementById('dexContainer');
+  var item = container.querySelector('.dex-item[data-name="' + cssEscape(found.name) + '"]')
+          || container.querySelector('.pair-side .pair-name'); // 페어 모드에서는 pair-side 직접 처리
+  if (!item) {
+    // 페어 모드에서 직접 찾기
+    var sides = container.querySelectorAll('.pair-side');
+    for (var i = 0; i < sides.length; i++) {
+      var nm = sides[i].querySelector('.pair-name');
+      if (nm && nm.textContent.indexOf(found.name) === 0) {
+        item = sides[i];
+        break;
+      }
+    }
+  }
+  if (!item) { flashDexSearchError('도감을 다시 열어줘'); return; }
+  dexPreciseJump(container, item, function () { showDexOverlay(found); });
+}
+
+// ── 시계 레이아웃 ───────────────────────────────────────────
+var clockWrapper = document.getElementById('clockWrapper');
+var clockFace = document.getElementById('clockFace');
+var titleEl = document.getElementById('title');
+var digitalEl = document.getElementById('digitalTime');
+
+function layout() {
+  var vw = window.innerWidth;
+  var vh = window.innerHeight;
+  var titleSpace = vh * 0.12;
+  var S = Math.min(vw * 0.9, (vh - titleSpace) * 0.82);
+  var R = S / 2;
+
+  clockWrapper.style.width  = S + 'px';
+  clockWrapper.style.height = S + 'px';
+  clockWrapper.style.setProperty('--s', S + 'px');
+  clockWrapper.style.setProperty('--radius', R + 'px');
+
+  titleEl.style.fontSize = Math.max(20, S * 0.045) + 'px';
+  titleEl.style.marginBottom = (S * 0.025) + 'px';
+
+  // 기존 동적 요소 제거
+  clockFace.querySelectorAll('.hour-marker, .hour-number, .hand, .center-dot, .tick, .heart-pulse')
+    .forEach(function (e) { e.remove(); });
+
+  // tick marks (12 + 60)
+  for (var t = 0; t < 60; t++) {
+    var tick = document.createElement('div');
+    tick.className = 'tick';
+    var isHour = (t % 5 === 0);
+    var len = isHour ? S * 0.04 : S * 0.018;
+    var w   = isHour ? Math.max(2, S * 0.006) : Math.max(1, S * 0.003);
+    tick.style.width  = w + 'px';
+    tick.style.height = len + 'px';
+    tick.style.left   = (R - w / 2) + 'px';
+    tick.style.top    = (S * 0.025) + 'px';
+    var ang = (t / 60) * 360;
+    tick.style.setProperty('--radius', (R - S * 0.025 - len / 2) + 'px');
+    tick.style.transform = 'rotate(' + ang + 'deg) translateY(0)';
+    tick.style.transformOrigin = '50% ' + (R - S * 0.025) + 'px';
+    clockFace.appendChild(tick);
+  }
+
+  // hour numbers + markers
+  var markerR = R * 0.78;
+  var numR = R * 0.92;
+  var markerSize = Math.max(36, S * 0.085);
+  var nameSize = Math.max(11, S * 0.025);
+
+  for (var h = 1; h <= 12; h++) {
+    var angle = (h / 12) * 2 * Math.PI - Math.PI / 2;
+    var cx = R + markerR * Math.cos(angle);
+    var cy = R + markerR * Math.sin(angle);
+    // 숫자
+    var num = document.createElement('div');
+    num.className = 'hour-number';
+    num.textContent = h;
+    num.style.left = (R + numR * Math.cos(angle)) + 'px';
+    num.style.top  = (R + numR * Math.sin(angle)) + 'px';
+    num.style.fontSize = Math.max(12, S * 0.028) + 'px';
+    clockFace.appendChild(num);
+    // 마커
+    var char = characters.find(function (c) { return c.hour === h; });
+    if (!char) continue;
+    var marker = document.createElement('div');
+    marker.className = 'hour-marker';
+    marker.style.width  = markerSize + 'px';
+    marker.style.height = markerSize + 'px';
+    marker.style.left = cx + 'px';
+    marker.style.top  = cy + 'px';
+    var img = document.createElement('img');
+    attachImgFallback(img);
+    img.src = char.file;
+    img.alt = char.name;
+    img.draggable = false;
+    marker.appendChild(img);
+    var nm = document.createElement('div');
+    nm.className = 'char-name';
+    nm.textContent = char.name;
+    nm.style.fontSize = nameSize + 'px';
+    marker.appendChild(nm);
+    (function (cc) {
+      marker.addEventListener('click', function () { showDexOverlay(cc); });
+    })(char);
+    clockFace.appendChild(marker);
+  }
+
+  // hands
+  var hourW = Math.max(4, S * 0.014);
+  var minW  = Math.max(3, S * 0.011);
+  var secW  = Math.max(2, S * 0.006);
+  function makeHand(cls, w) {
+    var h = document.createElement('div');
+    h.className = 'hand ' + cls;
+    h.style.width = w + 'px';
+    h.style.marginLeft = (-w / 2) + 'px';
+    h.style.borderRadius = (w / 2) + 'px';
+    clockFace.appendChild(h);
+    return h;
+  }
+  window.__hands = {
+    hour:   makeHand('hand-hour',   hourW),
+    minute: makeHand('hand-minute', minW),
+    second: makeHand('hand-second', secW),
+  };
+
+  // center dot
+  var dot = document.createElement('div');
+  dot.className = 'center-dot';
+  var dotSize = Math.max(14, S * 0.04);
+  dot.style.width = dotSize + 'px';
+  dot.style.height = dotSize + 'px';
+  dot.style.marginLeft = (-dotSize / 2) + 'px';
+  dot.style.marginTop  = (-dotSize / 2) + 'px';
+  clockFace.appendChild(dot);
+
+  // digital time font
+  digitalEl.style.fontSize = Math.max(14, S * 0.04) + 'px';
+  digitalEl.style.padding = (S * 0.012) + 'px ' + (S * 0.04) + 'px';
+  digitalEl.style.marginTop = (S * 0.025) + 'px';
+
+  // mode buttons font
+  document.querySelectorAll('.mode-btn').forEach(function (b) {
+    b.style.padding = (S * 0.014) + 'px ' + (S * 0.04) + 'px';
+    b.style.fontSize = Math.max(12, S * 0.028) + 'px';
+  });
+  document.querySelectorAll('.refresh-btn').forEach(function (b) {
+    var sz = Math.max(32, S * 0.075);
+    b.style.width = sz + 'px';
+    b.style.height = sz + 'px';
+    b.style.fontSize = Math.max(16, S * 0.04) + 'px';
+  });
+}
+
+function updateClock() {
+  if (currentMode !== 'random' || !window.__hands) return;
+  var now = new Date();
+  var h = now.getHours() % 12;
+  var m = now.getMinutes();
+  var s = now.getSeconds();
+  var ms = now.getMilliseconds();
+  var smooth = s + ms / 1000;
+  var hAng = (h + m / 60) * 30;
+  var mAng = (m + s / 60) * 6;
+  var sAng = smooth * 6;
+  window.__hands.hour.style.transform   = 'translateX(-50%) rotate(' + hAng + 'deg)';
+  window.__hands.minute.style.transform = 'translateX(-50%) rotate(' + mAng + 'deg)';
+  window.__hands.second.style.transform = 'translateX(-50%) rotate(' + sAng + 'deg)';
+  // 시침이 가리키는 자리 활성화
+  var hourMark = Math.round((h + m / 60)) || 12;
+  if (hourMark === 0) hourMark = 12;
+  var markers = clockFace.querySelectorAll('.hour-marker');
+  markers.forEach(function (mk, idx) {
+    mk.classList.toggle('active', idx + 1 === hourMark);
+  });
+  digitalEl.textContent = String(now.getHours()).padStart(2, '0') + ':'
+                       + String(m).padStart(2, '0') + ':'
+                       + String(s).padStart(2, '0');
+}
+
+// ── 떠다니는 장식 ───────────────────────────────────────────
+function spawnFloating() {
+  var icons = ['🎵', '⭐', '🧭', '⚡', '🔥', '💫'];
+  for (var i = 0; i < 14; i++) {
+    var el = document.createElement('div');
+    el.className = 'floating-heart';
+    el.textContent = icons[i % icons.length];
+    el.style.left = Math.random() * 100 + 'vw';
+    el.style.fontSize = (16 + Math.random() * 22) + 'px';
+    el.style.animationDuration = (12 + Math.random() * 12) + 's';
+    el.style.animationDelay = (Math.random() * 18) + 's';
+    document.body.appendChild(el);
+  }
+}
+
+// ── 부팅 ────────────────────────────────────────────────────
+document.getElementById('btnRandom').addEventListener('click', function () { setMode('random'); });
+document.getElementById('btnDex').addEventListener('click',    function () { setMode('dex'); });
+document.getElementById('btnRefresh').addEventListener('click', function () {
+  if (currentMode === 'random') { characters = getRandomCharacters(); layout(); }
+});
+document.getElementById('btnDexPair').addEventListener('click',   function () { setDexSubmode('pair'); });
+document.getElementById('btnDexMember').addEventListener('click', function () { setDexSubmode('member'); });
+document.getElementById('btnDexSkzoo').addEventListener('click',  function () { setDexSubmode('skzoo'); });
+document.getElementById('dexSearchBtn').addEventListener('click', function () {
+  gotoSkz(document.getElementById('dexSearchInput').value);
+});
+document.getElementById('dexSearchInput').addEventListener('keydown', function (e) {
+  if (e.key === 'Enter') gotoSkz(this.value);
+});
+window.addEventListener('resize', function () {
+  if (currentMode === 'random') layout();
+});
+
+spawnFloating();
+setMode('random');
+setInterval(updateClock, 50);
+updateClock();
+</script>
+</body>
+</html>
