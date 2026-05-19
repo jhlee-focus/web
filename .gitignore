@@ -12,6 +12,9 @@ clock_twins/img_dinosaur_candidates/
 clock_twins/img_skz_src/
 clock_twins/img_skz_candidates/
 
+# Dalmuti card assets: 변환 전 원본 백업은 로컬에만 두고 가공된 PNG 만 커밋
+dalmuti/assets/**/_orig/
+
 # Python bytecode caches
 __pycache__/
 *.pyc

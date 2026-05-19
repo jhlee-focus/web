@@ -3,12 +3,37 @@
 import { JESTER, rankLabel } from "./cards.js";
 import { RANK_TITLE, effectiveRank, isUniformPlay } from "./game.js";
 
+// ===== 카드 표현 모드 =====
+// "simple" : 빈 카드 + 숫자/J 텍스트 (기본)
+// "image"  : assets/card_imgs_1st/NN.png 이미지
+let _cardStyle = "simple";
+export function setCardStyle(style) {
+  _cardStyle = style === "image" ? "image" : "simple";
+}
+export function getCardStyle() {
+  return _cardStyle;
+}
+
 // ===== 카드 엘리먼트 =====
 export function makeCardEl(cardValue, opts = {}) {
   const div = document.createElement("div");
   const isJester = cardValue === JESTER;
   div.className = "card" + (isJester ? " jester" : ` rank-${cardValue}`);
-  if (!isJester) div.textContent = String(cardValue);
+
+  if (_cardStyle === "image") {
+    div.classList.add("card-image");
+    const img = document.createElement("img");
+    img.src = isJester
+      ? "assets/card_imgs_1st/joker.png"
+      : `assets/card_imgs_1st/${String(cardValue).padStart(2, "0")}.png`;
+    img.alt = isJester ? "Joker" : String(cardValue);
+    img.draggable = false;
+    img.loading = "lazy";
+    div.appendChild(img);
+  } else if (!isJester) {
+    div.textContent = String(cardValue);
+  }
+
   if (opts.disabled) div.classList.add("disabled");
   if (opts.locked) div.classList.add("locked");
   if (opts.selected) div.classList.add("selected");
