@@ -2,6 +2,7 @@
 
 import { GameClient } from "./room.js";
 import { isOnlineMode, makeAnonNickname } from "./realtime.js";
+import { JESTER } from "./cards.js";
 import {
   renderLobbyRoom,
   renderGame,
@@ -191,8 +192,55 @@ els.handCards.addEventListener("click", (e) => {
   if (card.classList.contains("disabled") || card.classList.contains("locked")) return;
   const idx = parseInt(card.dataset.index);
   if (Number.isNaN(idx)) return;
-  if (selection.has(idx)) selection.delete(idx);
-  else selection.add(idx);
+
+  // 이미 선택된 카드 클릭 → 선택 전체 해제 (원샷 취소)
+  if (selection.has(idx)) {
+    selection.clear();
+    renderAll();
+    return;
+  }
+
+  const hand = client.myHand;
+  const clickedRank = hand[idx];
+  const trick = client.publicState?.currentTrick;
+  const needCount = trick?.leadCount;
+
+  // 리드 자리(추격 아님) → 사용자가 자유롭게 단일/복수 선택
+  if (!needCount) {
+    selection.add(idx);
+    renderAll();
+    return;
+  }
+
+  // 추격 자리: needCount 장 자동 선택. 클릭한 카드 우선.
+  selection.clear();
+
+  // 1. 클릭한 카드와 같은 랭크 모음 (클릭한 인덱스 맨 앞)
+  const sameRankIdxs = [idx];
+  for (let i = 0; i < hand.length; i++) {
+    if (i !== idx && hand[i] === clickedRank) sameRankIdxs.push(i);
+  }
+  const pickedSame = Math.min(needCount, sameRankIdxs.length);
+  for (let i = 0; i < pickedSame; i++) selection.add(sameRankIdxs[i]);
+
+  let shortage = needCount - pickedSame;
+
+  // 2. 부족분을 광대로 채움 (광대 자체를 클릭한 경우엔 자기 자신 외 광대 추가 안 함)
+  if (shortage > 0 && clickedRank !== JESTER) {
+    const jesterIdxs = [];
+    for (let i = 0; i < hand.length; i++) {
+      if (hand[i] === JESTER) jesterIdxs.push(i);
+    }
+    const used = Math.min(shortage, jesterIdxs.length);
+    for (let i = 0; i < used; i++) selection.add(jesterIdxs[i]);
+    shortage -= used;
+  }
+
+  // 3. 광대까지 다 써도 부족하면 토스트
+  if (shortage > 0) {
+    showToast(els, "해당 카드가 부족합니다");
+  }
+
   renderAll();
 });
 
