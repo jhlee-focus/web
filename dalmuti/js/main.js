@@ -37,6 +37,7 @@ const els = {
   roomScreen: $("room-screen"),
   roomCodeDisplay: $("room-code-display"),
   copyLinkBtn: $("copy-link-btn"),
+  copyCodeBtn: $("copy-code-btn"),
   lobbyPlayers: $("lobby-players"),
   playerCount: $("player-count"),
   hostControls: $("host-controls"),
@@ -144,8 +145,9 @@ els.createRoomBtn.addEventListener("click", async () => {
     await client.createRoom();
     showLobbySection("room");
     if (client.publicChannel?.online) {
-      // 공유 가능한 링크 만들기
+      // 공유 가능한 링크/코드 버튼 노출
       els.copyLinkBtn.hidden = false;
+      els.copyCodeBtn.hidden = false;
     }
   } catch (e) {
     showToast(els, "방 생성 실패: " + (e.message || e));
@@ -178,8 +180,17 @@ els.roomCodeInput.addEventListener("keydown", (e) => {
 els.copyLinkBtn?.addEventListener("click", () => {
   const link = `${location.origin}${location.pathname}#room=${client.roomCode}`;
   navigator.clipboard?.writeText(link).then(
-    () => showToast(els, "링크가 복사됐어요"),
+    () => showToast(els, "방 링크가 복사됐어요"),
     () => showToast(els, "복사 실패: " + link),
+  );
+});
+
+els.copyCodeBtn?.addEventListener("click", () => {
+  const code = client.roomCode;
+  if (!code) return;
+  navigator.clipboard?.writeText(code).then(
+    () => showToast(els, `방 코드 ${code} 복사됨`),
+    () => showToast(els, "복사 실패: " + code),
   );
 });
 

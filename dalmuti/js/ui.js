@@ -45,7 +45,9 @@ export function makeCardEl(cardValue, opts = {}) {
 // ===== 로비 =====
 export function renderLobbyRoom(client, els) {
   els.roomCodeDisplay.textContent = client.roomCode;
-  els.copyLinkBtn.hidden = !client.publicChannel?.online;
+  const online = !!client.publicChannel?.online;
+  els.copyLinkBtn.hidden = !online;
+  if (els.copyCodeBtn) els.copyCodeBtn.hidden = !online;
 
   // 플레이어 목록
   els.lobbyPlayers.innerHTML = "";
