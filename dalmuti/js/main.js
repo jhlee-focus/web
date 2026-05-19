@@ -8,6 +8,7 @@ import {
   renderGame,
   renderTaxModal,
   renderRoundEndModal,
+  renderCountdown,
   showToast,
   validateSelection,
   setCardStyle,
@@ -38,6 +39,8 @@ const els = {
   roomCodeDisplay: $("room-code-display"),
   copyLinkBtn: $("copy-link-btn"),
   copyCodeBtn: $("copy-code-btn"),
+  leaveRoomBtn: $("leave-room-btn"),
+  leaveGameBtn: $("leave-game-btn"),
   lobbyPlayers: $("lobby-players"),
   playerCount: $("player-count"),
   hostControls: $("host-controls"),
@@ -128,10 +131,28 @@ function showLobby() {
 }
 
 // ================ 이벤트: 닉네임 ================
-els.continueBtn.addEventListener("click", () => {
+els.continueBtn.addEventListener("click", async () => {
   const raw = els.nicknameInput.value.trim();
   client.setNickname(raw);
   els.entryNickname.textContent = client.nickname;
+
+  // URL 해시(#room=ABC) 로 직접 접속한 경우 → 닉네임 입력만 받고 바로 방 입장 시도
+  const hashCode = (location.hash.match(/room=([A-Z0-9]+)/i)?.[1] || "").toUpperCase();
+  if (hashCode && isOnlineMode()) {
+    els.continueBtn.disabled = true;
+    try {
+      els.roomCodeInput.value = hashCode;
+      const ok = await client.joinRoom(hashCode);
+      if (ok) {
+        showLobbySection("room");
+        return;
+      }
+    } catch (e) {
+      showToast(els, "방 입장 실패: " + (e.message || e));
+    } finally {
+      els.continueBtn.disabled = false;
+    }
+  }
   showLobbySection("entry");
 });
 els.nicknameInput.addEventListener("keydown", (e) => {
@@ -376,6 +397,26 @@ els.cardStyleToggle.addEventListener("click", (e) => {
   if (!btn) return;
   applyCardStyle(btn.dataset.style);
 });
+
+// ================ 이벤트: 방 나가기 ================
+async function handleLeaveRoom() {
+  if (!client.role) return;
+  const inGame = client.publicState && client.publicState.phase !== "lobby";
+  const msg = inGame ? "게임 진행 중인데 방을 나갈까요?" : "방을 나갈까요?";
+  if (!confirm(msg)) return;
+  await client.leave();
+  // 해시 비우기 (재진입 시 자동 join 방지)
+  if (location.hash) history.replaceState(null, "", location.pathname);
+  selection.clear();
+  taxSelection.clear();
+  showLobby();
+  showLobbySection("entry"); // 닉네임은 client 에 유지됨
+}
+els.leaveRoomBtn?.addEventListener("click", handleLeaveRoom);
+els.leaveGameBtn?.addEventListener("click", handleLeaveRoom);
+
+// ================ 카운트다운 갱신 ================
+setInterval(() => renderCountdown(client), 500);
 
 // 페이지 떠날 때 호스트라면 host_left broadcast
 window.addEventListener("beforeunload", () => {

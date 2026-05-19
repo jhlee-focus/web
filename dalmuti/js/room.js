@@ -116,6 +116,21 @@ export class GameClient extends EventTarget {
       seen.add(p.playerId);
       unique.push(p);
     }
+
+    // 게임이 시작된 후에 사라진 인간 플레이어가 있으면 호스트에게 통보
+    if (this.role === "host" && this.host && this.publicState && this.publicState.phase !== "lobby") {
+      const prevIds = new Set(this.presentPlayers.map((p) => p.playerId));
+      for (const prevId of prevIds) {
+        if (prevId === this.myId) continue;
+        if (!seen.has(prevId)) {
+          // 이 플레이어가 게임 상태에 있으면 (= 같이 게임 중이었으면) 나간 것으로 표시
+          if (this.host.state.players.find((pp) => pp.id === prevId)) {
+            this.host.markPlayerLeft(prevId);
+          }
+        }
+      }
+    }
+
     this.presentPlayers = unique;
     this.emit("lobby_changed");
   }

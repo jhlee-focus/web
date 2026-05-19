@@ -113,11 +113,14 @@ export function renderGame(client, els, selection) {
 
 function renderPlayersPanel(state, client, container) {
   container.innerHTML = "";
+  const leftSet = new Set(state.leftPlayers || []);
   for (const p of state.players) {
     const tile = document.createElement("div");
     tile.className = "player-tile";
+    const isLeft = leftSet.has(p.id);
     if (state.currentTurn === p.id && state.phase === "play") tile.classList.add("is-turn");
     if (state.finishedOrder.includes(p.id)) tile.classList.add("is-finished");
+    if (isLeft) tile.classList.add("has-left");
 
     const nameRow = document.createElement("div");
     nameRow.className = "name-row";
@@ -125,7 +128,12 @@ function renderPlayersPanel(state, client, container) {
     name.className = "nickname";
     name.textContent = (p.id === client.myId ? "★ " : "") + p.nickname + (p.isAI ? " 🤖" : "");
     nameRow.appendChild(name);
-    if (p.rank && p.rank !== "merchant") {
+    if (isLeft) {
+      const leftMarker = document.createElement("span");
+      leftMarker.className = "left-marker";
+      leftMarker.textContent = "나감";
+      nameRow.appendChild(leftMarker);
+    } else if (p.rank && p.rank !== "merchant") {
       const badge = document.createElement("span");
       badge.className = `badge ${p.rank}`;
       badge.textContent = RANK_TITLE[p.rank] || p.rank;
@@ -166,12 +174,35 @@ function renderStatusLine(state, client) {
   if (state.phase === "play") {
     const turnPlayer = state.players.find((p) => p.id === state.currentTurn);
     if (!turnPlayer) return "";
-    if (state.currentTurn === client.myId) {
-      return "<strong>당신 차례</strong>";
-    }
-    return `${turnPlayer.nickname} 차례` + (turnPlayer.isAI ? " (AI)" : "");
+    const leftSet = new Set(state.leftPlayers || []);
+    const label =
+      state.currentTurn === client.myId
+        ? "<strong>당신 차례</strong>"
+        : `${turnPlayer.nickname} 차례` + (turnPlayer.isAI ? " (AI)" : "");
+    // 카운트다운은 활성 인간 턴에서만 (AI/나간 사람 제외)
+    const showCountdown = !turnPlayer.isAI && !leftSet.has(state.currentTurn);
+    const cd = showCountdown ? '<span class="turn-countdown" id="turn-countdown"></span>' : "";
+    return label + cd;
   }
   return "";
+}
+
+// 카운트다운 텍스트만 갱신 (setInterval 로 매 0.5s 호출).
+export function renderCountdown(client) {
+  const state = client.publicState;
+  if (!state) return;
+  const el = document.getElementById("turn-countdown");
+  if (!el) return;
+  if (state.phase !== "play" || !state.turnStartedAt) {
+    el.textContent = "";
+    el.classList.remove("warn", "danger");
+    return;
+  }
+  const TIMEOUT_MS = 30000;
+  const remaining = Math.max(0, Math.ceil((TIMEOUT_MS - (Date.now() - state.turnStartedAt)) / 1000));
+  el.textContent = `${remaining}s`;
+  el.classList.toggle("warn", remaining <= 10 && remaining > 5);
+  el.classList.toggle("danger", remaining <= 5);
 }
 
 function renderHand(client, container, selection) {
