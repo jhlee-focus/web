@@ -179,8 +179,16 @@ button.icon {
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
+  gap: 8px;
   margin-bottom: 18px;
 }
+.room-head-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+}
+.room-head-actions button { padding: 8px 12px; font-size: 13px; }
 .room-code {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 32px;
