@@ -20,6 +20,14 @@
 <!-- ============= 로비 ============= -->
 <section id="lobby" class="screen">
   <div id="nickname-screen" class="card-block">
+    <div id="join-via-link-banner" class="join-banner" hidden>
+      <div class="join-banner-title">방 초대 링크로 접속했어요</div>
+      <div class="join-banner-code-row">
+        <span class="muted small">방 코드</span>
+        <span id="join-via-link-code" class="join-banner-code"></span>
+      </div>
+      <div class="join-banner-hint">닉네임을 입력하면 이 방으로 바로 입장합니다.</div>
+    </div>
     <label class="field">
       <span>닉네임</span>
       <input id="nickname-input" maxlength="20" placeholder="비워두면 익명 ID 자동 부여" />
@@ -128,6 +136,6 @@
 
 </main>
 
-<script type="module" src="js/main.js?v=7"></script>
+<script type="module" src="js/main.js?v=8"></script>
 </body>
 </html>
