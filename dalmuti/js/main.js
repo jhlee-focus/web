@@ -83,10 +83,10 @@ if (location.hostname === "localhost" || location.hostname === "127.0.0.1") {
 function init() {
   // online 상태 표시
   if (isOnlineMode()) {
-    els.onlineStatusValue.textContent = "Supabase 연결됨 ✓";
+    els.onlineStatusValue.textContent = "온라인 연결됨 ✓  솔로 / 멀티 플레이 가능";
     els.onlineStatusValue.style.color = "var(--accent)";
   } else {
-    els.onlineStatusValue.textContent = "오프라인 (솔로 + AI 만 가능)";
+    els.onlineStatusValue.textContent = "오프라인 — 솔로(AI) 플레이만 가능";
     els.onlineStatusValue.style.color = "var(--text-dim)";
     els.joinWarning.hidden = false;
     els.joinRoomBtn.disabled = true;
